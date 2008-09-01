@@ -818,6 +818,9 @@ magenta = Color Foreground Magenta
 cyan    = Color Foreground Cyan
 white   = Color Foreground White
 
+-- | Displays a document with a forecolor given in the first parameter
+color :: ANSIColor -> Doc -> Doc
+color = Color Foreground
 
 -- | Displays a document with the given backcolor
 blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
@@ -829,6 +832,10 @@ blueb    = Color Background Blue
 magentab = Color Background Magenta
 cyanb    = Color Background Cyan
 whiteb   = Color Background White
+
+-- | Displays a document with a backcolor given in the first parameter
+colorb :: ANSIColor -> Doc -> Doc
+colorb = Color Background
 
 
 -----------------------------------------------------------
