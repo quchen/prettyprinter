@@ -56,7 +56,8 @@
 -- * The implementation uses optimised representations and strictness
 -- annotations.
 --
--- Full documentation available at <http://www.cs.uu.nl/~daan/download/pprint/pprint.html>.
+-- Full documentation for the original wl-pprint library available at
+-- <http://www.cs.uu.nl/~daan/download/pprint/pprint.html>.
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
    -- * Documents
@@ -107,7 +108,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    Pretty(..),
 
    -- * Rendering
-   SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
+   ColorLayer(..), SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
 
    -- * Undocumented
         , bool
@@ -684,6 +685,8 @@ align d         = column (\k ->
 -- Primitives
 -----------------------------------------------------------
 
+-- | The data type @ColorLayer@ just records whether a color
+-- should apply to the fore or back color of some text.
 data ColorLayer = Foreground
                 | Background
 
@@ -804,6 +807,7 @@ flatten (Color l c x)    = Color l c (flatten x)
 flatten other            = other                     --Empty,Char,Text,EndColor
 
 
+-- | Displays a document with the given forecolor
 black, red, green, yellow, blue, magenta, cyan, white :: Doc -> Doc
 black   = Color Foreground Black
 red     = Color Foreground Red
@@ -815,6 +819,7 @@ cyan    = Color Foreground Cyan
 white   = Color Foreground White
 
 
+-- | Displays a document with the given backcolor
 blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
 blackb   = Color Background Black
 redb     = Color Background Red
