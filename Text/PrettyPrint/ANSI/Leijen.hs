@@ -943,6 +943,8 @@ renderCompact x
 --
 -- > showWidth :: Int -> Doc -> String
 -- > showWidth w x   = displayS (renderPretty 0.4 w x) ""
+--
+-- Color information is discarded by this function.
 displayS :: SimpleDoc -> ShowS
 displayS SEmpty             = id
 displayS (SChar c x)        = showChar c . displayS x
@@ -955,6 +957,9 @@ displayS (SColor _ _ x)     = displayS x
 -- handle @handle@. This function is used for example by 'hPutDoc':
 --
 -- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 100 doc)
+--
+-- Due to technical limitations, colorisation is not performed by this
+-- function even if the handle is that of an ANSI console output stream.
 displayIO :: Handle -> SimpleDoc -> IO ()
 displayIO handle simpleDoc = displayIO' (Just handle) simpleDoc
 
@@ -1007,6 +1012,9 @@ putDoc doc              = hPutDoc' Nothing doc
 -- >                            ["vertical","text"]))
 -- >          ; hClose handle
 -- >          }
+--
+-- Due to technical limitations, colorisation is not performed by this
+-- function even if the handle is that of an ANSI console output stream.
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc handle doc      = hPutDoc' (Just handle) doc
 
