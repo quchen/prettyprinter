@@ -37,3 +37,6 @@ Executable ansi-wl-pprint-example
                 Build-Depends:  base >= 3
         else
                 Build-Depends:  base < 3
+        
+        if !flag(example)
+                Buildable:      False
