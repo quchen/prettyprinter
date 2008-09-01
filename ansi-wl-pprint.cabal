@@ -1,0 +1,27 @@
+Name:           ansi-wl-pprint
+Version:        0.1
+Cabal-Version:  >= 1.2
+Category:       User Interfaces
+Synopsis:       The Wadler/Leijen Pretty Printer for colored ANSI terminal output
+Description:    This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
+License:        BSD3
+License-File:   LICENSE
+Author:         Daan Leijen and Max Bolingbroke
+Maintainer:     batterseapower@hotmail.com
+Homepage:       http://bsp.lighthouseapp.com/projects/16293-hs-ansi-wl-pprint/overview
+Build-Type:     Simple
+
+Flag SplitBase
+        Description:    Choose the new smaller, split-up base package
+        Default:        True
+
+Library
+        Exposed-Modules:        Text.PrettyPrint.ANSI.Leijen
+        
+        Build-Depends:          ansi-terminal >= 0.2.1
+        if flag(splitBase)
+                Build-Depends:  base >= 3
+        else
+                Build-Depends:  base < 3
+        
+        Ghc-Options:                    -Wall
