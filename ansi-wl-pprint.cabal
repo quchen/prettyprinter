@@ -15,6 +15,11 @@ Flag SplitBase
         Description:    Choose the new smaller, split-up base package
         Default:        True
 
+Flag Example
+        Description:    Build the example application
+        Default:        False
+
+
 Library
         Exposed-Modules:        Text.PrettyPrint.ANSI.Leijen
         
@@ -23,5 +28,12 @@ Library
                 Build-Depends:  base >= 3
         else
                 Build-Depends:  base < 3
+
+Executable ansi-wl-pprint-example
+        Main-Is:                Text/PrettyPrint/ANSI/Example.hs
         
-        Ghc-Options:                    -Wall
+        Build-Depends:          ansi-terminal >= 0.2.1
+        if flag(splitBase)
+                Build-Depends:  base >= 3
+        else
+                Build-Depends:  base < 3

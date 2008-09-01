@@ -98,6 +98,10 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Primitive type documents
    string, int, integer, float, double, rational,
+   
+   -- * Primitive colorisation combinators
+   black, red, green, yellow, blue, magenta, cyan, white,
+   blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb,
 
    -- * Pretty class
    Pretty(..),
@@ -113,6 +117,13 @@ module Text.PrettyPrint.ANSI.Leijen (
         ) where
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
+
+import System.Console.ANSI (ANSIColor(..), ANSISGR(..), setSGR)
+
+import Control.Monad (when)
+
+import Data.Maybe (isNothing, fromMaybe)
+
 
 infixr 5 </>,<//>,<$>,<$$>
 infixr 6 <>,<+>
@@ -673,6 +684,9 @@ align d         = column (\k ->
 -- Primitives
 -----------------------------------------------------------
 
+data ColorLayer = Foreground
+                | Background
+
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
@@ -696,6 +710,9 @@ data Doc        = Empty
                 | Union Doc Doc         -- invariant: first lines of first doc longer than the first lines of the second doc
                 | Column  (Int -> Doc)
                 | Nesting (Int -> Doc)
+                | Color ColorLayer ANSIColor Doc  -- Introduces coloring /around/ the embedded document
+                | EndColor ColorLayer ANSIColor   -- Only used during the rendered phase, to signal a color end marker should be output before continuing
+                           ANSIColor ANSIColor    -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
 
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
@@ -710,6 +727,7 @@ data SimpleDoc  = SEmpty
                 | SChar Char SimpleDoc
                 | SText !Int String SimpleDoc
                 | SLine !Int SimpleDoc
+                | SColor ColorLayer ANSIColor SimpleDoc
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
@@ -776,14 +794,36 @@ group :: Doc -> Doc
 group x         = Union (flatten x) x
 
 flatten :: Doc -> Doc
-flatten (Cat x y)       = Cat (flatten x) (flatten y)
-flatten (Nest i x)      = Nest i (flatten x)
-flatten (Line break)    = if break then Empty else Text 1 " "
-flatten (Union x y)     = flatten x
-flatten (Column f)      = Column (flatten . f)
-flatten (Nesting f)     = Nesting (flatten . f)
-flatten other           = other                     --Empty,Char,Text
+flatten (Cat x y)        = Cat (flatten x) (flatten y)
+flatten (Nest i x)       = Nest i (flatten x)
+flatten (Line break)     = if break then Empty else Text 1 " "
+flatten (Union x y)      = flatten x
+flatten (Column f)       = Column (flatten . f)
+flatten (Nesting f)      = Nesting (flatten . f)
+flatten (Color l c x)    = Color l c (flatten x)
+flatten other            = other                     --Empty,Char,Text,EndColor
 
+
+black, red, green, yellow, blue, magenta, cyan, white :: Doc -> Doc
+black   = Color Foreground Black
+red     = Color Foreground Red
+green   = Color Foreground Green
+yellow  = Color Foreground Yellow
+blue    = Color Foreground Blue
+magenta = Color Foreground Magenta
+cyan    = Color Foreground Cyan
+white   = Color Foreground White
+
+
+blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
+blackb   = Color Background Black
+redb     = Color Background Red
+greenb   = Color Background Green
+yellowb  = Color Background Yellow
+blueb    = Color Background Blue
+magentab = Color Background Magenta
+cyanb    = Color Background Cyan
+whiteb   = Color Background White
 
 
 -----------------------------------------------------------
@@ -808,7 +848,7 @@ data Docs   = Nil
 -- higher, the ribbon width will be 0 or @width@ respectively.
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty rfrac w x
-    = best 0 0 (Cons 0 x Nil)
+    = best 0 0 Black White (Cons 0 x Nil)
     where
       -- r :: the ribbon width in characters
       r  = max 0 (min w (round (fromIntegral w * rfrac)))
@@ -816,20 +856,25 @@ renderPretty rfrac w x
       -- best :: n = indentation of current line
       --         k = current column
       --        (ie. (k >= n) && (k - n == count of inserted characters)
-      best n k Nil      = SEmpty
-      best n k (Cons i d ds)
+      best n k fc bc Nil = SEmpty
+      best n k fc bc (Cons i d ds)
         = case d of
-            Empty       -> best n k ds
-            Char c      -> let k' = k+1 in seq k' (SChar c (best n k' ds))
-            Text l s    -> let k' = k+l in seq k' (SText l s (best n k' ds))
-            Line _      -> SLine i (best i i ds)
-            Cat x y     -> best n k (Cons i x (Cons i y ds))
-            Nest j x    -> let i' = i+j in seq i' (best n k (Cons i' x ds))
-            Union x y   -> nicest n k (best n k (Cons i x ds))
-                                      (best n k (Cons i y ds))
-
-            Column f    -> best n k (Cons i (f k) ds)
-            Nesting f   -> best n k (Cons i (f i) ds)
+            Empty                -> best n k fc bc ds
+            Char c               -> let k' = k+1 in seq k' (SChar c (best n k' fc bc ds))
+            Text l s             -> let k' = k+l in seq k' (SText l s (best n k' fc bc ds))
+            Line _               -> SLine i (best i i fc bc ds)
+            Cat x y              -> best n k fc bc (Cons i x (Cons i y ds))
+            Nest j x             -> let i' = i+j in seq i' (best n k fc bc (Cons i' x ds))
+            Union x y            -> nicest n k (best n k fc bc (Cons i x ds))
+                                         (best n k fc bc (Cons i y ds))
+            Column f             -> best n k fc bc (Cons i (f k) ds)
+            Nesting f            -> best n k fc bc (Cons i (f i) ds)
+            Color l c x          -> SColor l c (best n k fc' bc' (Cons i x (Cons i (EndColor l revert_c fc bc) ds)))
+              where
+                fc' = case l of { Background -> fc; Foreground -> c }
+                bc' = case l of { Background -> c; Foreground -> bc }
+                revert_c = case l of { Background -> bc; Foreground -> fc }
+            EndColor l c fc' bc' -> SColor l c (best n k fc' bc' ds)
 
       --nicest :: r = ribbon width, w = page width,
       --          n = indentation of current line, k = current column
@@ -841,11 +886,12 @@ renderPretty rfrac w x
                           width = min (w - k) (r - k + n)
 
 
-fits w x        | w < 0         = False
-fits w SEmpty                   = True
-fits w (SChar c x)              = fits (w - 1) x
-fits w (SText l s x)            = fits (w - l) x
-fits w (SLine i x)              = True
+fits w x        | w < 0     = False
+fits w SEmpty               = True
+fits w (SChar c x)          = fits (w - 1) x
+fits w (SText l s x)        = fits (w - l) x
+fits w (SLine i x)          = True
+fits w (SColor _ _ x)       = fits w x
 
 
 -----------------------------------------------------------
@@ -859,21 +905,25 @@ fits w (SLine i x)              = True
 -- renderer is very fast. The resulting output contains fewer
 -- characters than a pretty printed version and can be used for output
 -- that is read by other programs.
+--
+-- This rendering function does not add any colorisation information.
 renderCompact :: Doc -> SimpleDoc
 renderCompact x
     = scan 0 [x]
     where
       scan k []     = SEmpty
       scan k (d:ds) = case d of
-                        Empty       -> scan k ds
-                        Char c      -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-                        Text l s    -> let k' = k+l in seq k' (SText l s (scan k' ds))
-                        Line _      -> SLine 0 (scan 0 ds)
-                        Cat x y     -> scan k (x:y:ds)
-                        Nest j x    -> scan k (x:ds)
-                        Union x y   -> scan k (y:ds)
-                        Column f    -> scan k (f k:ds)
-                        Nesting f   -> scan k (f 0:ds)
+                        Empty            -> scan k ds
+                        Char c           -> let k' = k+1 in seq k' (SChar c (scan k' ds))
+                        Text l s         -> let k' = k+l in seq k' (SText l s (scan k' ds))
+                        Line _           -> SLine 0 (scan 0 ds)
+                        Cat x y          -> scan k (x:y:ds)
+                        Nest j x         -> scan k (x:ds)
+                        Union x y        -> scan k (y:ds)
+                        Column f         -> scan k (f k:ds)
+                        Nesting f        -> scan k (f 0:ds)
+                        Color _ _ x      -> scan k (x:ds)
+                        EndColor _ _ _ _ -> scan k (x:ds)
 
 
 
@@ -893,6 +943,7 @@ displayS SEmpty             = id
 displayS (SChar c x)        = showChar c . displayS x
 displayS (SText l s x)      = showString s . displayS x
 displayS (SLine i x)        = showString ('\n':indentation i) . displayS x
+displayS (SColor _ _ x)     = displayS x
 
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file
@@ -900,14 +951,26 @@ displayS (SLine i x)        = showString ('\n':indentation i) . displayS x
 --
 -- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 100 doc)
 displayIO :: Handle -> SimpleDoc -> IO ()
-displayIO handle simpleDoc
+displayIO handle simpleDoc = displayIO' (Just handle) simpleDoc
+
+-- | Because ANSI terminal output is only supported on stdout, we need to
+-- have a special case for that.  If the handle is @Nothing@, this function
+-- will output to stdout, using ANSI colors.  Otherwise, it will output a raw
+-- string to the handle.
+displayIO' :: Maybe Handle -> SimpleDoc -> IO ()
+displayIO' mb_handle simpleDoc
     = display simpleDoc
     where
-      display SEmpty        = return ()
-      display (SChar c x)   = do{ hPutChar handle c; display x}
-      display (SText l s x) = do{ hPutStr handle s; display x}
-      display (SLine i x)   = do{ hPutStr handle ('\n':indentation i); display x}
-
+      handle = fromMaybe stdout mb_handle
+      
+      display SEmpty         = return ()
+      display (SChar c x)    = do{ hPutChar handle c; display x}
+      display (SText l s x)  = do{ hPutStr handle s; display x}
+      display (SLine i x)    = do{ hPutStr handle ('\n':indentation i); display x}
+      display (SColor l c x) = do{ when (isNothing mb_handle) (reColor l c); display x}
+      
+      reColor Background c = setSGR (BackgroundNormalIntensity c)
+      reColor Foreground c = setSGR (ForegroundNormalIntensity c)
 
 -----------------------------------------------------------
 -- default pretty printers: show, putDoc and hPutDoc
@@ -928,7 +991,7 @@ instance Show Doc where
 -- hello world
 -- @
 putDoc :: Doc -> IO ()
-putDoc doc              = hPutDoc stdout doc
+putDoc doc              = hPutDoc' Nothing doc
 
 -- | @(hPutDoc handle doc)@ pretty prints document @doc@ to the file
 -- handle @handle@ with a page width of 100 characters and a ribbon
@@ -940,7 +1003,12 @@ putDoc doc              = hPutDoc stdout doc
 -- >          ; hClose handle
 -- >          }
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc handle doc      = displayIO handle (renderPretty 0.4 80 doc)
+hPutDoc handle doc      = hPutDoc' (Just handle) doc
+
+-- | Because ANSI terminal output is only supported on stdout, we need to
+-- have a special case for that.
+hPutDoc' :: Maybe Handle -> Doc -> IO ()
+hPutDoc' mb_handle doc  = displayIO' mb_handle (renderPretty 0.4 80 doc)
 
 
 
