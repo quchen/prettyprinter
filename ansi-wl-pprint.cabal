@@ -8,7 +8,7 @@ License:        BSD3
 License-File:   LICENSE
 Author:         Daan Leijen and Max Bolingbroke
 Maintainer:     batterseapower@hotmail.com
-Homepage:       http://bsp.lighthouseapp.com/projects/16293-hs-ansi-wl-pprint/overview
+Homepage:       http://wiki.omega-prime.co.uk/doku.php/projects/haskell/ansi-wl-pprint
 Build-Type:     Simple
 
 Flag SplitBase
