@@ -10,18 +10,16 @@ To just install the library:
 <pre>
 <code>runghc Setup.lhs configure
 runghc Setup.lhs build
-sudo runghc Setup.lhs install
+sudo runghc Setup.lhs install</code>
 </pre>
-</code>
 
 If you want to build the example, to check it's all working:
 
 <pre>
 <code>runghc Setup.lhs configure -fexample
 runghc Setup.lhs build
-dist/build/ansi-wl-pprint-example/ansi-wl-pprint-example
+dist/build/ansi-wl-pprint-example/ansi-wl-pprint-example</code>
 </pre>
-</code>
 
 
 h2. Description
@@ -51,8 +49,7 @@ color :: ANSIColor -> Doc -> Doc
 blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
  
 -- | Displays a document with a backcolor given in the first parameter
-colorb :: ANSIColor -> Doc -> Doc
-</code>
+colorb :: ANSIColor -> Doc -> Doc</code>
 </pre>
 
 Due to a technical limitation with the ansi-terminal package, currently colors will only show up if you output using @putDoc@. It certainly won't work if you output to a string, and even won't even work if you try and output to a handle, regardless of whether that handle is for an output stream on an ANSI enabled terminal or not.
@@ -60,8 +57,6 @@ Due to a technical limitation with the ansi-terminal package, currently colors w
 
 h2. Linkage
 
-"Hackage":http://hackage.haskell.org/cgi-bin/hackage-scripts/package/ansi-wl-pprint/
-
-"Bug Tracker":http://bsp.lighthouseapp.com/projects/16293-hs-ansi-wl-pprint/
-
-"GitHub":http://github.com/batterseapower/ansi-wl-pprint/
+* "Hackage":http://hackage.haskell.org/cgi-bin/hackage-scripts/package/ansi-wl-pprint/
+* "Bug Tracker":http://bsp.lighthouseapp.com/projects/16293-hs-ansi-wl-pprint/
+* "GitHub":http://github.com/batterseapower/ansi-wl-pprint/
