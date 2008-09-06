@@ -1,15 +1,16 @@
-Name:           ansi-wl-pprint
-Version:        0.2
-Cabal-Version:  >= 1.2
-Category:       User Interfaces
-Synopsis:       The Wadler/Leijen Pretty Printer for colored ANSI terminal output
-Description:    This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
-License:        BSD3
-License-File:   LICENSE
-Author:         Daan Leijen and Max Bolingbroke
-Maintainer:     batterseapower@hotmail.com
-Homepage:       http://wiki.omega-prime.co.uk/doku.php/projects/haskell/ansi-wl-pprint
-Build-Type:     Simple
+Name:                ansi-wl-pprint
+Version:             0.2
+Cabal-Version:       >= 1.2
+Category:            User Interfaces
+Synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
+Description:         This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
+License:             BSD3
+License-File:        LICENSE
+Extra-Source-Files:  README.textile
+Author:              Daan Leijen and Max Bolingbroke
+Maintainer:          batterseapower@hotmail.com
+Homepage:            http://github.com/batterseapower/ansi-wl-pprint
+Build-Type:          Simple
 
 Flag SplitBase
         Description:    Choose the new smaller, split-up base package
