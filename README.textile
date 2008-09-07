@@ -40,20 +40,25 @@ The library provides the obvious API, which just allows colorization of any @Doc
 
 <pre>
 <code>-- | Displays a document with the given forecolor
-black, red, green, yellow, blue, magenta, cyan, white :: Doc -> Doc
+black, red, green, yellow, blue, magenta, cyan, white,
+  dullblack, dullred, dullgreen, dullyellow,
+  dullblue, dullmagenta, dullcyan, dullwhite :: Doc -> Doc
  
 -- | Displays a document with a forecolor given in the first parameter
-color :: ANSIColor -> Doc -> Doc
- 
+color, dullcolor :: Color -> Doc -> Doc 
+
 -- | Displays a document with the given backcolor
-blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
+onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+  ondullblack, ondullred, ondullgreen, ondullyellow,
+  ondullblue, ondullmagenta, ondullcyan, ondullwhite :: Doc -> Doc
  
 -- | Displays a document with a backcolor given in the first parameter
-colorb :: ANSIColor -> Doc -> Doc</code>
+oncolor, ondullcolor :: Color -> Doc -> Doc</code>
 </pre>
 
-Due to a technical limitation with ANSI colors on Windows, no colors will be displayed on that platform if you output via a @String@. However, @putDoc@ and @hPutDoc@ should work just fine on Windows.
+The @putDoc@ and @hPutDoc@ functions are fully portable between Windows and Unix-like operating systems with ANSI terminals.
 
+If you output @Doc@ via a @String@ (i.e. using @show@), no colored text will be displayed on Windows, though it will work fine on Unix. This is to due to a technical limitation on how ANSI colors are implemented on Windows consoles.
 
 h2. Linkage
 
