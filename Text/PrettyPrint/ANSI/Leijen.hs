@@ -102,13 +102,15 @@ module Text.PrettyPrint.ANSI.Leijen (
    
    -- * Primitive colorisation combinators
    black, red, green, yellow, blue, magenta, cyan, white,
-   blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb,
+   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
+   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite,
 
    -- * Pretty class
    Pretty(..),
 
    -- * Rendering
-   ColorLayer(..), SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
+   SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
 
    -- * Undocumented
         , bool
@@ -119,7 +121,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
 
-import System.Console.ANSI (ANSIColor(..), ANSISGR(..), hSetSGR, setSGRCode)
+import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..), SGR(..), hSetSGR, setSGRCode)
 
 import Control.Monad (when)
 
@@ -685,11 +687,6 @@ align d         = column (\k ->
 -- Primitives
 -----------------------------------------------------------
 
--- | The data type @ColorLayer@ just records whether a color
--- should apply to the fore or back color of some text.
-data ColorLayer = Foreground
-                | Background
-
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
@@ -713,9 +710,10 @@ data Doc        = Empty
                 | Union Doc Doc         -- invariant: first lines of first doc longer than the first lines of the second doc
                 | Column  (Int -> Doc)
                 | Nesting (Int -> Doc)
-                | Color ColorLayer ANSIColor Doc  -- Introduces coloring /around/ the embedded document
-                | EndColor (Maybe ANSIColor)      -- Only used during the rendered phase, to signal a color end marker should be output before continuing
-                           (Maybe ANSIColor)      -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
+                | Color ConsoleLayer ColorIntensity -- Introduces coloring /around/ the embedded document
+                        Color Doc
+                | EndColor (Maybe (ColorIntensity, Color))  -- Only used during the rendered phase, to signal a color end marker should be output before continuing
+                           (Maybe (ColorIntensity, Color))  -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
 
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
@@ -730,7 +728,7 @@ data SimpleDoc  = SEmpty
                 | SChar Char SimpleDoc
                 | SText !Int String SimpleDoc
                 | SLine !Int SimpleDoc
-                | SSGR ANSISGR SimpleDoc
+                | SSGR [SGR] SimpleDoc
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
@@ -803,39 +801,49 @@ flatten (Line break)     = if break then Empty else Text 1 " "
 flatten (Union x y)      = flatten x
 flatten (Column f)       = Column (flatten . f)
 flatten (Nesting f)      = Nesting (flatten . f)
-flatten (Color l c x)    = Color l c (flatten x)
+flatten (Color l i c x)  = Color l i c (flatten x)
 flatten other            = other                     --Empty,Char,Text,EndColor
 
 
 -- | Displays a document with the given forecolor
-black, red, green, yellow, blue, magenta, cyan, white :: Doc -> Doc
-black   = Color Foreground Black
-red     = Color Foreground Red
-green   = Color Foreground Green
-yellow  = Color Foreground Yellow
-blue    = Color Foreground Blue
-magenta = Color Foreground Magenta
-cyan    = Color Foreground Cyan
-white   = Color Foreground White
+black, red, green, yellow, blue, magenta, cyan, white,
+  dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite :: Doc -> Doc
+(black, dullblack)     = colorFunctions Black
+(red, dullred)         = colorFunctions Red
+(green, dullgreen)     = colorFunctions Green
+(yellow, dullyellow)   = colorFunctions Yellow
+(blue, dullblue)       = colorFunctions Blue
+(magenta, dullmagenta) = colorFunctions Magenta
+(cyan, dullcyan)       = colorFunctions Cyan
+(white, dullwhite)     = colorFunctions White
 
 -- | Displays a document with a forecolor given in the first parameter
-color :: ANSIColor -> Doc -> Doc
-color = Color Foreground
+color, dullcolor :: Color -> Doc -> Doc
+color     = Color Foreground Vivid
+dullcolor = Color Foreground Dull
+
+colorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
+colorFunctions what = (color what, dullcolor what)
 
 -- | Displays a document with the given backcolor
-blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
-blackb   = Color Background Black
-redb     = Color Background Red
-greenb   = Color Background Green
-yellowb  = Color Background Yellow
-blueb    = Color Background Blue
-magentab = Color Background Magenta
-cyanb    = Color Background Cyan
-whiteb   = Color Background White
+onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+  ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite :: Doc -> Doc
+(onblack, ondullblack)     = oncolorFunctions Black
+(onred, ondullred)         = oncolorFunctions Red
+(ongreen, ondullgreen)     = oncolorFunctions Green
+(onyellow, ondullyellow)   = oncolorFunctions Yellow
+(onblue, ondullblue)       = oncolorFunctions Blue
+(onmagenta, ondullmagenta) = oncolorFunctions Magenta
+(oncyan, ondullcyan)       = oncolorFunctions Cyan
+(onwhite, ondullwhite)     = oncolorFunctions White
 
 -- | Displays a document with a backcolor given in the first parameter
-colorb :: ANSIColor -> Doc -> Doc
-colorb = Color Background
+oncolor, ondullcolor :: Color -> Doc -> Doc
+oncolor     = Color Background Vivid
+ondullcolor = Color Background Dull
+
+oncolorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
+oncolorFunctions what = (oncolor what, ondullcolor what)
 
 
 -----------------------------------------------------------
@@ -860,6 +868,14 @@ data Docs   = Nil
 -- higher, the ribbon width will be 0 or @width@ respectively.
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty rfrac w x
+    -- I used to do a @SSGR [Reset]@ here, but if you do that it will result
+    -- in any rendered @Doc@ containing at least some ANSI control codes. This
+    -- may be undesirable if you want to render to non-ANSI devices by simply
+    -- not making use of the ANSI color combinators I provide.
+    --
+    -- What I "really" want to do here is do an initial Reset iff there is some
+    -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if someone
+    -- complains!
     = best 0 0 Nothing Nothing (Cons 0 x Nil)
     where
       -- r :: the ribbon width in characters
@@ -881,14 +897,15 @@ renderPretty rfrac w x
                                          (best n k mb_fc mb_bc (Cons i y ds))
             Column f             -> best n k mb_fc mb_bc (Cons i (f k) ds)
             Nesting f            -> best n k mb_fc mb_bc (Cons i (f i) ds)
-            Color l c x          -> SSGR (toSGR l c) (best n k mb_fc' mb_bc' (Cons i x (Cons i (EndColor mb_fc mb_bc) ds)))
+            Color l t c x        -> SSGR [toSGR l t c] (best n k mb_fc' mb_bc' (Cons i x (Cons i (EndColor mb_fc mb_bc) ds)))
               where
-                mb_fc' = case l of { Background -> mb_fc; Foreground -> Just c }
-                mb_bc' = case l of { Background -> Just c; Foreground -> mb_bc }
-            EndColor mb_fc' mb_bc' -> SSGR Reset $ fc_sgr $ bc_sgr (best n k mb_fc' mb_bc' ds)
+                mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
+                mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
+            EndColor mb_fc' mb_bc' -> SSGR sgr3 (best n k mb_fc' mb_bc' ds)
               where
-                fc_sgr = maybe id (SSGR . toSGR Foreground) mb_fc'
-                bc_sgr = maybe id (SSGR . toSGR Background) mb_bc'
+                sgr3 = Reset : sgr2
+                sgr2 = maybe id ((:) . uncurry (toSGR Foreground)) mb_fc' sgr1
+                sgr1 = maybe id ((:) . uncurry (toSGR Background)) mb_bc' []
 
       --nicest :: r = ribbon width, w = page width,
       --          n = indentation of current line, k = current column
@@ -899,9 +916,8 @@ renderPretty rfrac w x
                         where
                           width = min (w - k) (r - k + n)
 
-toSGR :: ColorLayer -> ANSIColor -> ANSISGR
-toSGR Background = BackgroundNormalIntensity
-toSGR Foreground = ForegroundNormalIntensity
+toSGR :: ConsoleLayer -> ColorIntensity -> Color -> SGR
+toSGR layer intensity color = SetColor layer intensity color
 
 
 fits w x        | w < 0     = False
@@ -931,17 +947,17 @@ renderCompact x
     where
       scan k []     = SEmpty
       scan k (d:ds) = case d of
-                        Empty        -> scan k ds
-                        Char c       -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-                        Text l s     -> let k' = k+l in seq k' (SText l s (scan k' ds))
-                        Line _       -> SLine 0 (scan 0 ds)
-                        Cat x y      -> scan k (x:y:ds)
-                        Nest j x     -> scan k (x:ds)
-                        Union x y    -> scan k (y:ds)
-                        Column f     -> scan k (f k:ds)
-                        Nesting f    -> scan k (f 0:ds)
-                        Color _ _ x  -> scan k (x:ds)
-                        EndColor _ _ -> scan k ds
+                        Empty         -> scan k ds
+                        Char c        -> let k' = k+1 in seq k' (SChar c (scan k' ds))
+                        Text l s      -> let k' = k+l in seq k' (SText l s (scan k' ds))
+                        Line _        -> SLine 0 (scan 0 ds)
+                        Cat x y       -> scan k (x:y:ds)
+                        Nest j x      -> scan k (x:ds)
+                        Union x y     -> scan k (y:ds)
+                        Column f      -> scan k (f k:ds)
+                        Nesting f     -> scan k (f 0:ds)
+                        Color _ _ _ x -> scan k (x:ds)
+                        EndColor _ _  -> scan k ds
 
 
 
