@@ -36,7 +36,7 @@ A full example is provided with the package, and can be compiled by suppling Cab
 
 h2. Manual
 
-The library provides the obvious API, which just allows coloration of any @Doc@ value. It looks something like this:
+The library provides the obvious API, which just allows colorization of any @Doc@ value. It looks something like this:
 
 <pre>
 <code>-- | Displays a document with the given forecolor
@@ -52,7 +52,7 @@ blackb, redb, greenb, yellowb, blueb, magentab, cyanb, whiteb :: Doc -> Doc
 colorb :: ANSIColor -> Doc -> Doc</code>
 </pre>
 
-Due to a technical limitation with the ansi-terminal package, currently colors will only show up if you output using @putDoc@. It certainly won't work if you output to a string, and even won't even work if you try and output to a handle, regardless of whether that handle is for an output stream on an ANSI enabled terminal or not.
+Due to a technical limitation with ANSI colors on Windows, no colors will be displayed on that platform if you output via a @String@. However, @putDoc@ and @hPutDoc@ should work just fine on Windows.
 
 
 h2. Linkage
