@@ -860,7 +860,7 @@ data Docs   = Nil
 -- higher, the ribbon width will be 0 or @width@ respectively.
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty rfrac w x
-    = SSGR Reset $ best 0 0 Nothing Nothing (Cons 0 x Nil)
+    = best 0 0 Nothing Nothing (Cons 0 x Nil)
     where
       -- r :: the ribbon width in characters
       r  = max 0 (min w (round (fromIntegral w * rfrac)))
