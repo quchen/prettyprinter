@@ -24,7 +24,7 @@ Flag Example
 Library
         Exposed-Modules:        Text.PrettyPrint.ANSI.Leijen
         
-        Build-Depends:          ansi-terminal >= 0.3.0
+        Build-Depends:          ansi-terminal >= 0.3.1
         if flag(splitBase)
                 Build-Depends:  base >= 3
         else
@@ -33,7 +33,7 @@ Library
 Executable ansi-wl-pprint-example
         Main-Is:                Text/PrettyPrint/ANSI/Example.hs
         
-        Build-Depends:          ansi-terminal >= 0.3.0
+        Build-Depends:          ansi-terminal >= 0.3.1
         if flag(splitBase)
                 Build-Depends:  base >= 3
         else

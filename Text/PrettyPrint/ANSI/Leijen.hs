@@ -117,7 +117,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
         ) where
 
-import System.IO (Handle,hPutStr,hPutChar,hFlush,stdout)
+import System.IO (Handle,hPutStr,hPutChar,stdout)
 
 import System.Console.ANSI (ANSIColor(..), ANSISGR(..), hSetSGR, setSGRCode)
 
@@ -982,11 +982,7 @@ displayIO handle simpleDoc
       display (SChar c x)    = do{ hPutChar handle c; display x}
       display (SText l s x)  = do{ hPutStr handle s; display x}
       display (SLine i x)    = do{ hPutStr handle ('\n':indentation i); display x}
-      -- It's VERY IMPORTANT that we flush before issuing a SetSGR because on Windows the arrival of SGRs
-      -- is not necessarily synchronised with that of the text they are attempting to modify, so if we don't
-      -- flush more often than not the text simply comes out uncolored because all the SGRs have arrived /before/
-      -- any text at all was pushed out to the console!
-      display (SSGR s x)     = do{ hFlush handle; hSetSGR handle s; display x}
+      display (SSGR s x)     = do{ hSetSGR handle s; display x}
 
 -----------------------------------------------------------
 -- default pretty printers: show, putDoc and hPutDoc
