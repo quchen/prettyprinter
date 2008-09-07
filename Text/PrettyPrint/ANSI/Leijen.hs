@@ -117,9 +117,9 @@ module Text.PrettyPrint.ANSI.Leijen (
 
         ) where
 
-import System.IO (Handle,hPutStr,hPutChar,stdout)
+import System.IO (Handle,hPutStr,hPutChar,hFlush,stdout)
 
-import System.Console.ANSI (ANSIColor(..), ANSISGR(..), setSGR)
+import System.Console.ANSI (ANSIColor(..), ANSISGR(..), hSetSGR, setSGRCode)
 
 import Control.Monad (when)
 
@@ -714,8 +714,8 @@ data Doc        = Empty
                 | Column  (Int -> Doc)
                 | Nesting (Int -> Doc)
                 | Color ColorLayer ANSIColor Doc  -- Introduces coloring /around/ the embedded document
-                | EndColor ColorLayer ANSIColor   -- Only used during the rendered phase, to signal a color end marker should be output before continuing
-                           ANSIColor ANSIColor    -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
+                | EndColor (Maybe ANSIColor)      -- Only used during the rendered phase, to signal a color end marker should be output before continuing
+                           (Maybe ANSIColor)      -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
 
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
@@ -730,7 +730,7 @@ data SimpleDoc  = SEmpty
                 | SChar Char SimpleDoc
                 | SText !Int String SimpleDoc
                 | SLine !Int SimpleDoc
-                | SColor ColorLayer ANSIColor SimpleDoc
+                | SSGR ANSISGR SimpleDoc
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
@@ -860,7 +860,7 @@ data Docs   = Nil
 -- higher, the ribbon width will be 0 or @width@ respectively.
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty rfrac w x
-    = best 0 0 Black White (Cons 0 x Nil)
+    = SSGR Reset $ best 0 0 Nothing Nothing (Cons 0 x Nil)
     where
       -- r :: the ribbon width in characters
       r  = max 0 (min w (round (fromIntegral w * rfrac)))
@@ -868,25 +868,27 @@ renderPretty rfrac w x
       -- best :: n = indentation of current line
       --         k = current column
       --        (ie. (k >= n) && (k - n == count of inserted characters)
-      best n k fc bc Nil = SEmpty
-      best n k fc bc (Cons i d ds)
+      best n k mb_fc mb_bc Nil = SEmpty
+      best n k mb_fc mb_bc (Cons i d ds)
         = case d of
-            Empty                -> best n k fc bc ds
-            Char c               -> let k' = k+1 in seq k' (SChar c (best n k' fc bc ds))
-            Text l s             -> let k' = k+l in seq k' (SText l s (best n k' fc bc ds))
-            Line _               -> SLine i (best i i fc bc ds)
-            Cat x y              -> best n k fc bc (Cons i x (Cons i y ds))
-            Nest j x             -> let i' = i+j in seq i' (best n k fc bc (Cons i' x ds))
-            Union x y            -> nicest n k (best n k fc bc (Cons i x ds))
-                                         (best n k fc bc (Cons i y ds))
-            Column f             -> best n k fc bc (Cons i (f k) ds)
-            Nesting f            -> best n k fc bc (Cons i (f i) ds)
-            Color l c x          -> SColor l c (best n k fc' bc' (Cons i x (Cons i (EndColor l revert_c fc bc) ds)))
+            Empty                -> best n k mb_fc mb_bc ds
+            Char c               -> let k' = k+1 in seq k' (SChar c (best n k' mb_fc mb_bc ds))
+            Text l s             -> let k' = k+l in seq k' (SText l s (best n k' mb_fc mb_bc ds))
+            Line _               -> SLine i (best i i mb_fc mb_bc ds)
+            Cat x y              -> best n k mb_fc mb_bc (Cons i x (Cons i y ds))
+            Nest j x             -> let i' = i+j in seq i' (best n k mb_fc mb_bc (Cons i' x ds))
+            Union x y            -> nicest n k (best n k mb_fc mb_bc (Cons i x ds))
+                                         (best n k mb_fc mb_bc (Cons i y ds))
+            Column f             -> best n k mb_fc mb_bc (Cons i (f k) ds)
+            Nesting f            -> best n k mb_fc mb_bc (Cons i (f i) ds)
+            Color l c x          -> SSGR (toSGR l c) (best n k mb_fc' mb_bc' (Cons i x (Cons i (EndColor mb_fc mb_bc) ds)))
               where
-                fc' = case l of { Background -> fc; Foreground -> c }
-                bc' = case l of { Background -> c; Foreground -> bc }
-                revert_c = case l of { Background -> bc; Foreground -> fc }
-            EndColor l c fc' bc' -> SColor l c (best n k fc' bc' ds)
+                mb_fc' = case l of { Background -> mb_fc; Foreground -> Just c }
+                mb_bc' = case l of { Background -> Just c; Foreground -> mb_bc }
+            EndColor mb_fc' mb_bc' -> SSGR Reset $ fc_sgr $ bc_sgr (best n k mb_fc' mb_bc' ds)
+              where
+                fc_sgr = maybe id (SSGR . toSGR Foreground) mb_fc'
+                bc_sgr = maybe id (SSGR . toSGR Background) mb_bc'
 
       --nicest :: r = ribbon width, w = page width,
       --          n = indentation of current line, k = current column
@@ -897,13 +899,17 @@ renderPretty rfrac w x
                         where
                           width = min (w - k) (r - k + n)
 
+toSGR :: ColorLayer -> ANSIColor -> ANSISGR
+toSGR Background = BackgroundNormalIntensity
+toSGR Foreground = ForegroundNormalIntensity
+
 
 fits w x        | w < 0     = False
 fits w SEmpty               = True
 fits w (SChar c x)          = fits (w - 1) x
 fits w (SText l s x)        = fits (w - l) x
 fits w (SLine i x)          = True
-fits w (SColor _ _ x)       = fits w x
+fits w (SSGR s x)           = fits w x
 
 
 -----------------------------------------------------------
@@ -925,17 +931,17 @@ renderCompact x
     where
       scan k []     = SEmpty
       scan k (d:ds) = case d of
-                        Empty            -> scan k ds
-                        Char c           -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-                        Text l s         -> let k' = k+l in seq k' (SText l s (scan k' ds))
-                        Line _           -> SLine 0 (scan 0 ds)
-                        Cat x y          -> scan k (x:y:ds)
-                        Nest j x         -> scan k (x:ds)
-                        Union x y        -> scan k (y:ds)
-                        Column f         -> scan k (f k:ds)
-                        Nesting f        -> scan k (f 0:ds)
-                        Color _ _ x      -> scan k (x:ds)
-                        EndColor _ _ _ _ -> scan k (x:ds)
+                        Empty        -> scan k ds
+                        Char c       -> let k' = k+1 in seq k' (SChar c (scan k' ds))
+                        Text l s     -> let k' = k+l in seq k' (SText l s (scan k' ds))
+                        Line _       -> SLine 0 (scan 0 ds)
+                        Cat x y      -> scan k (x:y:ds)
+                        Nest j x     -> scan k (x:ds)
+                        Union x y    -> scan k (y:ds)
+                        Column f     -> scan k (f k:ds)
+                        Nesting f    -> scan k (f 0:ds)
+                        Color _ _ x  -> scan k (x:ds)
+                        EndColor _ _ -> scan k ds
 
 
 
@@ -951,13 +957,15 @@ renderCompact x
 -- > showWidth :: Int -> Doc -> String
 -- > showWidth w x   = displayS (renderPretty 0.4 w x) ""
 --
--- Color information is discarded by this function.
+-- ANSI color information will be discarded by this function unless
+-- you are running on a Unix-like operating system. This is due to
+-- a technical limitation in Windows ANSI support.
 displayS :: SimpleDoc -> ShowS
 displayS SEmpty             = id
 displayS (SChar c x)        = showChar c . displayS x
 displayS (SText l s x)      = showString s . displayS x
 displayS (SLine i x)        = showString ('\n':indentation i) . displayS x
-displayS (SColor _ _ x)     = displayS x
+displayS (SSGR s x)         = showString (setSGRCode s) . displayS x
 
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file
@@ -965,29 +973,20 @@ displayS (SColor _ _ x)     = displayS x
 --
 -- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 100 doc)
 --
--- Due to technical limitations, colorisation is not performed by this
--- function even if the handle is that of an ANSI console output stream.
+-- Any ANSI colorisation in @simpleDoc@ will be output.
 displayIO :: Handle -> SimpleDoc -> IO ()
-displayIO handle simpleDoc = displayIO' (Just handle) simpleDoc
-
--- | Because ANSI terminal output is only supported on stdout, we need to
--- have a special case for that.  If the handle is @Nothing@, this function
--- will output to stdout, using ANSI colors.  Otherwise, it will output a raw
--- string to the handle.
-displayIO' :: Maybe Handle -> SimpleDoc -> IO ()
-displayIO' mb_handle simpleDoc
+displayIO handle simpleDoc
     = display simpleDoc
     where
-      handle = fromMaybe stdout mb_handle
-      
       display SEmpty         = return ()
       display (SChar c x)    = do{ hPutChar handle c; display x}
       display (SText l s x)  = do{ hPutStr handle s; display x}
       display (SLine i x)    = do{ hPutStr handle ('\n':indentation i); display x}
-      display (SColor l c x) = do{ when (isNothing mb_handle) (reColor l c); display x}
-      
-      reColor Background c = setSGR (BackgroundNormalIntensity c)
-      reColor Foreground c = setSGR (ForegroundNormalIntensity c)
+      -- It's VERY IMPORTANT that we flush before issuing a SetSGR because on Windows the arrival of SGRs
+      -- is not necessarily synchronised with that of the text they are attempting to modify, so if we don't
+      -- flush more often than not the text simply comes out uncolored because all the SGRs have arrived /before/
+      -- any text at all was pushed out to the console!
+      display (SSGR s x)     = do{ hFlush handle; hSetSGR handle s; display x}
 
 -----------------------------------------------------------
 -- default pretty printers: show, putDoc and hPutDoc
@@ -1007,8 +1006,10 @@ instance Show Doc where
 -- @
 -- hello world
 -- @
+--
+-- Any ANSI colorisation in @doc@ will be output.
 putDoc :: Doc -> IO ()
-putDoc doc              = hPutDoc' Nothing doc
+putDoc doc              = hPutDoc stdout doc
 
 -- | @(hPutDoc handle doc)@ pretty prints document @doc@ to the file
 -- handle @handle@ with a page width of 100 characters and a ribbon
@@ -1020,15 +1021,9 @@ putDoc doc              = hPutDoc' Nothing doc
 -- >          ; hClose handle
 -- >          }
 --
--- Due to technical limitations, colorisation is not performed by this
--- function even if the handle is that of an ANSI console output stream.
+-- Any ANSI colorisation in @doc@ will be output.
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc handle doc      = hPutDoc' (Just handle) doc
-
--- | Because ANSI terminal output is only supported on stdout, we need to
--- have a special case for that.
-hPutDoc' :: Maybe Handle -> Doc -> IO ()
-hPutDoc' mb_handle doc  = displayIO' mb_handle (renderPretty 0.4 80 doc)
+hPutDoc handle doc  = displayIO handle (renderPretty 0.4 80 doc)
 
 
 
