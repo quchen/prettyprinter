@@ -58,6 +58,20 @@
 --
 -- Full documentation for the original wl-pprint library available at
 -- <http://www.cs.uu.nl/~daan/download/pprint/pprint.html>.
+--
+-- The library has been extended to allow formatting text for output
+-- to ANSI style consoles. New combinators allow:
+--
+-- * Control of foreground and background color of text
+--
+-- * The abliity to make parts of the text bold or underlined
+--
+-- This functionality is, as far as possible, portable across platforms
+-- with their varying terminals.  However, one thing to be particularly
+-- wary of is that console colors will not be displayed on Windows unless
+-- the 'Doc' value is output using the 'putDoc' function or one of it's
+-- friends.  Rendering the 'Doc' to a 'String' and then outputing /that/
+-- will only work on Unix-style operating systems.
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
    -- * Documents
@@ -96,15 +110,21 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Character documents
    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
    squote, dquote, semi, colon, comma, space, dot, backslash, equals,
-
-   -- * Primitive type documents
-   string, int, integer, float, double, rational,
    
-   -- * Primitive colorisation combinators
+   -- * Colorisation combinators
    black, red, green, yellow, blue, magenta, cyan, white,
    dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
    onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite,
+
+   -- * Emboldening combinators
+   bold, debold,
+   
+   -- * Underlining combinators
+   underline, deunderline,
+
+   -- * Primitive type documents
+   string, int, integer, float, double, rational,
 
    -- * Pretty class
    Pretty(..),
@@ -121,11 +141,13 @@ module Text.PrettyPrint.ANSI.Leijen (
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
 
-import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..), SGR(..), hSetSGR, setSGRCode)
+import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
+                            Underlining(..), ConsoleIntensity(..),
+                            SGR(..), hSetSGR, setSGRCode)
 
 import Control.Monad (when)
 
-import Data.Maybe (isNothing, fromMaybe)
+import Data.Maybe (isNothing, fromMaybe, catMaybes)
 
 
 infixr 5 </>,<//>,<$>,<$$>
@@ -712,8 +734,14 @@ data Doc        = Empty
                 | Nesting (Int -> Doc)
                 | Color ConsoleLayer ColorIntensity -- Introduces coloring /around/ the embedded document
                         Color Doc
-                | EndColor (Maybe (ColorIntensity, Color))  -- Only used during the rendered phase, to signal a color end marker should be output before continuing
-                           (Maybe (ColorIntensity, Color))  -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block)
+                | Intensify ConsoleIntensity Doc
+                | Italicize Bool Doc
+                | Underline Underlining Doc
+                | RestoreFormat (Maybe (ColorIntensity, Color))  -- Only used during the rendered phase, to signal a SGR should be issued to restore the terminal formatting.
+                                (Maybe (ColorIntensity, Color))  -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block).
+                                (Maybe ConsoleIntensity)         -- Intensity to revert to.
+                                (Maybe Bool)                     -- Italicization to revert to.
+                                (Maybe Underlining)              -- Underlining to revert to.
 
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
@@ -802,7 +830,10 @@ flatten (Union x y)      = flatten x
 flatten (Column f)       = Column (flatten . f)
 flatten (Nesting f)      = Nesting (flatten . f)
 flatten (Color l i c x)  = Color l i c (flatten x)
-flatten other            = other                     --Empty,Char,Text,EndColor
+flatten (Intensify i x)  = Intensify i (flatten x)
+flatten (Italicize b x)  = Italicize b (flatten x)
+flatten (Underline u x)  = Underline u (flatten x)
+flatten other            = other                     --Empty,Char,Text,RestoreFormat
 
 
 -----------------------------------------------------------
@@ -913,6 +944,57 @@ oncolorFunctions what = (oncolor what, ondullcolor what)
 
 
 -----------------------------------------------------------
+-- Console Intensity
+-----------------------------------------------------------
+
+-- | Displays a document in a heavier font weight
+bold :: Doc -> Doc
+bold = Intensify BoldIntensity
+
+-- | Displays a document in the normal font weight
+debold :: Doc -> Doc
+debold = Intensify NormalIntensity
+
+-- NB: I don't support FaintIntensity here because it is not widely supported by terminals.
+
+
+-----------------------------------------------------------
+-- Italicization
+-----------------------------------------------------------
+
+{-
+
+I'm in two minds about providing these functions, since italicization is so rarely implemented.
+It is especially bad because "italicization" may cause the meaning of colors to flip, which will
+look a bit weird, to say the least...
+
+
+-- | Displays a document in italics. This is not widely supported, and it's use is not recommended
+italicize :: Doc -> Doc
+italicize = Italicize True
+
+-- | Displays a document with no italics
+deitalicize :: Doc -> Doc
+deitalicize = Italicize False
+
+-}
+
+-----------------------------------------------------------
+-- Underlining
+-----------------------------------------------------------
+
+-- | Displays a document with underlining
+underline :: Doc -> Doc
+underline = Underline SingleUnderline
+
+-- | Displays a document with no underlining
+deunderline :: Doc -> Doc
+deunderline = Underline NoUnderline
+
+-- NB: I don't support DoubleUnderline here because it is not widely supported by terminals.
+
+
+-----------------------------------------------------------
 -- Renderers
 -----------------------------------------------------------
 
@@ -942,7 +1024,7 @@ renderPretty rfrac w x
     -- What I "really" want to do here is do an initial Reset iff there is some
     -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if someone
     -- complains!
-    = best 0 0 Nothing Nothing (Cons 0 x Nil)
+    = best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 x Nil)
     where
       -- r :: the ribbon width in characters
       r  = max 0 (min w (round (fromIntegral w * rfrac)))
@@ -950,28 +1032,41 @@ renderPretty rfrac w x
       -- best :: n = indentation of current line
       --         k = current column
       --        (ie. (k >= n) && (k - n == count of inserted characters)
-      best n k mb_fc mb_bc Nil = SEmpty
-      best n k mb_fc mb_bc (Cons i d ds)
+      best n k mb_fc mb_bc mb_in mb_it mb_un Nil = SEmpty
+      best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds)
         = case d of
-            Empty                -> best n k mb_fc mb_bc ds
-            Char c               -> let k' = k+1 in seq k' (SChar c (best n k' mb_fc mb_bc ds))
-            Text l s             -> let k' = k+l in seq k' (SText l s (best n k' mb_fc mb_bc ds))
-            Line _               -> SLine i (best i i mb_fc mb_bc ds)
-            Cat x y              -> best n k mb_fc mb_bc (Cons i x (Cons i y ds))
-            Nest j x             -> let i' = i+j in seq i' (best n k mb_fc mb_bc (Cons i' x ds))
-            Union x y            -> nicest n k (best n k mb_fc mb_bc (Cons i x ds))
-                                         (best n k mb_fc mb_bc (Cons i y ds))
-            Column f             -> best n k mb_fc mb_bc (Cons i (f k) ds)
-            Nesting f            -> best n k mb_fc mb_bc (Cons i (f i) ds)
-            Color l t c x        -> SSGR [toSGR l t c] (best n k mb_fc' mb_bc' (Cons i x (Cons i (EndColor mb_fc mb_bc) ds)))
+            Empty         -> best_typical n k ds
+            Char c        -> let k' = k+1 in seq k' (SChar c (best_typical n k' ds))
+            Text l s      -> let k' = k+l in seq k' (SText l s (best_typical n k' ds))
+            Line _        -> SLine i (best_typical i i ds)
+            Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
+            Nest j x      -> let i' = i+j in seq i' (best_typical n k (Cons i' x ds))
+            Union x y     -> nicest n k (best_typical n k (Cons i x ds))
+                                        (best_typical n k (Cons i y ds))
+            Column f      -> best_typical n k (Cons i (f k) ds)
+            Nesting f     -> best_typical n k (Cons i (f i) ds)
+            Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
               where
                 mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
                 mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
-            EndColor mb_fc' mb_bc' -> SSGR sgr3 (best n k mb_fc' mb_bc' ds)
+            Intensify t x -> SSGR [SetConsoleIntensity t] (best n k mb_fc mb_bc (Just t) mb_it mb_un (Cons i x ds_restore))
+            Italicize t x -> SSGR [SetItalicized t] (best n k mb_fc mb_bc mb_in (Just t) mb_un (Cons i x ds_restore))
+            Underline u x -> SSGR [SetUnderlining u] (best n k mb_fc mb_bc mb_in mb_it (Just u) (Cons i x ds_restore))
+            RestoreFormat mb_fc' mb_bc' mb_in' mb_it' mb_un' -> SSGR sgrs (best n k mb_fc' mb_bc' mb_in' mb_it' mb_un' ds)
               where
-                sgr3 = Reset : sgr2
-                sgr2 = maybe id ((:) . uncurry (toSGR Foreground)) mb_fc' sgr1
-                sgr1 = maybe id ((:) . uncurry (toSGR Background)) mb_bc' []
+                -- We need to be able to restore the entire SGR state, hence we carry around what we believe
+                -- that state should be in all the arguments to this function. Note that in some cases we could
+                -- avoid the Reset of the entire state, but not in general.
+                sgrs = Reset : catMaybes [
+                    fmap (uncurry (SetColor Foreground)) mb_fc',
+                    fmap (uncurry (SetColor Background)) mb_bc',
+                    fmap SetConsoleIntensity mb_in',
+                    fmap SetItalicized mb_it',
+                    fmap SetUnderlining mb_un'
+                  ]
+        where
+          best_typical n' k' ds' = best n' k' mb_fc mb_bc mb_in mb_it mb_un ds'
+          ds_restore = Cons i (RestoreFormat mb_fc mb_bc mb_in mb_it mb_un) ds
 
       --nicest :: r = ribbon width, w = page width,
       --          n = indentation of current line, k = current column
@@ -981,10 +1076,6 @@ renderPretty rfrac w x
                         | otherwise     = y
                         where
                           width = min (w - k) (r - k + n)
-
-toSGR :: ConsoleLayer -> ColorIntensity -> Color -> SGR
-toSGR layer intensity color = SetColor layer intensity color
-
 
 fits w x        | w < 0     = False
 fits w SEmpty               = True
@@ -1013,17 +1104,20 @@ renderCompact x
     where
       scan k []     = SEmpty
       scan k (d:ds) = case d of
-                        Empty         -> scan k ds
-                        Char c        -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-                        Text l s      -> let k' = k+l in seq k' (SText l s (scan k' ds))
-                        Line _        -> SLine 0 (scan 0 ds)
-                        Cat x y       -> scan k (x:y:ds)
-                        Nest j x      -> scan k (x:ds)
-                        Union x y     -> scan k (y:ds)
-                        Column f      -> scan k (f k:ds)
-                        Nesting f     -> scan k (f 0:ds)
-                        Color _ _ _ x -> scan k (x:ds)
-                        EndColor _ _  -> scan k ds
+                        Empty                   -> scan k ds
+                        Char c                  -> let k' = k+1 in seq k' (SChar c (scan k' ds))
+                        Text l s                -> let k' = k+l in seq k' (SText l s (scan k' ds))
+                        Line _                  -> SLine 0 (scan 0 ds)
+                        Cat x y                 -> scan k (x:y:ds)
+                        Nest j x                -> scan k (x:ds)
+                        Union x y               -> scan k (y:ds)
+                        Column f                -> scan k (f k:ds)
+                        Nesting f               -> scan k (f 0:ds)
+                        Color _ _ _ x           -> scan k (x:ds)
+                        Intensify _ x           -> scan k (x:ds)
+                        Italicize _ x           -> scan k (x:ds)
+                        Underline _ x           -> scan k (x:ds)
+                        RestoreFormat _ _ _ _ _ -> scan k ds
 
 
 

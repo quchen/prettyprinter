@@ -13,5 +13,8 @@ main = do
     hPutDoc stdout $ onred (text "Red") <> comma <+> onwhite (text "white") <+> text "and" <+> onblue (text "blue") <> char '!' <> linebreak
     hPutDoc stdout $ onblue (text "Nested" <+> ondullyellow (text "colors") <+> text "example") <> linebreak
     
-    -- ...but going via a string will only preserve color information on Unix
+    -- ...but going via a string will only preserve formatting information information on Unix
     putStr $ show $ green (text "I will be green on Unix but uncolored on Windows") <> linebreak
+    
+    -- Let's see some non-color formatting:
+    putDoc $ text "We can do" <+> bold (text "boldness") <> text ", if your terminal supports it, and even perhaps" <+> underline (text "underlining")
