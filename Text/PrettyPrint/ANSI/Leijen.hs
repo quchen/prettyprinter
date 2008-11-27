@@ -805,9 +805,42 @@ flatten (Color l i c x)  = Color l i c (flatten x)
 flatten other            = other                     --Empty,Char,Text,EndColor
 
 
--- | Displays a document with the given forecolor
-black, red, green, yellow, blue, magenta, cyan, white,
-  dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite :: Doc -> Doc
+-----------------------------------------------------------
+-- Colors
+-----------------------------------------------------------
+
+-- | Displays a document with the black forecolor
+black :: Doc -> Doc
+-- | Displays a document with the red forecolor
+red :: Doc -> Doc
+-- | Displays a document with the green forecolor
+green :: Doc -> Doc
+-- | Displays a document with the yellow forecolor
+yellow :: Doc -> Doc
+-- | Displays a document with the blue forecolor
+blue :: Doc -> Doc
+-- | Displays a document with the magenta forecolor
+magenta :: Doc -> Doc
+-- | Displays a document with the cyan forecolor
+cyan :: Doc -> Doc
+-- | Displays a document with the white forecolor
+white :: Doc -> Doc
+-- | Displays a document with the dull black forecolor
+dullblack :: Doc -> Doc
+-- | Displays a document with the dull red forecolor
+dullred :: Doc -> Doc
+-- | Displays a document with the dull green forecolor
+dullgreen :: Doc -> Doc
+-- | Displays a document with the dull yellow forecolor
+dullyellow :: Doc -> Doc
+-- | Displays a document with the dull blue forecolor
+dullblue :: Doc -> Doc
+-- | Displays a document with the dull magenta forecolor
+dullmagenta :: Doc -> Doc
+-- | Displays a document with the dull cyan forecolor
+dullcyan :: Doc -> Doc
+-- | Displays a document with the dull white forecolor
+dullwhite :: Doc -> Doc
 (black, dullblack)     = colorFunctions Black
 (red, dullred)         = colorFunctions Red
 (green, dullgreen)     = colorFunctions Green
@@ -818,16 +851,47 @@ black, red, green, yellow, blue, magenta, cyan, white,
 (white, dullwhite)     = colorFunctions White
 
 -- | Displays a document with a forecolor given in the first parameter
-color, dullcolor :: Color -> Doc -> Doc
+color :: Color -> Doc -> Doc
+-- | Displays a document with a dull forecolor given in the first parameter
+dullcolor :: Color -> Doc -> Doc
 color     = Color Foreground Vivid
 dullcolor = Color Foreground Dull
 
 colorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
 colorFunctions what = (color what, dullcolor what)
 
--- | Displays a document with the given backcolor
-onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-  ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite :: Doc -> Doc
+-- | Displays a document with the black backcolor
+onblack :: Doc -> Doc
+-- | Displays a document with the red backcolor
+onred :: Doc -> Doc
+-- | Displays a document with the green backcolor
+ongreen :: Doc -> Doc
+-- | Displays a document with the yellow backcolor
+onyellow :: Doc -> Doc
+-- | Displays a document with the blue backcolor
+onblue :: Doc -> Doc
+-- | Displays a document with the magenta backcolor
+onmagenta :: Doc -> Doc
+-- | Displays a document with the cyan backcolor
+oncyan :: Doc -> Doc
+-- | Displays a document with the white backcolor
+onwhite :: Doc -> Doc
+-- | Displays a document with the dull block backcolor
+ondullblack :: Doc -> Doc
+-- | Displays a document with the dull red backcolor
+ondullred :: Doc -> Doc
+-- | Displays a document with the dull green backcolor
+ondullgreen :: Doc -> Doc
+-- | Displays a document with the dull yellow backcolor
+ondullyellow :: Doc -> Doc
+-- | Displays a document with the dull blue backcolor
+ondullblue :: Doc -> Doc
+-- | Displays a document with the dull magenta backcolor
+ondullmagenta :: Doc -> Doc
+-- | Displays a document with the dull cyan backcolor
+ondullcyan :: Doc -> Doc
+-- | Displays a document with the dull white backcolor
+ondullwhite :: Doc -> Doc
 (onblack, ondullblack)     = oncolorFunctions Black
 (onred, ondullred)         = oncolorFunctions Red
 (ongreen, ondullgreen)     = oncolorFunctions Green
@@ -838,7 +902,9 @@ onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
 (onwhite, ondullwhite)     = oncolorFunctions White
 
 -- | Displays a document with a backcolor given in the first parameter
-oncolor, ondullcolor :: Color -> Doc -> Doc
+oncolor :: Color -> Doc -> Doc
+-- | Displays a document with a dull backcolor given in the first parameter
+ondullcolor :: Color -> Doc -> Doc
 oncolor     = Color Background Vivid
 ondullcolor = Color Background Dull
 
