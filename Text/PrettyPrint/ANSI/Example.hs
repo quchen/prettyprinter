@@ -8,9 +8,9 @@ import System.IO
 main :: IO ()
 main = do
     -- Going directly to the console is portable across Unix and Windows...
-    putDoc $ red (text "Red") <> text "," <+> white (text "white") <+> text "and" <+> blue (text "blue") <> char '!' <> linebreak
+    putDoc $ red (text "Red") <> comma <+> white (text "white") <+> text "and" <+> blue (text "blue") <> char '!' <> linebreak
     putDoc $ blue (text "Nested" <+> dullyellow (text "colors") <+> text "example") <> linebreak
-    hPutDoc stdout $ onred (text "Red") <> text "," <+> onwhite (text "white") <+> text "and" <+> onblue (text "blue") <> char '!' <> linebreak
+    hPutDoc stdout $ onred (text "Red") <> comma <+> onwhite (text "white") <+> text "and" <+> onblue (text "blue") <> char '!' <> linebreak
     hPutDoc stdout $ onblue (text "Nested" <+> ondullyellow (text "colors") <+> text "example") <> linebreak
     
     -- ...but going via a string will only preserve color information on Unix
