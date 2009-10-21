@@ -1,5 +1,5 @@
 Name:                ansi-wl-pprint
-Version:             0.5.0
+Version:             0.5.1
 Cabal-Version:       >= 1.2
 Category:            User Interfaces, Text
 Synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
@@ -12,8 +12,8 @@ Maintainer:          batterseapower@hotmail.com
 Homepage:            http://github.com/batterseapower/ansi-wl-pprint
 Build-Type:          Simple
 
-Flag SplitBase
-        Description:    Choose the new smaller, split-up base package
+Flag Base3
+        Description:    Choose the new smaller, split-up base package with 6.10
         Default:        True
 
 Flag Example
@@ -25,8 +25,8 @@ Library
         Exposed-Modules:        Text.PrettyPrint.ANSI.Leijen
         
         Build-Depends:          ansi-terminal >= 0.4.0
-        if flag(splitBase)
-                Build-Depends:  base >= 3
+        if flag(base3)
+                Build-Depends:  base >= 3 && < 4
         else
                 Build-Depends:  base < 3
 
@@ -34,8 +34,8 @@ Executable ansi-wl-pprint-example
         Main-Is:                Text/PrettyPrint/ANSI/Example.hs
         
         Build-Depends:          ansi-terminal >= 0.4.0
-        if flag(splitBase)
-                Build-Depends:  base >= 3
+        if flag(base3)
+                Build-Depends:  base >= 3 && < 4
         else
                 Build-Depends:  base < 3
         
