@@ -123,6 +123,9 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Underlining combinators
    underline, deunderline,
 
+   -- * Removing formatting
+   removeANSIFormatting,
+
    -- * Primitive type documents
    string, int, integer, float, double, rational,
 
@@ -993,6 +996,26 @@ deunderline = Underline NoUnderline
 
 -- NB: I don't support DoubleUnderline here because it is not widely supported by terminals.
 
+-----------------------------------------------------------
+-- Removing formatting
+-----------------------------------------------------------
+
+-- | Removes all colorisation, emboldening and underlining from a document
+removeANSIFormatting :: Doc -> Doc
+removeANSIFormatting e@Empty         = e
+removeANSIFormatting c@(Char _)      = c
+removeANSIFormatting t@(Text _ _)    = t
+removeANSIFormatting l@(Line _)      = l
+removeANSIFormatting (Cat x y)       = Cat (removeANSIFormatting x) (removeANSIFormatting y)
+removeANSIFormatting (Nest i x)      = Nest i (removeANSIFormatting x)
+removeANSIFormatting (Union x y)     = Union (removeANSIFormatting x) (removeANSIFormatting y)
+removeANSIFormatting (Column f)      = Column (removeANSIFormatting . f)
+removeANSIFormatting (Nesting f)     = Nesting (removeANSIFormatting . f)
+removeANSIFormatting (Color _ _ _ x) = removeANSIFormatting x
+removeANSIFormatting (Intensify _ x) = removeANSIFormatting x
+removeANSIFormatting (Italicize _ x) = removeANSIFormatting x
+removeANSIFormatting (Underline _ x) = removeANSIFormatting x
+removeANSIFormatting (RestoreFormat _ _ _ _ _) = Empty
 
 -----------------------------------------------------------
 -- Renderers
