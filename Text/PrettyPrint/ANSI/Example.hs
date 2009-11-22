@@ -17,4 +17,8 @@ main = do
     putStr $ show $ green (text "I will be green on Unix but uncolored on Windows") <> linebreak
     
     -- Let's see some non-color formatting:
-    putDoc $ text "We can do" <+> bold (text "boldness") <> text ", if your terminal supports it, and even perhaps" <+> underline (text "underlining")
+    putDoc $ text "We can do" <+> bold (text "boldness") <> text ", if your terminal supports it, and even perhaps" <+> underline (text "underlining") <> linebreak
+
+    -- Just a little test of the formatting removal:
+    putDoc $ text "There is a handy utility called 'plain' to" <+> plain (bold $ text "remove formatting") <+>
+              plain (text "if you need to e.g. support" <+> red (text "non-ANSI") <+> text "terminals")
