@@ -26,7 +26,7 @@ Library
         
         Build-Depends:          ansi-terminal >= 0.4.0
         if flag(base3)
-                Build-Depends:  base >= 3 && < 4
+                Build-Depends:  base >= 3 && < 5
         else
                 Build-Depends:  base < 3
 
@@ -35,7 +35,7 @@ Executable ansi-wl-pprint-example
         
         Build-Depends:          ansi-terminal >= 0.4.0
         if flag(base3)
-                Build-Depends:  base >= 3 && < 4
+                Build-Depends:  base >= 3 && < 5
         else
                 Build-Depends:  base < 3
         
