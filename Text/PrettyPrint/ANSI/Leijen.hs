@@ -124,7 +124,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    underline, deunderline,
 
    -- * Removing formatting
-   removeANSIFormatting,
+   plain,
 
    -- * Primitive type documents
    string, int, integer, float, double, rational,
@@ -1001,21 +1001,21 @@ deunderline = Underline NoUnderline
 -----------------------------------------------------------
 
 -- | Removes all colorisation, emboldening and underlining from a document
-removeANSIFormatting :: Doc -> Doc
-removeANSIFormatting e@Empty         = e
-removeANSIFormatting c@(Char _)      = c
-removeANSIFormatting t@(Text _ _)    = t
-removeANSIFormatting l@(Line _)      = l
-removeANSIFormatting (Cat x y)       = Cat (removeANSIFormatting x) (removeANSIFormatting y)
-removeANSIFormatting (Nest i x)      = Nest i (removeANSIFormatting x)
-removeANSIFormatting (Union x y)     = Union (removeANSIFormatting x) (removeANSIFormatting y)
-removeANSIFormatting (Column f)      = Column (removeANSIFormatting . f)
-removeANSIFormatting (Nesting f)     = Nesting (removeANSIFormatting . f)
-removeANSIFormatting (Color _ _ _ x) = removeANSIFormatting x
-removeANSIFormatting (Intensify _ x) = removeANSIFormatting x
-removeANSIFormatting (Italicize _ x) = removeANSIFormatting x
-removeANSIFormatting (Underline _ x) = removeANSIFormatting x
-removeANSIFormatting (RestoreFormat _ _ _ _ _) = Empty
+plain :: Doc -> Doc
+plain e@Empty         = e
+plain c@(Char _)      = c
+plain t@(Text _ _)    = t
+plain l@(Line _)      = l
+plain (Cat x y)       = Cat (plain x) (plain y)
+plain (Nest i x)      = Nest i (plain x)
+plain (Union x y)     = Union (plain x) (plain y)
+plain (Column f)      = Column (plain . f)
+plain (Nesting f)     = Nesting (plain . f)
+plain (Color _ _ _ x) = plain x
+plain (Intensify _ x) = plain x
+plain (Italicize _ x) = plain x
+plain (Underline _ x) = plain x
+plain (RestoreFormat _ _ _ _ _) = Empty
 
 -----------------------------------------------------------
 -- Renderers
