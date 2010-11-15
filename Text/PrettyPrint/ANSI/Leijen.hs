@@ -763,12 +763,12 @@ data SimpleDoc  = SEmpty
                 | SSGR [SGR] SimpleDoc
 
 
--- MCB: Not in the wl-pprint package that we forked from. I added this when
--- the "pretty" package from base gained a Monoid instance:
+-- MCB: Not in the wl-pprint package that we forked from. I added this when the "pretty" package
+-- from base gained a Monoid instance (<http://thread.gmane.org/gmane.comp.lang.haskell.libraries/14031>):
 instance Monoid Doc where
     mempty = empty
-    mappend = (<$$>)
-    mconcat = vcat
+    mappend = (<>)
+    mconcat = hcat
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
