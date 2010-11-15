@@ -151,6 +151,7 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
 import Control.Monad (when)
 
 import Data.Maybe (isNothing, fromMaybe, catMaybes)
+import Data.Monoid
 
 
 infixr 5 </>,<//>,<$>,<$$>
@@ -760,6 +761,14 @@ data SimpleDoc  = SEmpty
                 | SText !Int String SimpleDoc
                 | SLine !Int SimpleDoc
                 | SSGR [SGR] SimpleDoc
+
+
+-- MCB: Not in the wl-pprint package that we forked from. I added this when
+-- the "pretty" package from base gained a Monoid instance:
+instance Monoid Doc where
+    mempty = empty
+    mappend = (<$$>)
+    mconcat = vcat
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
