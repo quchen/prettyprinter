@@ -150,6 +150,7 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
 
 import Control.Monad (when)
 
+import Data.String (IsString(..))
 import Data.Maybe (isNothing, fromMaybe, catMaybes)
 import Data.Monoid
 
@@ -764,11 +765,15 @@ data SimpleDoc  = SEmpty
 
 
 -- MCB: Not in the wl-pprint package that we forked from. I added this when the "pretty" package
--- from base gained a Monoid instance (<http://thread.gmane.org/gmane.comp.lang.haskell.libraries/14031>):
+-- from base gained a Monoid instance (<http://hackage.haskell.org/trac/ghc/ticket/4378>):
 instance Monoid Doc where
     mempty = empty
     mappend = (<>)
     mconcat = hcat
+
+-- MCB: also added when "pretty" got the corresponding instances:
+instance IsString Doc where
+    fromString = text
 
 
 -- | The empty document is, indeed, empty. Although @empty@ has no
