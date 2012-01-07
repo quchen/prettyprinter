@@ -152,7 +152,7 @@ import Control.Monad (when)
 
 import Data.String (IsString(..))
 import Data.Maybe (isNothing, fromMaybe, catMaybes)
-import Data.Monoid
+import Data.Monoid (Monoid, mappend, mconcat, mempty)
 
 
 infixr 5 </>,<//>,<$>,<$$>
