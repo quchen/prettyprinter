@@ -1,5 +1,5 @@
 Name:                ansi-wl-pprint
-Version:             0.6.3
+Version:             0.6.4
 Cabal-Version:       >= 1.2
 Category:            User Interfaces, Text
 Synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
