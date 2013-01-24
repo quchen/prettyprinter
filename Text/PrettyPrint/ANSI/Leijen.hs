@@ -138,7 +138,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Undocumented
         , bool
 
-        , column, nesting, width
+        , column, columns, nesting, width
 
         ) where
 
@@ -736,6 +736,7 @@ data Doc        = Empty
                 | Nest !Int Doc
                 | Union Doc Doc         -- invariant: first lines of first doc longer than the first lines of the second doc
                 | Column  (Int -> Doc)
+                | Columns (Maybe Int -> Doc)
                 | Nesting (Int -> Doc)
                 | Color ConsoleLayer ColorIntensity -- Introduces coloring /around/ the embedded document
                         Color Doc
@@ -831,6 +832,9 @@ column, nesting :: (Int -> Doc) -> Doc
 column f        = Column f
 nesting f       = Nesting f
 
+columns :: (Maybe Int -> Doc) -> Doc
+columns f       = Columns f
+
 -- | The @group@ combinator is used to specify alternative
 -- layouts. The document @(group x)@ undoes all line breaks in
 -- document @x@. The resulting line is added to the current line if
@@ -845,6 +849,7 @@ flatten (Nest i x)       = Nest i (flatten x)
 flatten (Line break)     = if break then Empty else Text 1 " "
 flatten (Union x y)      = flatten x
 flatten (Column f)       = Column (flatten . f)
+flatten (Columns f)      = Columns (flatten . f)
 flatten (Nesting f)      = Nesting (flatten . f)
 flatten (Color l i c x)  = Color l i c (flatten x)
 flatten (Intensify i x)  = Intensify i (flatten x)
@@ -1024,6 +1029,7 @@ plain (Cat x y)       = Cat (plain x) (plain y)
 plain (Nest i x)      = Nest i (plain x)
 plain (Union x y)     = Union (plain x) (plain y)
 plain (Column f)      = Column (plain . f)
+plain (Columns f)     = Columns (plain . f)
 plain (Nesting f)     = Nesting (plain . f)
 plain (Color _ _ _ x) = plain x
 plain (Intensify _ x) = plain x
@@ -1081,6 +1087,7 @@ renderPretty rfrac w x
             Union x y     -> nicest n k (best_typical n k (Cons i x ds))
                                         (best_typical n k (Cons i y ds))
             Column f      -> best_typical n k (Cons i (f k) ds)
+            Columns f     -> best_typical n k (Cons i (f (Just w)) ds)
             Nesting f     -> best_typical n k (Cons i (f i) ds)
             Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
               where
@@ -1149,6 +1156,7 @@ renderCompact x
                         Nest j x                -> scan k (x:ds)
                         Union x y               -> scan k (y:ds)
                         Column f                -> scan k (f k:ds)
+                        Columns f               -> scan k (f Nothing:ds)
                         Nesting f               -> scan k (f 0:ds)
                         Color _ _ _ x           -> scan k (x:ds)
                         Intensify _ x           -> scan k (x:ds)
