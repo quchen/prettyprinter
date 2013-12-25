@@ -148,10 +148,8 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
                             Underlining(..), ConsoleIntensity(..),
                             SGR(..), hSetSGR, setSGRCode)
 
-import Control.Monad (when)
-
 import Data.String (IsString(..))
-import Data.Maybe (isNothing, fromMaybe, catMaybes)
+import Data.Maybe (catMaybes)
 import Data.Monoid (Monoid, mappend, mconcat, mempty)
 
 
@@ -340,6 +338,7 @@ hcat            = fold (<>)
 vcat :: [Doc] -> Doc
 vcat            = fold (<$$>)
 
+fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold f []       = empty
 fold f ds       = foldr1 f ds
 
@@ -819,6 +818,7 @@ linebreak       = FlatAlt Line empty
 hardline :: Doc
 hardline = Line
 
+beside :: Doc -> Doc -> Doc
 beside x y      = Cat x y
 
 -- | The document @(nest i x)@ renders document @x@ with the current
@@ -1036,10 +1036,12 @@ deunderline = Underline NoUnderline
 
 -- | Removes all colorisation, emboldening and underlining from a document
 plain :: Doc -> Doc
+plain Fail            = Fail
 plain e@Empty         = e
 plain c@(Char _)      = c
 plain t@(Text _ _)    = t
 plain l@Line          = l
+plain (FlatAlt x y)   = FlatAlt (plain x) (plain y)
 plain (Cat x y)       = Cat (plain x) (plain y)
 plain (Nest i x)      = Nest i (plain x)
 plain (Union x y)     = Union (plain x) (plain y)
@@ -1111,6 +1113,8 @@ renderPretty = renderFits fits1
 renderSmart :: Float -> Int -> Doc -> SimpleDoc
 renderSmart = renderFits fitsR
 
+renderFits :: (Int -> Int -> Int -> SimpleDoc -> Bool)
+           -> Float -> Int -> Doc -> SimpleDoc
 renderFits fits rfrac w x
     -- I used to do a @SSGR [Reset]@ here, but if you do that it will result
     -- in any rendered @Doc@ containing at least some ANSI control codes. This
@@ -1177,12 +1181,14 @@ renderFits fits rfrac w x
                           width = min (w - k) (r - k + n)
 
 -- @fits1@ does 1 line lookahead.
+fits1 :: Int -> Int -> Int -> SimpleDoc -> Bool
 fits1 _ _ w x        | w < 0         = False
 fits1 _ _ w SFail                    = False
 fits1 _ _ w SEmpty                   = True
 fits1 p m w (SChar c x)              = fits1 p m (w - 1) x
 fits1 p m w (SText l s x)            = fits1 p m (w - l) x
 fits1 _ _ w (SLine i x)              = True
+fits1 p m w (SSGR _ x)               = fits1 p m w x
 
 -- @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
@@ -1194,6 +1200,7 @@ fits1 _ _ w (SLine i x)              = True
 -- p = pagewidth
 -- m = minimum nesting level to fit in
 -- w = the width in which to fit the first line
+fitsR :: Int -> Int -> Int -> SimpleDoc -> Bool
 fitsR p m w x        | w < 0         = False
 fitsR p m w SFail                    = False
 fitsR p m w SEmpty                   = True
@@ -1201,6 +1208,7 @@ fitsR p m w (SChar c x)              = fitsR p m (w - 1) x
 fitsR p m w (SText l s x)            = fitsR p m (w - l) x
 fitsR p m w (SLine i x) | m < i      = fitsR p m (p - i) x
                         | otherwise  = True
+fitsR p m w (SSGR _ x)               = fitsR p m w x
 
 -----------------------------------------------------------
 -- renderCompact: renders documents without indentation
@@ -1328,9 +1336,11 @@ hPutDoc handle doc  = displayIO handle (renderPretty 0.4 80 doc)
 -- "indentation" used to insert tabs but tabs seem to cause
 -- more trouble than they solve :-)
 -----------------------------------------------------------
+spaces :: Int -> String
 spaces n        | n <= 0    = ""
                 | otherwise = replicate n ' '
 
+indentation :: Int -> String
 indentation n   = spaces n
 
 --indentation n   | n >= 8    = '\t' : indentation (n-8)
