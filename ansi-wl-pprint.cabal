@@ -1,49 +1,49 @@
-Name:                ansi-wl-pprint
-Version:             0.6.7.3
-Cabal-Version:       >= 1.6
-Category:            User Interfaces, Text
-Synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
-Description:         This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
-License:             BSD3
-License-File:        LICENSE
-Extra-Source-Files:  README.textile
-Author:              Daan Leijen, Max Bolingbroke
-Maintainer:          Edward Kmett <ekmett@gmail.com>
-Bug-Reports:         http://github.com/ekmett/ansi-wl-pprint/issues
-Homepage:            http://github.com/ekmett/ansi-wl-pprint
-Build-Type:          Simple
+name:                ansi-wl-pprint
+version:             0.6.7.3
+cabal-version:       >= 1.6
+category:            User Interfaces, Text
+synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
+description:         This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
+license:             BSD3
+license-file:        LICENSE
+extra-source-files:  README.textile
+author:              Daan Leijen, Max Bolingbroke
+maintainer:          Edward Kmett <ekmett@gmail.com>
+bug-reports:         http://github.com/ekmett/ansi-wl-pprint/issues
+homepage:            http://github.com/ekmett/ansi-wl-pprint
+build-type:          Simple
 
-Source-Repository head
-  Type: git
-  Location: git://github.com/ekmett/ansi-wl-pprint.git
+source-repository head
+  type: git
+  location: git://github.com/ekmett/ansi-wl-pprint.git
 
-Flag NewBase
-        Description:    Choose the new smaller, split-up base package with 6.10
-        Default:        True
+flag NewBase
+  description:    Choose the new smaller, split-up base package with 6.10
+  default:        True
 
-Flag Example
-        Description:    Build the example application
-        Default:        False
+flag Example
+  description:    Build the example application
+  default:        False
 
 
-Library
-        Exposed-Modules:        Text.PrettyPrint.ANSI.Leijen
-        Ghc-Options:            -Wall -fno-warn-name-shadowing -fno-warn-unused-matches
+library
+  exposed-modules: Text.PrettyPrint.ANSI.Leijen
+  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-unused-matches
         
-        Build-Depends:          ansi-terminal >= 0.4.0 && < 0.7
-        if flag(newbase)
-                Build-Depends:  base >= 3 && < 5
-        else
-                Build-Depends:  base < 3
+  build-depends: ansi-terminal >= 0.4.0 && < 0.7
+  if flag(newbase)
+    build-depends:  base >= 3 && < 5
+  else
+    build-depends:  base < 3
 
-Executable ansi-wl-pprint-example
-        Main-Is:                Text/PrettyPrint/ANSI/Example.hs
+executable ansi-wl-pprint-example
+  main-is: Text/PrettyPrint/ANSI/Example.hs
         
-        Build-Depends:          ansi-terminal >= 0.4.0 && < 0.7
-        if flag(newbase)
-                Build-Depends:  base >= 3 && < 5
-        else
-                Build-Depends:  base < 3
+  build-depends: ansi-terminal >= 0.4.0 && < 0.7
+  if flag(newbase)
+    build-depends:  base >= 3 && < 5
+  else
+    build-depends:  base < 3
         
-        if !flag(example)
-                Buildable:      False
+  if !flag(example)
+    buildable:      False
