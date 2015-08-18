@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Text.PrettyPrint.ANSI.Leijen
@@ -150,7 +151,9 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
 
 import Data.String (IsString(..))
 import Data.Maybe (catMaybes)
+#if __GLASGOW_HASKELL__ < 710
 import Data.Monoid (Monoid, mappend, mconcat, mempty)
+#endif
 
 
 infixr 5 </>,<//>,<$>,<$$>
