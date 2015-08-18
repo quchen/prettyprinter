@@ -15,7 +15,7 @@
 -- @
 --      \"A prettier printer\"
 --      Draft paper, April 1997, revised March 1998.
---      <http://cm.bell-labs.com/cm/cs/who/wadler/papers/prettier/prettier.ps>
+--      <http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf>
 -- @
 --
 -- PPrint is an implementation of the pretty printing combinators
