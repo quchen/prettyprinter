@@ -111,7 +111,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Character documents
    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
    squote, dquote, semi, colon, comma, space, dot, backslash, equals,
-   
+
    -- * Colorisation combinators
    black, red, green, yellow, blue, magenta, cyan, white,
    dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
@@ -120,7 +120,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Emboldening combinators
    bold, debold,
-   
+
    -- * Underlining combinators
    underline, deunderline,
 
@@ -151,13 +151,17 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
 
 import Data.String (IsString(..))
 import Data.Maybe (catMaybes)
-#if __GLASGOW_HASKELL__ < 710
+#if __GLASGOW_HASKELL__ >= 710
+import Data.Monoid ((<>))
+#elif __GLASGOW_HASKELL__ >= 704
+import Data.Monoid (Monoid, mappend, mconcat, mempty, (<>))
+#else
 import Data.Monoid (Monoid, mappend, mconcat, mempty)
+infixr 6 <>
 #endif
 
-
+infixr 6 <+>
 infixr 5 </>,<//>,<$>,<$$>
-infixr 6 <>,<+>
 
 
 -----------------------------------------------------------
@@ -216,7 +220,7 @@ encloseSep left right sep ds
     = case ds of
         []  -> left <> right
         [d] -> left <> d <> right
-        _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right) 
+        _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
 
 
 -----------------------------------------------------------
@@ -345,11 +349,13 @@ fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold f []       = empty
 fold f ds       = foldr1 f ds
 
+#if __GLASGOW_HASKELL__ < 704
 -- | The document @(x \<\> y)@ concatenates document @x@ and document
 -- @y@. It is an associative operation having 'empty' as a left and
 -- right unit.  (infixr 6)
 (<>) :: Doc -> Doc -> Doc
 x <> y          = x `beside` y
+#endif
 
 -- | The document @(x \<+\> y)@ concatenates document @x@ and @y@ with a
 -- @space@ in between.  (infixr 6)
@@ -719,8 +725,8 @@ align d         = column (\k ->
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
--- prints document @doc@ with a page width of 100 characters and a
--- ribbon width of 40 characters.
+-- prints document @doc@ with a page width of 80 characters and a
+-- ribbon width of 32 characters.
 --
 -- > show (text "hello" <$> text "world")
 --
@@ -775,7 +781,7 @@ data SimpleDoc  = SFail
 -- from base gained a Monoid instance (<http://hackage.haskell.org/trac/ghc/ticket/4378>):
 instance Monoid Doc where
     mempty = empty
-    mappend = (<>)
+    mappend = beside
     mconcat = hcat
 
 -- MCB: also added when "pretty" got the corresponding instances:
@@ -1280,7 +1286,7 @@ displayS (SSGR s x)         = showString (setSGRCode s) . displayS x
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file
 -- handle @handle@. This function is used for example by 'hPutDoc':
 --
--- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 100 doc)
+-- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 80 doc)
 --
 -- Any ANSI colorisation in @simpleDoc@ will be output.
 displayIO :: Handle -> SimpleDoc -> IO ()
@@ -1302,8 +1308,8 @@ instance Show Doc where
   showsPrec d doc       = displayS (renderPretty 0.4 80 doc)
 
 -- | The action @(putDoc doc)@ pretty prints document @doc@ to the
--- standard output, with a page width of 100 characters and a ribbon
--- width of 40 characters.
+-- standard output, with a page width of 80 characters and a ribbon
+-- width of 32 characters.
 --
 -- > main :: IO ()
 -- > main = do{ putDoc (text "hello" <+> text "world") }
@@ -1319,8 +1325,8 @@ putDoc :: Doc -> IO ()
 putDoc doc              = hPutDoc stdout doc
 
 -- | @(hPutDoc handle doc)@ pretty prints document @doc@ to the file
--- handle @handle@ with a page width of 100 characters and a ribbon
--- width of 40 characters.
+-- handle @handle@ with a page width of 80 characters and a ribbon
+-- width of 32 characters.
 --
 -- > main = do{ handle <- openFile "MyFile" WriteMode
 -- >          ; hPutDoc handle (vcat (map text
