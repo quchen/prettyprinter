@@ -12,6 +12,7 @@ maintainer:          Edward Kmett <ekmett@gmail.com>
 bug-reports:         http://github.com/ekmett/ansi-wl-pprint/issues
 homepage:            http://github.com/ekmett/ansi-wl-pprint
 build-type:          Simple
+tested-with:         GHC==7.11.*, GHC==7.10.2, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2, GHC==7.2.2, GHC==7.0.4
 
 source-repository head
   type: git
