@@ -719,8 +719,8 @@ align d         = column (\k ->
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
--- prints document @doc@ with a page width of 100 characters and a
--- ribbon width of 40 characters.
+-- prints document @doc@ with a page width of 80 characters and a
+-- ribbon width of 32 characters.
 --
 -- > show (text "hello" <$> text "world")
 --
@@ -1280,7 +1280,7 @@ displayS (SSGR s x)         = showString (setSGRCode s) . displayS x
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file
 -- handle @handle@. This function is used for example by 'hPutDoc':
 --
--- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 100 doc)
+-- > hPutDoc handle doc  = displayIO handle (renderPretty 0.4 80 doc)
 --
 -- Any ANSI colorisation in @simpleDoc@ will be output.
 displayIO :: Handle -> SimpleDoc -> IO ()
@@ -1302,8 +1302,8 @@ instance Show Doc where
   showsPrec d doc       = displayS (renderPretty 0.4 80 doc)
 
 -- | The action @(putDoc doc)@ pretty prints document @doc@ to the
--- standard output, with a page width of 100 characters and a ribbon
--- width of 40 characters.
+-- standard output, with a page width of 80 characters and a ribbon
+-- width of 32 characters.
 --
 -- > main :: IO ()
 -- > main = do{ putDoc (text "hello" <+> text "world") }
@@ -1319,8 +1319,8 @@ putDoc :: Doc -> IO ()
 putDoc doc              = hPutDoc stdout doc
 
 -- | @(hPutDoc handle doc)@ pretty prints document @doc@ to the file
--- handle @handle@ with a page width of 100 characters and a ribbon
--- width of 40 characters.
+-- handle @handle@ with a page width of 80 characters and a ribbon
+-- width of 32 characters.
 --
 -- > main = do{ handle <- openFile "MyFile" WriteMode
 -- >          ; hPutDoc handle (vcat (map text
