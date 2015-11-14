@@ -128,7 +128,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    plain,
 
    -- * Primitive type documents
-   string, int, integer, float, double, rational,
+   string, int, integer, float, double, rational, bool,
 
    -- * Pretty class
    Pretty(..),
@@ -137,11 +137,8 @@ module Text.PrettyPrint.ANSI.Leijen (
    SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
 
    -- * Undocumented
-        , bool
-
-        , column, columns, nesting, width
-
-        ) where
+   , column, columns, nesting, width
+   ) where
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
 
@@ -509,6 +506,7 @@ string ('\n':s) = line <> string s
 string s        = case (span (/='\n') s) of
                     (xs,ys) -> text xs <> string ys
 
+-- | The document @(bool b)@ shows the literal bool @b@ using 'text'.
 bool :: Bool -> Doc
 bool b          = text (show b)
 
