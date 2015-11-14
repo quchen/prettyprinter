@@ -6,7 +6,7 @@
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
 -- License     :  BSD-style (see the file LICENSE)
 --
--- Maintainer  :  batterseapower@hotmail.com
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  provisional
 -- Portability :  portable
 --
