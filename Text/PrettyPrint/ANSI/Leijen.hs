@@ -80,7 +80,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Basic combinators
    empty, char, text, (<>), nest, line, linebreak, group, softline,
-   softbreak, hardline, flatAlt, renderSmart,
+   softbreak, hardline, flatAlt,
 
    -- * Alignment
    --
@@ -134,10 +134,11 @@ module Text.PrettyPrint.ANSI.Leijen (
    Pretty(..),
 
    -- * Rendering
-   SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
+   SimpleDoc(..), displayS, displayIO,
+   renderPretty, renderCompact, renderSmart,
 
    -- * Undocumented
-   , column, columns, nesting, width
+   column, columns, nesting, width
    ) where
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
