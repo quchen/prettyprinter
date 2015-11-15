@@ -799,6 +799,10 @@ align d         = column (\k ->
 
 -- | The abstract data type @Doc@ represents pretty documents.
 --
+-- More specifically, a value of type @Doc@ represents a non-empty set of
+-- possible renderings of a document.  The rendering functions select one of
+-- these possibilities.
+--
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
 -- prints document @doc@ with a page width of 80 characters and a
 -- ribbon width of 32 characters.
@@ -838,6 +842,10 @@ data Doc        = Fail
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
 -- used by the display functions.
+--
+-- Whereas values of the data type 'Doc' represent non-empty sets of possible
+-- renderings of a document, values of the data type @SimpleDoc@ represent
+-- single renderings of a document.
 --
 -- The @Int@ in @SText@ contains the length of the string. The @Int@
 -- in @SLine@ contains the indentation for that line. The library
