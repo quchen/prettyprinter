@@ -84,7 +84,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Alignment
    --
-   -- The combinators in this section cannot be described by Wadler's
+   -- | The combinators in this section cannot be described by Wadler's
    -- original combinators. They align their output relative to the
    -- current output position — in contrast to @nest@ which always
    -- aligns to the current nesting level. This deprives these
