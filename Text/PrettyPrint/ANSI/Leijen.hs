@@ -50,7 +50,7 @@
 -- also uses a ribbon-width now for even prettier output.
 --
 -- * There are two displayers, 'displayS' for strings and 'displayIO' for
--- file based output.
+-- file-based output.
 --
 -- * There is a 'Pretty' class.
 --
@@ -84,9 +84,9 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Alignment
    --
-   -- The combinators in this section can not be described by Wadler's
+   -- The combinators in this section cannot be described by Wadler's
    -- original combinators. They align their output relative to the
-   -- current output position - in contrast to @nest@ which always
+   -- current output position — in contrast to @nest@ which always
    -- aligns to the current nesting level. This deprives these
    -- combinators from being \`optimal\'. In practice however they
    -- prove to be very useful. The combinators in this section should
@@ -184,9 +184,9 @@ tupled          = encloseSep lparen   rparen  comma
 
 
 -- | The document @(semiBraces xs)@ separates the documents @xs@ with
--- semi colons and encloses them in braces. The documents are rendered
+-- semicolons and encloses them in braces. The documents are rendered
 -- horizontally if that fits the page. Otherwise they are aligned
--- vertically. All semi colons are put in front of the elements.
+-- vertically. All semicolons are put in front of the elements.
 semiBraces :: [Doc] -> Doc
 semiBraces      = encloseSep lbrace   rbrace  semi
 
@@ -466,7 +466,7 @@ squote          = char '\''
 -- | The document @dquote@ contains a double quote, '\"'.
 dquote :: Doc
 dquote          = char '"'
--- | The document @semi@ contains a semi colon, \";\".
+-- | The document @semi@ contains a semicolon, \";\".
 semi :: Doc
 semi            = char ';'
 -- | The document @colon@ contains a colon, \":\".
@@ -952,7 +952,7 @@ onmagenta :: Doc -> Doc
 oncyan :: Doc -> Doc
 -- | Displays a document with the white backcolor
 onwhite :: Doc -> Doc
--- | Displays a document with the dull block backcolor
+-- | Displays a document with the dull black backcolor
 ondullblack :: Doc -> Doc
 -- | Displays a document with the dull red backcolor
 ondullred :: Doc -> Doc
