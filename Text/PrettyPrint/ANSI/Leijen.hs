@@ -592,28 +592,23 @@ string s        = case (span (/='\n') s) of
 bool :: Bool -> Doc
 bool b          = text (show b)
 
--- | The document @(int i)@ shows the literal integer @i@ using
--- 'text'.
+-- | The document @(int i)@ shows the literal integer @i@ using 'text'.
 int :: Int -> Doc
 int i           = text (show i)
 
--- | The document @(integer i)@ shows the literal integer @i@ using
--- 'text'.
+-- | The document @(integer i)@ shows the literal integer @i@ using 'text'.
 integer :: Integer -> Doc
 integer i       = text (show i)
 
--- | The document @(float f)@ shows the literal float @f@ using
--- 'text'.
+-- | The document @(float f)@ shows the literal float @f@ using 'text'.
 float :: Float -> Doc
 float f         = text (show f)
 
--- | The document @(double d)@ shows the literal double @d@ using
--- 'text'.
+-- | The document @(double d)@ shows the literal double @d@ using 'text'.
 double :: Double -> Doc
 double d        = text (show d)
 
--- | The document @(rational r)@ shows the literal rational @r@ using
--- 'text'.
+-- | The document @(rational r)@ shows the literal rational @r@ using 'text'.
 rational :: Rational -> Doc
 rational r      = text (show r)
 
