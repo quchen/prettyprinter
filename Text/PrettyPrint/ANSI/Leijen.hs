@@ -10,7 +10,9 @@
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- Pretty print module based on Philip Wadler's \"prettier printer\"
+--
+-- This module is an extended implementation of the functional pretty printer
+-- given by Philip Wadler (1997):
 --
 -- @
 --      \"A prettier printer\"
@@ -18,11 +20,10 @@
 --      <http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf>
 -- @
 --
--- PPrint is an implementation of the pretty printing combinators
--- described by Philip Wadler (1997). In their bare essence, the
--- combinators of Wadler are not expressive enough to describe some
--- commonly occurring layouts. The PPrint library adds new primitives
--- to describe these layouts and works well in practice.
+-- In their bare essence, the combinators given by Wadler are
+-- not expressive enough to describe some commonly occurring layouts.
+-- This library adds new primitives to describe these layouts and
+-- works well in practice.
 --
 -- The library is based on a single way to concatenate documents,
 -- which is associative and has both a left and right unit.  This
@@ -31,11 +32,10 @@
 -- combinators which make them easy to use in practice.
 --
 -- A thorough description of the primitive combinators and their
--- implementation can be found in Philip Wadler's paper
--- (1997). Additions and the main differences with his original paper
--- are:
+-- implementation can be found in Philip Wadler's paper.
+-- The main differences with his original paper are:
 --
--- * The nil document is called empty.
+-- * The nil document is called 'empty'.
 --
 -- * The above combinator is called '<$>'. The operator '</>' is used
 -- for soft line breaks.
@@ -43,11 +43,15 @@
 -- * There are three new primitives: 'align', 'fill' and
 -- 'fillBreak'. These are very useful in practice.
 --
--- * Lots of other useful combinators, like 'fillSep' and 'list'.
+-- * There are many additional useful combinators, like 'fillSep' and 'list'.
 --
--- * There are two renderers, 'renderPretty' for pretty printing and
--- 'renderCompact' for compact output. The pretty printing algorithm
--- also uses a ribbon-width now for even prettier output.
+-- * There are two renderers: 'renderPretty' for pretty printing, and
+-- 'renderCompact' for quickly rendered, compact output more suitable
+-- for generating input to other programs.
+--
+-- * The pretty printing algorithm used by 'renderPretty' extends the algorithm
+-- given by Wadler to take into account a \"ribbon width\", i.e., a desired
+-- maximum number of non-indentation characters to output on any one line.
 --
 -- * There are two displayers, 'displayS' for strings and 'displayIO' for
 -- file-based output.
@@ -57,22 +61,10 @@
 -- * The implementation uses optimised representations and strictness
 -- annotations.
 --
--- Full documentation for the original wl-pprint library available at
--- <http://www.cs.uu.nl/~daan/download/pprint/pprint.html>.
---
--- The library has been extended to allow formatting text for output
--- to ANSI style consoles. New combinators allow:
---
--- * Control of foreground and background color of text
---
--- * The abliity to make parts of the text bold or underlined
---
--- This functionality is, as far as possible, portable across platforms
--- with their varying terminals.  However, one thing to be particularly
--- wary of is that console colors will not be displayed on Windows unless
--- the 'Doc' value is output using the 'putDoc' function or one of it's
--- friends.  Rendering the 'Doc' to a 'String' and then outputing /that/
--- will only work on Unix-style operating systems.
+-- * The library has been extended to allow formatting text for output
+-- to ANSI style consoles. New combinators allow control of foreground and
+-- background color and the ability to make parts of the text bold or
+-- underlined.
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
    -- * The algebra of pretty-printing
@@ -118,6 +110,14 @@ module Text.PrettyPrint.ANSI.Leijen (
 
 
    -- * ANSI formatting combinators
+   --
+   -- | This terminal formatting functionality is, as far as possible,
+   -- portable across platforms with their varying terminals. However,
+   -- note that to display ANSI colors and formatting will only be displayed
+   -- on Windows consoles if the 'Doc' value is output using the 'putDoc'
+   -- function or one of its friends.  Rendering the 'Doc' to a 'String'
+   -- and then outputing /that/ will only work on Unix-style operating systems.
+
    -- ** Forecolor combinators
    black, red, green, yellow, blue, magenta, cyan, white,
    dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta,
