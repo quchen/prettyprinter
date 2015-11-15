@@ -75,17 +75,18 @@
 -- will only work on Unix-style operating systems.
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
-   -- * The document algebra
+   -- * The algebra of pretty-printing
    -- $DocumentAlgebra
 
    -- * Documents
-   Doc, putDoc, hPutDoc,
+   Doc,
 
    -- * Basic combinators
-   empty, char, text, (<>), nest, line, linebreak, group, softline,
+   empty, char, text, string, int, integer, float, double, rational, bool,
+   (<>), nest, line, linebreak, group, softline,
    softbreak, hardline, flatAlt,
 
-   -- * Alignment
+   -- * Alignment combinators
    --
    -- | The combinators in this section cannot be described by Wadler's
    -- original combinators. They align their output relative to the
@@ -105,40 +106,53 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * List combinators
    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
 
-   -- * Fillers
+   -- * Filler combinators
    fill, fillBreak,
 
    -- * Bracketing combinators
    enclose, squotes, dquotes, parens, angles, braces, brackets,
 
-   -- * Character documents
+   -- * Named character combinators
    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
    squote, dquote, semi, colon, comma, space, dot, backslash, equals,
 
-   -- * Colorisation combinators
-   black, red, green, yellow, blue, magenta, cyan, white,
-   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
-   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite,
 
-   -- * Emboldening combinators
+   -- * ANSI formatting combinators
+   -- ** Forecolor combinators
+   black, red, green, yellow, blue, magenta, cyan, white,
+   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta,
+   dullcyan, dullwhite,
+
+   -- ** Backcolor combinators
+   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
+   ondullcyan, ondullwhite,
+
+   -- ** Emboldening combinators
    bold, debold,
 
-   -- * Underlining combinators
+   -- ** Underlining combinators
    underline, deunderline,
 
-   -- * Removing formatting
+   -- ** Formatting elimination combinators
    plain,
 
-   -- * Primitive type documents
-   string, int, integer, float, double, rational, bool,
 
    -- * Pretty class
    Pretty(..),
 
-   -- * Rendering
-   SimpleDoc(..), displayS, displayIO,
+
+   -- * Rendering and displaying documents
+
+   -- ** Simple (i.e., rendered) documents
+   SimpleDoc(..),
    renderPretty, renderCompact, renderSmart,
+   displayS,
+   displayIO,
+
+   -- ** Simultaneous rendering and displaying of documents
+   putDoc, hPutDoc,
+
 
    -- * Undocumented
    column, columns, nesting, width
