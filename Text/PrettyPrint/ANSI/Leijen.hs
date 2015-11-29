@@ -6,11 +6,13 @@
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
 -- License     :  BSD-style (see the file LICENSE)
 --
--- Maintainer  :  batterseapower@hotmail.com
+-- Maintainer  :  Edward Kmett <ekmett@gmail.com>
 -- Stability   :  provisional
 -- Portability :  portable
 --
--- Pretty print module based on Philip Wadler's \"prettier printer\"
+--
+-- This module is an extended implementation of the functional pretty printer
+-- given by Philip Wadler (1997):
 --
 -- @
 --      \"A prettier printer\"
@@ -18,11 +20,10 @@
 --      <http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf>
 -- @
 --
--- PPrint is an implementation of the pretty printing combinators
--- described by Philip Wadler (1997). In their bare essence, the
--- combinators of Wadler are not expressive enough to describe some
--- commonly occurring layouts. The PPrint library adds new primitives
--- to describe these layouts and works well in practice.
+-- In their bare essence, the combinators given by Wadler are
+-- not expressive enough to describe some commonly occurring layouts.
+-- This library adds new primitives to describe these layouts and
+-- works well in practice.
 --
 -- The library is based on a single way to concatenate documents,
 -- which is associative and has both a left and right unit.  This
@@ -31,11 +32,10 @@
 -- combinators which make them easy to use in practice.
 --
 -- A thorough description of the primitive combinators and their
--- implementation can be found in Philip Wadler's paper
--- (1997). Additions and the main differences with his original paper
--- are:
+-- implementation can be found in Philip Wadler's paper.
+-- The main differences with his original paper are:
 --
--- * The nil document is called empty.
+-- * The nil document is called 'empty'.
 --
 -- * The above combinator is called '<$>'. The operator '</>' is used
 -- for soft line breaks.
@@ -43,50 +43,46 @@
 -- * There are three new primitives: 'align', 'fill' and
 -- 'fillBreak'. These are very useful in practice.
 --
--- * Lots of other useful combinators, like 'fillSep' and 'list'.
+-- * There are many additional useful combinators, like 'fillSep' and 'list'.
 --
--- * There are two renderers, 'renderPretty' for pretty printing and
--- 'renderCompact' for compact output. The pretty printing algorithm
--- also uses a ribbon-width now for even prettier output.
+-- * There are two renderers: 'renderPretty' for pretty printing, and
+-- 'renderCompact' for quickly rendered, compact output more suitable
+-- for generating input to other programs.
+--
+-- * The pretty printing algorithm used by 'renderPretty' extends the algorithm
+-- given by Wadler to take into account a \"ribbon width\", i.e., a desired
+-- maximum number of non-indentation characters to output on any one line.
 --
 -- * There are two displayers, 'displayS' for strings and 'displayIO' for
--- file based output.
+-- file-based output.
 --
 -- * There is a 'Pretty' class.
 --
 -- * The implementation uses optimised representations and strictness
 -- annotations.
 --
--- Full documentation for the original wl-pprint library available at
--- <http://www.cs.uu.nl/~daan/download/pprint/pprint.html>.
---
--- The library has been extended to allow formatting text for output
--- to ANSI style consoles. New combinators allow:
---
--- * Control of foreground and background color of text
---
--- * The abliity to make parts of the text bold or underlined
---
--- This functionality is, as far as possible, portable across platforms
--- with their varying terminals.  However, one thing to be particularly
--- wary of is that console colors will not be displayed on Windows unless
--- the 'Doc' value is output using the 'putDoc' function or one of it's
--- friends.  Rendering the 'Doc' to a 'String' and then outputing /that/
--- will only work on Unix-style operating systems.
+-- * The library has been extended to allow formatting text for output
+-- to ANSI style consoles. New combinators allow control of foreground and
+-- background color and the ability to make parts of the text bold or
+-- underlined.
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
+   -- * The algebra of pretty-printing
+   -- $DocumentAlgebra
+
    -- * Documents
-   Doc, putDoc, hPutDoc,
+   Doc,
 
    -- * Basic combinators
-   empty, char, text, (<>), nest, line, linebreak, group, softline,
-   softbreak, hardline, flatAlt, renderSmart,
+   empty, char, text, string, int, integer, float, double, rational, bool,
+   (<>), nest, line, linebreak, group, softline,
+   softbreak, hardline, flatAlt,
 
-   -- * Alignment
+   -- * Alignment combinators
    --
-   -- The combinators in this section can not be described by Wadler's
+   -- | The combinators in this section cannot be described by Wadler's
    -- original combinators. They align their output relative to the
-   -- current output position - in contrast to @nest@ which always
+   -- current output position — in contrast to @nest@ which always
    -- aligns to the current nesting level. This deprives these
    -- combinators from being \`optimal\'. In practice however they
    -- prove to be very useful. The combinators in this section should
@@ -102,46 +98,65 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * List combinators
    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
 
-   -- * Fillers
+   -- * Filler combinators
    fill, fillBreak,
 
    -- * Bracketing combinators
    enclose, squotes, dquotes, parens, angles, braces, brackets,
 
-   -- * Character documents
+   -- * Named character combinators
    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
    squote, dquote, semi, colon, comma, space, dot, backslash, equals,
 
-   -- * Colorisation combinators
-   black, red, green, yellow, blue, magenta, cyan, white,
-   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
-   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan, ondullwhite,
 
-   -- * Emboldening combinators
+   -- * ANSI formatting combinators
+   --
+   -- | This terminal formatting functionality is, as far as possible,
+   -- portable across platforms with their varying terminals. However,
+   -- note that to display ANSI colors and formatting will only be displayed
+   -- on Windows consoles if the 'Doc' value is output using the 'putDoc'
+   -- function or one of its friends.  Rendering the 'Doc' to a 'String'
+   -- and then outputing /that/ will only work on Unix-style operating systems.
+
+   -- ** Forecolor combinators
+   black, red, green, yellow, blue, magenta, cyan, white,
+   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta,
+   dullcyan, dullwhite,
+
+   -- ** Backcolor combinators
+   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
+   ondullcyan, ondullwhite,
+
+   -- ** Emboldening combinators
    bold, debold,
 
-   -- * Underlining combinators
+   -- ** Underlining combinators
    underline, deunderline,
 
-   -- * Removing formatting
+   -- ** Formatting elimination combinators
    plain,
 
-   -- * Primitive type documents
-   string, int, integer, float, double, rational,
 
    -- * Pretty class
    Pretty(..),
 
-   -- * Rendering
-   SimpleDoc(..), renderPretty, renderCompact, displayS, displayIO
+
+   -- * Rendering and displaying documents
+
+   -- ** Simple (i.e., rendered) documents
+   SimpleDoc(..),
+   renderPretty, renderCompact, renderSmart,
+   displayS,
+   displayIO,
+
+   -- ** Simultaneous rendering and displaying of documents
+   putDoc, hPutDoc,
+
 
    -- * Undocumented
-        , bool
-
-        , column, columns, nesting, width
-
-        ) where
+   column, columns, nesting, width
+   ) where
 
 import System.IO (Handle,hPutStr,hPutChar,stdout)
 
@@ -162,6 +177,70 @@ infixr 6 <>
 
 infixr 6 <+>
 infixr 5 </>,<//>,<$>,<$$>
+
+
+
+-- $DocumentAlgebra
+-- The combinators in this library satisfy many algebraic laws.
+--
+-- The concatenation operator '<>' is associative and has 'empty' as a left
+-- and right unit:
+--
+--     > x <> (y <> z)           = (x <> y) <> z
+--     > x <> empty              = x
+--     > empty <> x              = x
+--
+-- The 'text' combinator is a homomorphism from string concatenation to
+-- document concatenation:
+--
+--     > text (s ++ t)           = text s <> text t
+--     > text ""                 = empty
+--
+-- The 'char' combinator behaves like one-element text:
+--
+--     > char c                  = text [c]
+--
+-- The 'nest' combinator is a homomorphism from addition to document
+-- composition.  'nest' also distributes through document concatenation and is
+-- absorbed by 'text' and 'align':
+--
+--     > nest (i + j) x          = nest i (nest j x)
+--     > nest 0 x                = x
+--     > nest i (x <> y)         = nest i x <> nest i y
+--     > nest i empty            = empty
+--     > nest i (text s)         = text s
+--     > nest i (align x)        = align x
+--
+-- The 'group' combinator is absorbed by 'empty'.  'group' is commutative with
+-- 'nest' and 'align':
+--
+--     > group empty             = empty
+--     > group (text s <> x)     = text s <> group x
+--     > group (nest i x)        = nest i (group x)
+--     > group (align x)         = align (group x)
+--
+-- The 'align' combinator is absorbed by 'empty' and 'text'.
+-- 'align' is idempotent:
+--
+--     > align empty             = empty
+--     > align (text s)          = text s
+--     > align (align x)         = align x
+--
+-- From the laws of the primitive combinators, we can derive many other laws
+-- for the derived combinators.  For example, the /above/ operator '<$>' is
+-- defined as:
+--
+--     > x <$> y                 = x <> line <> y
+--
+-- It follows that '<$>' is associative and that '<$>' and '<>' associate
+-- with each other:
+--
+--     > x <$> (y <$> z)         = (x <$> y) <$> z
+--     > x <> (y <$> z)          = (x <> y) <$> z
+--     > x <$> (y <> z)          = (x <$> y) <> z
+--
+-- Similar laws also hold for the other line break operators '</>', '<$$>',
+-- and '<//>'.
 
 
 -----------------------------------------------------------
@@ -186,9 +265,9 @@ tupled          = encloseSep lparen   rparen  comma
 
 
 -- | The document @(semiBraces xs)@ separates the documents @xs@ with
--- semi colons and encloses them in braces. The documents are rendered
+-- semicolons and encloses them in braces. The documents are rendered
 -- horizontally if that fits the page. Otherwise they are aligned
--- vertically. All semi colons are put in front of the elements.
+-- vertically. All semicolons are put in front of the elements.
 semiBraces :: [Doc] -> Doc
 semiBraces      = encloseSep lbrace   rbrace  semi
 
@@ -275,7 +354,7 @@ sep             = group . vsep
 -- inserts a @line@ and continues doing that for all documents in
 -- @xs@.
 --
--- > fillSep xs  = foldr (\<\/\>) empty xs
+-- > fillSep xs  = foldr (</>) empty xs
 fillSep :: [Doc] -> Doc
 fillSep         = fold (</>)
 
@@ -330,7 +409,7 @@ cat             = group . vcat
 -- horizontally with @(\<\>)@ as long as its fits the page, than inserts
 -- a @linebreak@ and continues doing that for all documents in @xs@.
 --
--- > fillCat xs  = foldr (\<\/\/\>) empty xs
+-- > fillCat xs  = foldr (<//>) empty xs
 fillCat :: [Doc] -> Doc
 fillCat         = fold (<//>)
 
@@ -468,7 +547,7 @@ squote          = char '\''
 -- | The document @dquote@ contains a double quote, '\"'.
 dquote :: Doc
 dquote          = char '"'
--- | The document @semi@ contains a semi colon, \";\".
+-- | The document @semi@ contains a semicolon, \";\".
 semi :: Doc
 semi            = char ';'
 -- | The document @colon@ contains a colon, \":\".
@@ -509,31 +588,27 @@ string ('\n':s) = line <> string s
 string s        = case (span (/='\n') s) of
                     (xs,ys) -> text xs <> string ys
 
+-- | The document @(bool b)@ shows the literal bool @b@ using 'text'.
 bool :: Bool -> Doc
 bool b          = text (show b)
 
--- | The document @(int i)@ shows the literal integer @i@ using
--- 'text'.
+-- | The document @(int i)@ shows the literal integer @i@ using 'text'.
 int :: Int -> Doc
 int i           = text (show i)
 
--- | The document @(integer i)@ shows the literal integer @i@ using
--- 'text'.
+-- | The document @(integer i)@ shows the literal integer @i@ using 'text'.
 integer :: Integer -> Doc
 integer i       = text (show i)
 
--- | The document @(float f)@ shows the literal float @f@ using
--- 'text'.
+-- | The document @(float f)@ shows the literal float @f@ using 'text'.
 float :: Float -> Doc
 float f         = text (show f)
 
--- | The document @(double d)@ shows the literal double @d@ using
--- 'text'.
+-- | The document @(double d)@ shows the literal double @d@ using 'text'.
 double :: Double -> Doc
 double d        = text (show d)
 
--- | The document @(rational r)@ shows the literal rational @r@ using
--- 'text'.
+-- | The document @(rational r)@ shows the literal rational @r@ using 'text'.
 rational :: Rational -> Doc
 rational r      = text (show r)
 
@@ -724,6 +799,10 @@ align d         = column (\k ->
 
 -- | The abstract data type @Doc@ represents pretty documents.
 --
+-- More specifically, a value of type @Doc@ represents a non-empty set of
+-- possible renderings of a document.  The rendering functions select one of
+-- these possibilities.
+--
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty
 -- prints document @doc@ with a page width of 80 characters and a
 -- ribbon width of 32 characters.
@@ -763,6 +842,10 @@ data Doc        = Fail
 
 -- | The data type @SimpleDoc@ represents rendered documents and is
 -- used by the display functions.
+--
+-- Whereas values of the data type 'Doc' represent non-empty sets of possible
+-- renderings of a document, values of the data type @SimpleDoc@ represent
+-- single renderings of a document.
 --
 -- The @Int@ in @SText@ contains the length of the string. The @Int@
 -- in @SLine@ contains the indentation for that line. The library
@@ -953,7 +1036,7 @@ onmagenta :: Doc -> Doc
 oncyan :: Doc -> Doc
 -- | Displays a document with the white backcolor
 onwhite :: Doc -> Doc
--- | Displays a document with the dull block backcolor
+-- | Displays a document with the dull black backcolor
 ondullblack :: Doc -> Doc
 -- | Displays a document with the dull red backcolor
 ondullred :: Doc -> Doc
