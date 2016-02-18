@@ -166,6 +166,13 @@ import System.Console.ANSI (Color(..), ColorIntensity(..), ConsoleLayer(..),
 
 import Data.String (IsString(..))
 import Data.Maybe (catMaybes)
+
+-- NB: if you import more from Data.Semigroup make sure the
+--     build-depends version range is still accurate
+-- NB2: if you consider re-exporting Semigroup((<>)) take into account
+--      that only starting with semigroup-0.8 `infixr 6 <>` was used!
+import qualified Data.Semigroup as Semi (Semigroup((<>)))
+
 #if __GLASGOW_HASKELL__ >= 710
 import Data.Monoid ((<>))
 #elif __GLASGOW_HASKELL__ >= 704
@@ -864,8 +871,11 @@ data SimpleDoc  = SFail
 -- from base gained a Monoid instance (<http://hackage.haskell.org/trac/ghc/ticket/4378>):
 instance Monoid Doc where
     mempty = empty
-    mappend = beside
+    mappend = (Semi.<>)
     mconcat = hcat
+
+instance Semi.Semigroup Doc where
+    (<>) = beside
 
 -- MCB: also added when "pretty" got the corresponding instances:
 instance IsString Doc where
