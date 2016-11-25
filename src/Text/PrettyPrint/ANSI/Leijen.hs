@@ -23,17 +23,17 @@
 --      <http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf>
 -- @
 --
--- In their bare essence, the combinators given by Wadler are not expressive
+-- In their bare essence, the functions given by Wadler are not expressive
 -- enough to describe some commonly occurring layouts. This library adds new
 -- primitives to describe these layouts and works well in practice.
 --
 -- The library is based on a single way to concatenate documents, which is
 -- associative and has both a left and right unit.  This simple design leads to
 -- an efficient and short implementation. The simplicity is reflected in the
--- predictable behaviour of the combinators which make them easy to use in
+-- predictable behaviour of the functions which make them easy to use in
 -- practice.
 --
--- A thorough description of the primitive combinators and their implementation
+-- A thorough description of the primitive functions and their implementation
 -- can be found in Philip Wadler's paper. The main differences with his original
 -- paper are:
 --
@@ -45,7 +45,7 @@
 -- * There are three new primitives: 'align', 'fill' and 'fillBreak'. These are
 --   very useful in practice.
 --
--- * There are many additional useful combinators, like 'fillSep' and 'list'.
+-- * There are many additional useful functions, like 'fillSep' and 'list'.
 --
 -- * There are two renderers: 'renderPretty' for pretty printing, and
 --   'renderCompact' for quickly rendered, compact output more suitable for
@@ -64,7 +64,7 @@
 --   annotations.
 --
 -- * The library has been extended to allow formatting text for output to ANSI
---   style consoles. New combinators allow control of foreground and background
+--   style consoles. New functions allow control of foreground and background
 --   color and the ability to make parts of the text bold or underlined.
 --
 -----------------------------------------------------------
@@ -75,19 +75,19 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Documents
    Doc,
 
-   -- * Basic combinators
+   -- * Basic functions
    char, text, (<>), nest, line, linebreak, group, softline, softbreak,
    hardline, flatAlt,
 
-   -- * Alignment combinators
+   -- * Alignment functions
    --
-   -- | The combinators in this section cannot be described by Wadler's original
-   -- combinators. They align their output relative to the current output
+   -- | The functions in this section cannot be described by Wadler's original
+   -- functions. They align their output relative to the current output
    -- position — in contrast to @nest@ which always aligns to the current
-   -- nesting level. This deprives these combinators from being \`optimal\'. In
-   -- practice however they prove to be very useful. The combinators in this
+   -- nesting level. This deprives these functions from being \`optimal\'. In
+   -- practice however they prove to be very useful. The functions in this
    -- section should be used with care, since they are more expensive than the
-   -- other combinators. For example, @align@ shouldn't be used to pretty print
+   -- other functions. For example, @align@ shouldn't be used to pretty print
    -- all top-level declarations of a language, but using @hang@ for let
    -- expressions is fine.
    align, hang, indent, encloseSep, list, tupled, semiBraces,
@@ -95,21 +95,20 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- * Operators
    (<+>), (</>), (<//>),
 
-   -- * List combinators
+   -- * List functions
    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
 
-   -- * Filler combinators
+   -- * Filler functions
    fill, fillBreak,
 
-   -- * Bracketing combinators
+   -- * Bracketing functions
    enclose, squotes, dquotes, parens, angles, braces, brackets,
 
-   -- * Named character combinators
+   -- * Named character functions
    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
    dquote, semi, colon, comma, space, dot, backslash, equals,
 
-
-   -- * ANSI formatting combinators
+   -- * ANSI formatting functions
    --
    -- | This terminal formatting functionality is, as far as possible, portable
    -- across platforms with their varying terminals. However, note that to
@@ -118,28 +117,26 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- of its friends.  Rendering the 'Doc' to a 'String' and then outputing
    -- /that/ will only work on Unix-style operating systems.
 
-   -- ** Forecolor combinators
+   -- ** Forecolor functions
    black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
    dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
 
-   -- ** Backcolor combinators
+   -- ** Backcolor functions
    onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
    ondullcyan, ondullwhite,
 
-   -- ** Emboldening combinators
+   -- ** Emboldening functions
    bold, debold,
 
-   -- ** Underlining combinators
+   -- ** Underlining functions
    underline, deunderline,
 
-   -- ** Formatting elimination combinators
+   -- ** Formatting elimination functions
    plain,
-
 
    -- * Pretty class
    Pretty(..),
-
 
    -- * Rendering and displaying documents
 
@@ -151,7 +148,6 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- ** Simultaneous rendering and displaying of documents
    putDoc, hPutDoc, putDocW, hPutDocW,
-
 
    -- * Undocumented
    column, columns, nesting, width
@@ -191,7 +187,7 @@ infixr 5 </>, <//>
 
 
 -- $DocumentAlgebra
--- The combinators in this library satisfy many algebraic laws.
+-- The functions in this library satisfy many algebraic laws.
 --
 -- The concatenation operator '<>' is associative and has 'mempty' as a left and
 -- right unit:
@@ -204,7 +200,7 @@ infixr 5 </>, <//>
 -- concatenation:
 --
 --     > text (s ++ t) = text s <> text t
---     > text "" = empty
+--     > "" = empty
 --
 -- The 'char' combinator behaves like one-element text:
 --
@@ -236,8 +232,8 @@ infixr 5 </>, <//>
 --     > align (text s) = text s
 --     > align (align x) = align x
 --
--- From the laws of the primitive combinators, we can derive many other laws for
--- the derived combinators.  For example, the /above/ operator '<$>' is defined
+-- From the laws of the primitive functions, we can derive many other laws for
+-- the derived functions.  For example, the /above/ operator '<$>' is defined
 -- as:
 --
 --     > x <$> y = x <> line <> y
@@ -252,35 +248,30 @@ infixr 5 </>, <//>
 -- Similar laws also hold for the other line break operators '</>', '<$$>', and
 -- '<//>'.
 
-
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
 
------------------------------------------------------------
--- list, tupled and semiBraces pretty print a list of
--- documents either horizontally or vertically aligned.
------------------------------------------------------------
 
 
--- | @(list xs)@ comma separates the documents @xs@ and encloses them in square
--- brackets.  are rendered horizontally if that fits the page. Otherwise they
--- are aligned vertically. All comma separators are put in front of the
--- elements.
+-- | Special case of 'encloseSep' with braces and 'comma' as separator.
+--
+-- >>> putDocW 80 (list (map pretty [1,20,300,4000]))
+-- [1,20,300,4000]
 list :: [Doc] -> Doc
 list = encloseSep lbracket rbracket comma
 
--- | @(tupled xs)@ comma separates the documents @xs@ and encloses them in
--- parenthesis. The documents are rendered horizontally if that fits the page,
--- otherwise they are aligned vertically. All comma separators are put in front
--- of the elements.
+-- | Special case of 'encloseSep' with parentheses and 'comma' as separator.
+--
+-- >>> putDocW 80 (tupled (map pretty [1,20,300,4000]))
+-- (1,20,300,4000)
 tupled :: [Doc] -> Doc
-tupled = encloseSep lparen rparen  comma
+tupled = encloseSep lparen rparen comma
 
-
--- | @(semiBraces xs)@ separates the documents @xs@ with semicolons and encloses
--- them in braces.  are rendered horizontally if that fits the page. Otherwise
--- they are aligned vertically. All semicolons are put in front of the elements.
+-- | Special case of 'encloseSep' with braces and 'semicolon' as separator.
+--
+-- >>> putDocW 80 (semiBraces (map pretty [1,20,300,4000]))
+-- {1;20;300;4000}
 semiBraces :: [Doc] -> Doc
 semiBraces = encloseSep lbrace rbrace  semi
 
@@ -290,77 +281,63 @@ semiBraces = encloseSep lbrace rbrace  semi
 -- All separators are put in front of the elements. For example, the combinator
 -- 'list' can be defined with @encloseSep@:
 --
--- > list xs = encloseSep lbracket rbracket comma xs
--- > test = text "list" <+> (list (map int [10,200,3000]))
---
--- Which is layed out with a page width of 20 as:
---
--- @
--- list [10,200,3000]
--- @
---
--- But when the page width is 15, it is layed out as:
---
--- @
--- list [10
---      ,200
---      ,3000]
--- @
+-- >>> let doc = encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
+-- >>> putDocW 80 ("list" <+> doc)
+-- list [1,20,300,4000]
+-- >>> putDocW 40 ("list" <+> doc)
+-- list [1
+--      ,20
+--      ,300
+--      ,4000]
 encloseSep
-    :: Doc   -- ^ <
-    -> Doc   -- ^ >
+    :: Doc   -- ^ \<
+    -> Doc   -- ^ \>
     -> Doc   -- ^ ;
-    -> [Doc] -- ^ [x,y,z]
-    -> Doc   -- ^ <x;y;z>
+    -> [Doc] -- ^ \[x,y,z\]
+    -> Doc   -- ^ \<x;y;z\>
 encloseSep left right sep ds = case ds of
     []  -> left <> right
     [d] -> left <> d <> right
     _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
 
 
------------------------------------------------------------
--- punctuate p [d1,d2,...,dn] => [d1 <> p,d2 <> p, ... ,dn]
------------------------------------------------------------
-
 
 -- | @(punctuate p xs)@ concatenates all documents in @xs@ with document @p@
 -- except for the last document.
 --
--- > someText = map text ["words","in","a","tuple"]
--- > test = parens (align (cat (punctuate comma someText)))
+-- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
+-- >>> putDocW 80 (parens (align (cat (punctuate comma docs))))
+-- (lorem,ipsum,dolor,sit,amet)
+-- >>> putDocW 40 (parens (align (cat (punctuate comma docs))))
+-- (lorem,
+--  ipsum,
+--  dolor,
+--  sit,
+--  amet)
 --
--- This is layed out on a page width of 20 as:
---
--- @
--- (words,in,a,tuple)
--- @
---
--- But when the page width is 15, it is layed out as:
---
--- @
--- (words,
---  in,
---  a,
---  tuple)
--- @
---
--- (If you want put the commas in front of their elements instead of at the end,
--- you should use 'tupled' or, in general, 'encloseSep'.)
+-- If you want put the commas in front of their elements instead of at the end,
+-- you should use 'tupled' or, in general, 'encloseSep'.
 punctuate :: Doc -> [Doc] -> [Doc]
 punctuate _ [] = []
 punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
 
-
 -----------------------------------------------------------
--- high-level combinators
+-- high-level functions
 -----------------------------------------------------------
-
 
 -- | @(sep xs)@ concatenates all documents @xs@ either horizontally with
--- @(\<+\>)@, if it fits the page, or vertically with @(\<$\>)@.
+-- @(\<+\>)@, if it fits the page, or vertically with @above'@.
 --
--- > sep xs = group (vsep xs)
+-- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
+-- >>> putDocW 80 (sep docs)
+-- lorem ipsum dolor sit amet
+-- >>> putDocW 32 (sep docs)
+-- lorem
+-- ipsum
+-- dolor
+-- sit
+-- amet
 sep :: [Doc] -> Doc
 sep = group . vsep
 
@@ -368,34 +345,40 @@ sep = group . vsep
 -- long as its fits the page, than inserts a @line@ and continues doing that for
 -- all documents in @xs@.
 --
--- > fillSep xs = foldr (</>) empty xs
+-- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
+-- >>> putDocW 80 (fillSep docs)
+-- lorem ipsum dolor sit amet
+-- >>> putDocW 32 (fillSep docs)
+-- lorem ipsum
+-- dolor sit
+-- amet
 fillSep :: [Doc] -> Doc
 fillSep = fold (</>)
 
--- | @(hsep xs)@ concatenates all documents @xs@
--- horizontally with @(\<+\>)@.
+-- | @(hsep xs)@ concatenates all documents @xs@ horizontally with @(\<+\>)@.
+--
+-- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
+-- >>> putDoc (hsep docs)
+-- lorem ipsum dolor sit amet
 hsep :: [Doc] -> Doc
 hsep = fold (<+>)
-
 
 -- | @vsep xs@ concatenates all documents @xs@ vertically with 'above'. If a
 -- 'group' undoes the line breaks inserted by @vsep@, all documents are
 -- separated with a space.
 --
 -- Using a simple 'vsep' alone yields
-
--- >>> putDoc (text "some" <+> vsep (T.words ("text to lay out")))
--- @
+--
+-- >>> putDoc ("some" <+> vsep (map text (T.words ("text to lay out"))))
 -- some text
 -- to
 -- lay
 -- out
--- @
 --
 -- The 'align' function can be used to align the documents under their first
--- element
+-- element:
 --
--- >>> putDoc (text "some" <+> align (vsep (T.words ("text to lay out"))))
+-- >>> putDoc ("some" <+> align (vsep (map text (T.words ("text to lay out")))))
 -- some text
 --      to
 --      lay
@@ -403,28 +386,53 @@ hsep = fold (<+>)
 vsep :: [Doc] -> Doc
 vsep = fold above
 
--- | @(cat xs)@ concatenates all documents @xs@ either horizontally with
--- @(\<\>)@, if it fits the page, or vertically with @(\<$$\>)@.
+-- | @cat xs@ concatenates all documents @xs@ either horizontally with
+-- @('<>')@ if it fits the page, or vertically with @above'@.
 --
--- > cat xs = group (vcat xs)
+-- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> putDocW 80 ("Docs:" <+> cat docs)
+-- Docs: loremipsumdolor
+-- >>> putDocW 40 ("Docs:" <+> cat docs)
+-- Docs: lorem
+-- ipsum
+-- dolor
 cat :: [Doc] -> Doc
 cat = group . vcat
 
--- | @(fillCat xs)@ concatenates documents @xs@ horizontally with @(\<\>)@ as
--- long as its fits the page, than inserts a @linebreak@ and continues doing
--- that for all documents in @xs@.
+-- | @(fillCat xs)@ concatenates documents @xs@ horizontally with @('<>')@ as
+-- long as its fits the page, then inserts a @linebreak@ and continues doing
+-- that for all documents in @xs@. This is similar to how an ordinary word
+-- processor lays out the text if you just keep typing until you hit the maximum
+-- line length.
 --
--- > fillCat xs = foldr (<//>) empty xs
+-- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> putDocW 80 ("Docs:" <+> fillCat docs)
+-- Docs: loremipsumdolor
+-- >>> putDocW 40 ("Docs:" <+> fillCat docs)
+-- Docs: loremipsum
+-- dolor
 fillCat :: [Doc] -> Doc
 fillCat = fold (<//>)
 
 -- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@.
+--
+-- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> putDoc (hcat docs)
+-- loremipsumdolor
 hcat :: [Doc] -> Doc
 hcat = fold (<>)
 
--- | @(vcat xs)@ concatenates all documents @xs@ vertically with @(\<$$\>)@. If
+-- | @(vcat xs)@ concatenates all documents @xs@ vertically with @above'@. If
 -- a 'group' undoes the line breaks inserted by @vcat@, all documents are
 -- directly concatenated.
+--
+-- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> putDocW 80 (vcat docs)
+-- lorem
+-- ipsum
+-- dolor
+-- >>> putDocW 40 (group (vcat docs))
+-- loremipsumdolor
 vcat :: [Doc] -> Doc
 vcat = fold above'
 
@@ -433,18 +441,25 @@ fold _ [] = mempty
 fold f ds = foldr1 f ds
 
 -- | @(x \<+\> y)@ concatenates document @x@ and @y@ with a @space@ in between.
+--
+-- >>> putDoc ("hello" <+> "world")
+-- hello world
 (<+>) :: Doc -> Doc -> Doc
 x <+> y = x <> space <> y
 
 -- | @(x \<\/\> y)@ concatenates document @x@ and @y@ with a 'softline' in
--- between. This effectively puts @x@ and @y@ either next to each other (with a
--- @space@ in between) or underneath each other. (infixr 5)
+-- between. This effectively puts @x@ and @y@ either next to (with a @space@ in
+-- between) or underneath each other.
+--
+-- See 'fillSep' for examples.
 (</>) :: Doc -> Doc -> Doc
 x </> y = x <> softline <> y
 
 -- | @(x \<\/\/\> y)@ concatenates document @x@ and @y@ with a 'softbreak' in
--- between. This effectively puts @x@ and @y@ either right next to each other or
--- underneath each other. (infixr 5)
+-- between. This effectively puts @x@ and @y@ either right next to or underneath
+-- each other.
+--
+-- See 'fillCat' for examples.
 (<//>) :: Doc -> Doc -> Doc
 x <//> y = x <> softbreak <> y
 
@@ -460,116 +475,143 @@ above' x y = x <> linebreak <> y
 -- | @softline@ behaves like 'space' if the resulting output fits the page,
 -- otherwise it behaves like 'line'.
 --
--- > softline = group line
+-- >>> putDocW 80 ("lorem ipsum" <> softline <> "dolor sit amet")
+-- lorem ipsum dolor sit amet
+-- >>> putDocW 40 ("lorem ipsum" <> softline <> "dolor sit amet")
+-- lorem ipsum
+-- dolor sit amet
 softline :: Doc
 softline = group line
 
 -- | @softbreak@ behaves like 'mempty' if the resulting output fits the page,
 -- otherwise it behaves like 'line'.
 --
--- > softbreak = group linebreak
+-- >>> putDocW 80 ("lorem ipsum" <> softbreak <> "dolor sit amet")
+-- lorem ipsumdolor sit amet
+-- >>> putDocW 40 ("lorem ipsum" <> softbreak <> "dolor sit amet")
+-- lorem ipsum
+-- dolor sit amet
 softbreak :: Doc
 softbreak = group linebreak
 
--- | Document @(squotes x)@ encloses document @x@ with single quotes
--- \"'\".
+-- | >>> putDoc (squotes "hello")
+-- 'hello'
 squotes :: Doc -> Doc
 squotes = enclose squote squote
 
--- | Document @(dquotes x)@ encloses document @x@ with double quotes
--- '\"'.
+-- | >>> putDoc (dquotes "hello")
+-- "hello"
 dquotes :: Doc -> Doc
 dquotes = enclose dquote dquote
 
--- | Document @(braces x)@ encloses document @x@ in braces, \"{\" and
--- \"}\".
+-- | >>> putDoc (braces "hello")
+-- {hello}
 braces :: Doc -> Doc
 braces = enclose lbrace rbrace
 
--- | Document @(parens x)@ encloses document @x@ in parenthesis, \"(\"
--- and \")\".
+-- | >>> putDoc (parens "hello")
+-- (hello)
 parens :: Doc -> Doc
 parens = enclose lparen rparen
 
--- | Document @(angles x)@ encloses document @x@ in angles, \"\<\" and
--- \"\>\".
+-- | >>> putDoc (angles "hello")
+-- <hello>
 angles :: Doc -> Doc
 angles = enclose langle rangle
 
--- | Document @(brackets x)@ encloses document @x@ in square brackets,
--- \"[\" and \"]\".
+-- | >>> putDoc (brackets "hello")
+-- [hello]
 brackets :: Doc -> Doc
 brackets = enclose lbracket rbracket
 
 -- | @(enclose l r x)@ encloses document @x@ between documents @l@ and @r@ using
 -- @(\<\>)@.
 --
--- > enclose l r x = l <> x <> r
+-- >>> putDoc (enclose lbrace rangle "hello")
+-- {hello>
 enclose :: Doc -> Doc -> Doc -> Doc
 enclose l r x = l <> x <> r
 
--- | left parenthesis, \"(\"
+-- | >>> putDoc lparen
+-- (
 lparen :: Doc
 lparen = char '('
--- | right parenthesis, \")\"
+-- | >>> putDoc rparen
+-- )
 rparen :: Doc
 rparen = char ')'
--- | left angle, \"\<\"
+-- | >>> putDoc langle
+-- <
 langle :: Doc
 langle = char '<'
--- | right angle, \">\"
+-- | >>> putDoc rangle
+-- >
 rangle :: Doc
 rangle = char '>'
--- | left brace, \"{\"
+-- | >>> putDoc lbrace
+-- {
 lbrace :: Doc
 lbrace = char '{'
--- | right brace, \"}\"
+-- | >>> putDoc rbrace
+-- }
 rbrace :: Doc
 rbrace = char '}'
--- | left square bracket, \"[\"
+-- | >>> putDoc lbracket
+-- [
 lbracket :: Doc
 lbracket = char '['
--- | right square bracket, \"]\"
+-- | >>> putDoc rbracket
+-- ]
 rbracket :: Doc
 rbracket = char ']'
 
-
--- | single quote, \"'\"
+-- | >>> putDoc squote
+-- '
 squote :: Doc
 squote = char '\''
--- | double quote, '\"'
+-- | >>> putDoc dquote
+-- "
 dquote :: Doc
 dquote = char '"'
--- | semicolon, \";\"
+-- | >>> putDoc semi
+-- ;
 semi :: Doc
 semi = char ';'
--- | colon, \":\"
+-- | >>> putDoc colon
+-- :
 colon :: Doc
 colon = char ':'
--- | comma, \",\"
+-- | >>> putDoc comma
+-- ,
 comma :: Doc
 comma = char ','
--- | single space, \" \"
+-- | >>> putDoc ("a" <> space <> "b")
+-- a b
 --
--- > x <+> y = x <> space <> y
+-- This is mostly used via @'<+>'@,
+--
+-- >>> putDoc ("a" <+> "b")
+-- a b
 space :: Doc
 space = char ' '
--- | single dot, \".\"
+-- | >>> putDoc dot
+-- .
 dot :: Doc
 dot = char '.'
--- | back slash, \"\\\"
+-- | >>> putDoc backslash
+-- \
 backslash :: Doc
 backslash = char '\\'
--- | equal sign, \"=\"
+-- | >>> putDoc equals
+-- =
 equals :: Doc
 equals = char '='
 
-
 -- | @text s@ concatenates all characters in @s@ using @line@ for newline
--- characters and @char@ for all other characters. It is used instead of
--- 'unsafeText' whenever the text contains newline characters.
+-- characters and @char@ for all other characters. The 'IsString' instance of
+-- 'Doc' uses this function.
 --
--- >>> putDoc (text "hello\nworld")
+-- >>> putDoc "hello\nworld"
 -- hello
 -- world
 text :: Text -> Doc
@@ -587,67 +629,91 @@ text t = case T.uncons t of
 -- | The member @prettyList@ is only used to define the @instance Pretty a =>
 -- Pretty [a]@. In normal circumstances only the @pretty@ function is used.
 class Pretty a where
-  pretty :: a -> Doc
-  prettyList :: [a] -> Doc
-  prettyList = list . map pretty
+
+    -- | >>> putDoc (pretty 1 <+> pretty "hello" <+> pretty 1.234)
+    -- 1 hello 1.234
+    pretty :: a -> Doc
+
+    -- | >>> putDoc (prettyList [1, 23, 456])
+    -- [1,23,456]
+    prettyList :: [a] -> Doc
+    prettyList = list . map pretty
 
 instance Pretty a => Pretty [a] where
-  pretty = prettyList
+    pretty = prettyList
 
 instance Pretty Doc where
-  pretty = id
+    pretty = id
 
+-- | >>> putDoc (pretty ())
+-- ()
 instance Pretty () where
-  pretty _ = text "()"
+    pretty _ = "()"
 
+-- | >>> putDoc (pretty True)
+-- True
 instance Pretty Bool where
-  pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.pack . show
 
+-- | >>> putDoc (pretty 'c')
+-- 'c'
 instance Pretty Char where
-  pretty = unsafeText . T.pack . show
-  prettyList = text . fromString
+    pretty = unsafeText . T.pack . show
+    prettyList = text . fromString
 
+-- | >>> putDoc (pretty (123 :: Int))
+-- 123
 instance Pretty Int where
-  pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.pack . show
 
+-- | >>> putDoc (pretty (2^123 :: Integer))
+-- 10633823966279326983230456482242756608
 instance Pretty Integer where
-  pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.pack . show
 
+-- | >>> putDoc (pretty (123e4 :: Float))
+-- 1230000.0
 instance Pretty Float where
-  pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.pack . show
 
+-- | >>> putDoc (pretty (123e4 :: Double))
+-- 1230000.0
 instance Pretty Double where
-  pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.pack . show
 
+-- | >>> putDoc (pretty (123, "hello"))
+-- (123,hello)
 instance (Pretty a,Pretty b) => Pretty (a,b) where
-  pretty (x,y) = tupled [pretty x, pretty y]
+            pretty (x,y) = tupled [pretty x, pretty y]
 
+-- | >>> putDoc (pretty (123, "hello", False))
+-- (123,hello,False)
 instance (Pretty a,Pretty b,Pretty c) => Pretty (a,b,c) where
-  pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
+                pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
 
+-- | >>> putDoc (pretty (Just True))
+-- True
+-- >>> putDoc (brackets (pretty (Nothing :: Maybe Bool)))
+-- []
 instance Pretty a => Pretty (Maybe a) where
-  pretty Nothing = mempty
-  pretty (Just x) = pretty x
+    pretty Nothing = mempty
+    pretty (Just x) = pretty x
 
 
 
------------------------------------------------------------
--- semi primitive: fill and fillBreak
------------------------------------------------------------
+-- | Insert a number of spaces.
+spaces :: Int -> Doc
+spaces n | n <= 0    = mempty
+         | otherwise = unsafeText (T.replicate n " ")
 
 -- | @(fill i x)@ renders document @x@. It than appends @space@s until the width
 -- is equal to @i@. If the width of @x@ is already larger, nothing is appended.
 -- This combinator is quite useful in practice to output a list of bindings. The
 -- following example demonstrates this.
 --
--- >>> :{
--- let types = [ ("empty","Doc")
---             , ("nest","Int -> Doc -> Doc")
---             , ("linebreak","Doc") ]
---     ptype (name, tp) = fill 6 (text name) <+> text "::" <+> text tp
---     test = text "let" <+> align (vcat (map ptype types))
--- in putDoc test
--- :}
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("linebreak","Doc")]
+-- >>> let ptype (name, tp) = fill 6 (text name) <+> "::" <+> text tp
+-- >>> putDoc ("let" <+> align (vcat (map ptype types)))
 -- let empty  :: Doc
 --     nest   :: Int -> Doc -> Doc
 --     linebreak :: Doc
@@ -656,21 +722,15 @@ fill f d = width d (\w ->
                   if (w >= f) then mempty
                               else (spaces (f - w)))
 
-
 -- | @(fillBreak i x)@ first renders document @x@. It than appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
 -- @i@, the nesting level is increased by @i@ and a @line@ is appended. When we
 -- redefine @ptype@ in the previous example to use @fillBreak@, we get a useful
 -- variation of the previous output:
 --
--- >>> :{
--- let types = [ ("empty","Doc")
---             , ("nest","Int -> Doc -> Doc")
---             , ("linebreak","Doc") ]
---     ptype (name, tp) = fillBreak 6 (text name) <+> text "::" <+> text tp
---     test = text "let" <+> align (vcat (map ptype types))
--- in putDoc test
--- :}
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("linebreak","Doc")]
+-- >>> let ptype (name, tp) = fillBreak 6 (text name) <+> "::" <+> text tp
+-- >>> putDoc ("let" <+> align (vcat (map ptype types)))
 -- let empty  :: Doc
 --     nest   :: Int -> Doc -> Doc
 --     linebreak
@@ -683,7 +743,6 @@ fillBreak f x = width x (\w ->
 
 width :: Doc -> (Int -> Doc) -> Doc
 width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
-
 
 -----------------------------------------------------------
 -- semi primitive: Alignment and indentation
@@ -742,7 +801,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty prints document
 -- @doc@ with a page width of 80 characters and a ribbon width of 32 characters.
 --
--- >>> show (vsep ["hello", text "world"])
+-- >>> show (vsep ["hello", "world"])
 -- "\"hello\\nworld\""
 data Doc =
       Fail
@@ -769,7 +828,6 @@ data Doc =
                     (Maybe Bool)                     -- Italicization to revert to.
                     (Maybe Underlining)              -- Underlining to revert to.
 
-
 -- | The data type @SimpleDoc@ represents rendered documents and is used by the
 -- display functions.
 --
@@ -788,7 +846,6 @@ data SimpleDoc = SFail
                 | SLine !Int SimpleDoc
                 | SSGR [SGR] SimpleDoc
 
-
 -- | The empty document is, indeed, empty. Although @mempty@ has no content, it
 -- does have a \'height\' of 1 and behaves exactly like @(text \"\")@ (and is
 -- therefore not a unit of @\<$\>@).
@@ -804,15 +861,15 @@ instance Semi.Semigroup Doc where
 instance IsString Doc where
     fromString = text . T.pack
 
--- | @(char c)@ contains the literal character @c@. The character shouldn't be a
--- newline (@'\n'@), the function 'line' should be used for line breaks.
+-- | @(char c)@ contains the literal character @c@. If the character is a
+-- a newline (@'\n'@), consider using 'line' instead.
 char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @text s@ contains the literal string @s@. The string must not contain any
--- newline (@'\n'@) characters. If the string contains newline characters,
--- 'text' should be used.
+-- | @unsafeText s@ contains the literal string @s@. The string must not contain
+-- any newline (@'\n'@) characters. If you're not sure, use the safer (but less
+-- performant) 'text'.
 unsafeText :: Text -> Doc
 unsafeText  t
   | T.null t = Empty
@@ -821,17 +878,39 @@ unsafeText  t
 -- | The @line@ document advances to the next line and indents to the current
 -- nesting level. Document @line@ behaves like @(text \" \")@ if the line break
 -- is undone by 'group'.
+--
+-- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
+-- >>> putDoc doc
+-- lorem ipsum
+-- dolor sit amet
+-- >>> putDoc (group doc)
+-- lorem ipsum dolor sit amet
 line :: Doc
 line = FlatAlt Line space
 
 -- | The @linebreak@ document advances to the next line and indents to the
 -- current nesting level. Document @linebreak@ behaves like 'mempty' if the line
 -- break is undone by 'group'.
+--
+-- >>> let doc = "lorem ipsum" <> linebreak <> "dolor sit amet"
+-- >>> putDoc doc
+-- lorem ipsum
+-- dolor sit amet
+-- >>> putDoc (group doc)
+-- lorem ipsumdolor sit amet
 linebreak :: Doc
 linebreak = FlatAlt Line mempty
 
 -- | A linebreak that will never be flattened; it is guaranteed to render as a
--- newline.
+-- newline, even if 'group'ed.
+--
+-- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
+-- >>> putDoc doc
+-- lorem ipsum
+-- dolor sit amet
+-- >>> putDoc (group doc)
+-- lorem ipsum
+-- dolor sit amet
 hardline :: Doc
 hardline = Line
 
@@ -856,12 +935,23 @@ columns f = Columns f
 -- undoes all line breaks in document @x@. The resulting line is added to the
 -- current line if that fits the page. Otherwise, the document @x@ is rendered
 -- without any changes.
+--
+-- See 'vcat' and 'line' for examples.
 group :: Doc -> Doc
 group x = Union (flatten x) x
 
 -- | A document that is normally rendered as the first argument, but when
--- flattened, is rendered as the second document.
-flatAlt :: Doc -> Doc -> Doc
+-- 'group'ed, is rendered as the second document.
+--
+-- >>> let doc = flatAlt "lorem ipsum dolor sit amet" "hello world"
+-- >>> putDoc doc
+-- lorem ipsum dolor sit amet
+-- >>> putDoc (group doc)
+-- hello world
+flatAlt
+    :: Doc -- ^ Standard rendering
+    -> Doc -- ^ Fallback when 'group'ed
+    -> Doc
 flatAlt = FlatAlt
 
 flatten :: Doc -> Doc
@@ -879,7 +969,6 @@ flatten = \case
     Italicize b x -> Italicize b (flatten x)
     Underline u x -> Underline u (flatten x)
     other         -> other
-
 
 -----------------------------------------------------------
 -- Colors
@@ -987,7 +1076,6 @@ ondullcolor = Color Background Dull
 oncolorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
 oncolorFunctions what = (oncolor what, ondullcolor what)
 
-
 -----------------------------------------------------------
 -- Console Intensity
 -----------------------------------------------------------
@@ -1003,7 +1091,6 @@ debold = Intensify NormalIntensity
 -- NB: I don't support FaintIntensity here because it is not widely supported by
 -- terminals.
 
-
 -----------------------------------------------------------
 -- Italicization
 -----------------------------------------------------------
@@ -1013,7 +1100,6 @@ debold = Intensify NormalIntensity
 I'm in two minds about providing these functions, since italicization is so
 rarely implemented. It is especially bad because "italicization" may cause the
 meaning of colors to flip, which will look a bit weird, to say the least...
-
 
 -- | Displays a document in italics. This is not widely supported, and it's use
 -- is not recommended
@@ -1077,7 +1163,6 @@ plain = \case
 data Docs = Nil
           | Cons !Int Doc Docs
 
-
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(renderPretty ribbonfrac width x)@ renders document @x@ with a
 -- page width of @width@ and a ribbon width of @(ribbonfrac * width)@
@@ -1137,7 +1222,7 @@ renderFits fits rfrac w x
     -- I used to do a @SSGR [Reset]@ here, but if you do that it will result in
     -- any rendered @Doc@ containing at least some ANSI control codes. This may
     -- be undesirable if you want to render to non-ANSI devices by simply not
-    -- making use of the ANSI color combinators I provide.
+    -- making use of the ANSI color functions I provide.
     --
     -- What I "really" want to do here is do an initial Reset iff there is some
     -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if
@@ -1246,7 +1331,6 @@ fitsR p m w (SSGR _ x)  = fitsR p m w x
 --  fast and fewer characters output, good for machines
 -----------------------------------------------------------
 
-
 -- | @(renderCompact x)@ renders document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this renderer is very fast. The
 -- resulting output contains fewer characters than a pretty printed version and
@@ -1282,7 +1366,6 @@ renderCompact x = scan 0 [x]
 -- Displayers:  displayS and displayIO
 -----------------------------------------------------------
 
-
 -- | @displayT simpleDoc@ takes the output @simpleDoc@ from a rendering function
 -- and transforms it to lazy text (for use in the 'Show' class).
 --
@@ -1300,7 +1383,6 @@ displayT = \case
     SText t x -> LTB.fromText t <> displayT x
     SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> displayT x
     SSGR s x  -> LTB.fromString (setSGRCode s) <> displayT x
-
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file handle
 -- @handle@. This function is used for example by 'hPutDoc':
@@ -1326,7 +1408,8 @@ instance Show Doc where
   showsPrec _ doc = shows (displayT (renderPretty 0.4 80 doc))
 
 -- | @putDoc doc@ pretty prints document @doc@ to standard output, with a page
--- width of 80 characters and a ribbon width of 32 characters.
+-- width of 80 characters and a ribbon width of 32 characters (see
+-- 'renderPretty' for documentation of those values.)
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -1340,15 +1423,13 @@ putDocW :: Int -> Doc -> IO ()
 putDocW = hPutDocW stdout
 
 -- | 'putDoc', but instead of using 'stdout', print to a user-provided handle,
--- e.g. a file or a socket.
+-- e.g. a file or a socket. Uses a line length of 80, and a ribbon width of 32
+-- characters (see 'renderPretty' for documentation of those values).
+--
+-- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = displayIO h (renderPretty 0.4 80 doc)
 
 -- | 'hPutDocW', but with a page width parameter.
 hPutDocW :: Handle -> Int -> Doc -> IO ()
 hPutDocW h w doc = displayIO h (renderPretty 0.4 w doc)
-
--- | Insert a number of spaces.
-spaces :: Int -> Doc
-spaces n | n <= 0    = mempty
-         | otherwise = unsafeText (T.replicate n " ")
