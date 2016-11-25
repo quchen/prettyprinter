@@ -157,23 +157,29 @@ module Text.PrettyPrint.ANSI.Leijen (
    column, columns, nesting, width
    ) where
 
-import           System.IO           (Handle, hPutChar, hPutStr, stdout)
+import System.IO (Handle, hPutChar, hPutStr, stdout)
 
-import           System.Console.ANSI (Color (..), ColorIntensity (..),
-                                      ConsoleIntensity (..), ConsoleLayer (..),
-                                      SGR (..), Underlining (..), hSetSGR,
-                                      setSGRCode)
+import System.Console.ANSI
+    ( Color (..)
+    , ColorIntensity (..)
+    , ConsoleIntensity (..)
+    , ConsoleLayer (..)
+    , SGR (..)
+    , Underlining (..)
+    , hSetSGR
+    , setSGRCode
+    )
 
-import           Data.Maybe          (catMaybes)
-import           Data.String         (IsString (..))
+import Data.Maybe  (catMaybes)
+import Data.String (IsString (..))
 
 -- NB: if you import more from Data.Semigroup make sure the
 --     build-depends version range is still accurate
 -- NB2: if you consider re-exporting Semigroup((<>)) take into account
 --      that only starting with semigroup-0.8 `infixr 6 <>` was used!
-import qualified Data.Semigroup      as Semi (Semigroup ((<>)))
+import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 
-import           Data.Monoid         ((<>))
+import Data.Monoid ((<>))
 
 infixr 6 <+>
 infixr 5 </>, <//>
