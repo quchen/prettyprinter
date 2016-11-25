@@ -92,7 +92,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    align, hang, indent, encloseSep, list, tupled, semiBraces,
 
    -- * Operators
-   (<+>), (Text.PrettyPrint.ANSI.Leijen.<$>), (</>), (<$$>), (<//>),
+   (<+>), (</>), (<//>),
 
    -- * List combinators
    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
@@ -176,7 +176,7 @@ import qualified Data.Semigroup      as Semi (Semigroup ((<>)))
 import           Data.Monoid         ((<>))
 
 infixr 6 <+>
-infixr 5 </>,<//>,<$>,<$$>
+infixr 5 </>, <//>
 
 
 
@@ -390,7 +390,7 @@ hsep = fold (<+>)
 --      out
 -- @
 vsep :: [Doc] -> Doc
-vsep = fold (Text.PrettyPrint.ANSI.Leijen.<$>)
+vsep = fold above
 
 -- | @(cat xs)@ concatenates all documents @xs@ either horizontally with
 -- @(\<\>)@, if it fits the page, or vertically with @(\<$$\>)@.
@@ -415,7 +415,7 @@ hcat = fold (<>)
 -- a 'group' undoes the line breaks inserted by @vcat@, all documents are
 -- directly concatenated.
 vcat :: [Doc] -> Doc
-vcat = fold (<$$>)
+vcat = fold above'
 
 fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold f [] = mempty
@@ -438,15 +438,14 @@ x </> y = x <> softline <> y
 (<//>) :: Doc -> Doc -> Doc
 x <//> y = x <> softbreak <> y
 
--- | @(x \<$\> y)@ concatenates document @x@ and @y@ with a 'line' in between.
--- (infixr 5)
-(<$>) :: Doc -> Doc -> Doc
-x <$> y = x <> line <> y
+-- | @x `above` y@ concatenates @x@ and @y@ with a 'line' in between.
+above :: Doc -> Doc -> Doc
+above x y = x <> line <> y
 
--- | @(x \<$$\> y)@ concatenates document @x@ and @y@ with a @linebreak@ in
--- between. (infixr 5)
-(<$$>) :: Doc -> Doc -> Doc
-x <$$> y = x <> linebreak <> y
+-- | @x `above'` y@ concatenates document @x@ and @y@ with a @linebreak@ in
+-- between.
+above' :: Doc -> Doc -> Doc
+above' x y = x <> linebreak <> y
 
 -- | @softline@ behaves like 'space' if the resulting output fits the page,
 -- otherwise it behaves like 'line'.
