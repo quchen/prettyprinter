@@ -252,6 +252,11 @@ infixr 5 </>, <//>
 -- '<//>'.
 
 
+-- $setup
+-- >>> :set -XOverloadedStrings
+-- >>> :set -XOverloadedLists
+-- >>> :set -XLambdaCase
+
 -----------------------------------------------------------
 -- list, tupled and semiBraces pretty print a list of
 -- documents either horizontally or vertically aligned.
@@ -1107,7 +1112,7 @@ plain = \case
 
 -- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
 data Docs = Nil
-            | Cons !Int Doc Docs
+          | Cons !Int Doc Docs
 
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
