@@ -572,12 +572,15 @@ equals = char '='
 -- | @text s@ concatenates all characters in @s@ using @line@ for newline
 -- characters and @char@ for all other characters. It is used instead of
 -- 'unsafeText' whenever the text contains newline characters.
+--
+-- >>> putDoc (text "hello\nworld")
+-- hello
+-- world
 text :: Text -> Doc
 text t = case T.uncons t of
     Nothing -> Empty
     Just ('\n', rest) -> line <> text rest
-    _otherwise -> let (xs,ys) = T.span (/= '\n') t
-                  in text xs <> text ys
+    _otherwise -> vsep (map unsafeText (T.splitOn "\n" t))
 
 
 
