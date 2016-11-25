@@ -1,8 +1,3 @@
-# OS Junk
-.DS_Store
-Thumbs.db
+dist
+.stack-work
 
-# Build artifacts
-dist/
-*.hi
-*.o
