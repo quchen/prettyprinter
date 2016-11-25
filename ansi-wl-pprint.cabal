@@ -29,15 +29,16 @@ flag Example
 
 library
   exposed-modules: Text.PrettyPrint.ANSI.Leijen
-  ghc-options: -Wall -fno-warn-name-shadowing -fno-warn-unused-matches
+  ghc-options: -Wall -fno-warn-name-shadowing
 
   if impl(ghc >= 8.0)
     ghc-options: -Wcompat
   else
     -- see also notes in Text.PrettyPrint.ANSI.Leijen
     build-depends: semigroups >= 0.1 && < 0.19
-        
+
   build-depends: ansi-terminal >= 0.4.0 && < 0.7
+  build-depends: text
   if flag(newbase)
     build-depends:  base >= 3 && < 5
   else
@@ -45,12 +46,12 @@ library
 
 executable ansi-wl-pprint-example
   main-is: Text/PrettyPrint/ANSI/Example.hs
-        
+
   build-depends: ansi-terminal >= 0.4.0 && < 0.7
   if flag(newbase)
     build-depends:  base >= 3 && < 5
   else
     build-depends:  base < 3
-        
+
   if !flag(example)
     buildable:      False

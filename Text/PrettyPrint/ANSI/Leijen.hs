@@ -1,4 +1,5 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -74,9 +75,8 @@ module Text.PrettyPrint.ANSI.Leijen (
    Doc,
 
    -- * Basic combinators
-   char, text, string, int, integer, float, double, rational, bool,
-   (<>), nest, line, linebreak, group, softline,
-   softbreak, hardline, flatAlt,
+   char, text, (<>), nest, line, linebreak, group, softline, softbreak,
+   hardline, flatAlt,
 
    -- * Alignment combinators
    --
@@ -104,8 +104,8 @@ module Text.PrettyPrint.ANSI.Leijen (
    enclose, squotes, dquotes, parens, angles, braces, brackets,
 
    -- * Named character combinators
-   lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket,
-   squote, dquote, semi, colon, comma, space, dot, backslash, equals,
+   lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
+   dquote, semi, colon, comma, space, dot, backslash, equals,
 
 
    -- * ANSI formatting combinators
@@ -118,9 +118,8 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- /that/ will only work on Unix-style operating systems.
 
    -- ** Forecolor combinators
-   black, red, green, yellow, blue, magenta, cyan, white,
-   dullblack, dullred, dullgreen, dullyellow, dullblue, dullmagenta,
-   dullcyan, dullwhite,
+   black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
+   dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
 
    -- ** Backcolor combinators
    onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
@@ -146,7 +145,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- ** Simple (i.e., rendered) documents
    SimpleDoc(..),
    renderPretty, renderCompact, renderSmart,
-   displayS,
+   displayT,
    displayIO,
 
    -- ** Simultaneous rendering and displaying of documents
@@ -157,7 +156,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    column, columns, nesting, width
    ) where
 
-import System.IO (Handle, hPutChar, hPutStr, stdout)
+import System.IO (Handle, hPutChar, stdout)
 
 import System.Console.ANSI
     ( Color (..)
@@ -179,7 +178,11 @@ import Data.String (IsString (..))
 --      that only starting with semigroup-0.8 `infixr 6 <>` was used!
 import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 
-import Data.Monoid ((<>))
+import           Data.Monoid
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
+import qualified Data.Text.Lazy.Builder as LTB
 
 infixr 6 <+>
 infixr 5 </>, <//>
@@ -300,9 +303,9 @@ semiBraces = encloseSep lbrace rbrace  semi
 -- @
 encloseSep :: Doc -> Doc -> Doc -> [Doc] -> Doc
 encloseSep left right sep ds = case ds of
-        []  -> left <> right
-        [d] -> left <> d <> right
-        _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
+    []  -> left <> right
+    [d] -> left <> d <> right
+    _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
 
 
 -----------------------------------------------------------
@@ -334,8 +337,8 @@ encloseSep left right sep ds = case ds of
 -- (If you want put the commas in front of their elements instead of at the end,
 -- you should use 'tupled' or, in general, 'encloseSep'.)
 punctuate :: Doc -> [Doc] -> [Doc]
-punctuate p [] = []
-punctuate p [d] = [d]
+punctuate _ [] = []
+punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
 
 
@@ -424,7 +427,7 @@ vcat :: [Doc] -> Doc
 vcat = fold above'
 
 fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
-fold f [] = mempty
+fold _ [] = mempty
 fold f ds = foldr1 f ds
 
 -- | @(x \<+\> y)@ concatenates document @x@ and @y@ with a @space@ in between.
@@ -561,44 +564,16 @@ equals :: Doc
 equals = char '='
 
 
------------------------------------------------------------
--- Combinators for prelude types
------------------------------------------------------------
+-- | @text s@ concatenates all characters in @s@ using @line@ for newline
+-- characters and @char@ for all other characters. It is used instead of
+-- 'unsafeText' whenever the text contains newline characters.
+text :: Text -> Doc
+text t = case T.uncons t of
+    Nothing -> Empty
+    Just ('\n', rest) -> line <> text rest
+    _otherwise -> let (xs,ys) = T.span (/= '\n') t
+                  in text xs <> text ys
 
--- string is like "text" but replaces '\n' by "line"
-
--- | @(string s)@ concatenates all characters in @s@ using @line@ for newline
--- characters and @char@ for all other characters. It is used instead of 'text'
--- whenever the text contains newline characters.
-string :: String -> Doc
-string "" = mempty
-string ('\n':s) = line <> string s
-string s = case (span (/='\n') s) of
-                    (xs,ys) -> text xs <> string ys
-
--- | @(bool b)@ shows the literal bool @b@ using 'text'.
-bool :: Bool -> Doc
-bool b = text (show b)
-
--- | @(int i)@ shows the literal integer @i@ using 'text'.
-int :: Int -> Doc
-int i = text (show i)
-
--- | @(integer i)@ shows the literal integer @i@ using 'text'.
-integer :: Integer -> Doc
-integer i = text (show i)
-
--- | @(float f)@ shows the literal float @f@ using 'text'.
-float :: Float -> Doc
-float f = text (show f)
-
--- | @(double d)@ shows the literal double @d@ using 'text'.
-double :: Double -> Doc
-double d = text (show d)
-
--- | @(rational r)@ shows the literal rational @r@ using 'text'.
-rational :: Rational -> Doc
-rational r = text (show r)
 
 
 -----------------------------------------------------------
@@ -619,26 +594,26 @@ instance Pretty Doc where
   pretty = id
 
 instance Pretty () where
-  pretty () = text "()"
+  pretty _ = text "()"
 
 instance Pretty Bool where
-  pretty b = bool b
+  pretty = unsafeText . T.pack . show
 
 instance Pretty Char where
-  pretty c = char c
-  prettyList s = string s
+  pretty = unsafeText . T.pack . show
+  prettyList = text . fromString
 
 instance Pretty Int where
-  pretty i = int i
+  pretty = unsafeText . T.pack . show
 
 instance Pretty Integer where
-  pretty i = integer i
+  pretty = unsafeText . T.pack . show
 
 instance Pretty Float where
-  pretty f = float f
+  pretty = unsafeText . T.pack . show
 
 instance Pretty Double where
-  pretty d = double d
+  pretty = unsafeText . T.pack . show
 
 instance (Pretty a,Pretty b) => Pretty (a,b) where
   pretty (x,y) = tupled [pretty x, pretty y]
@@ -797,7 +772,7 @@ data Doc =
       Fail
     | Empty
     | Char Char             -- invariant: char is not '\n'
-    | Text !Int String      -- invariant: text doesn't contain '\n'
+    | Text Text             -- invariant: text doesn't contain '\n'
     | Line
     | FlatAlt Doc Doc       -- Render the first doc, but when
                             -- flattened, render the second.
@@ -826,15 +801,14 @@ data Doc =
 -- renderings of a document, values of the data type @SimpleDoc@ represent
 -- single renderings of a document.
 --
--- The @Int@ in @SText@ contains the length of the string. The @Int@ in @SLine@
--- contains the indentation for that line. The library provides two default
--- display functions 'displayS' and 'displayIO'. You can provide your own
--- display function by writing a function from a @SimpleDoc@ to your own output
--- format.
+-- The @Int@ in @SLine@ contains the indentation for that line. The library
+-- provides two default display functions 'displayS' and 'displayIO'. You can
+-- provide your own display function by writing a function from a @SimpleDoc@ to
+-- your own output format.
 data SimpleDoc = SFail
                 | SEmpty
                 | SChar Char SimpleDoc
-                | SText !Int String SimpleDoc
+                | SText Text SimpleDoc
                 | SLine !Int SimpleDoc
                 | SSGR [SGR] SimpleDoc
 
@@ -852,7 +826,7 @@ instance Semi.Semigroup Doc where
 
 -- MCB: also added when "pretty" got the corresponding instances:
 instance IsString Doc where
-    fromString = text
+    fromString = text . T.pack
 
 -- | @(char c)@ contains the literal character @c@. The character shouldn't be a
 -- newline (@'\n'@), the function 'line' should be used for line breaks.
@@ -860,12 +834,13 @@ char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @(text s)@ contains the literal string @s@. The string shouldn't contain
--- any newline (@'\n'@) characters. If the string contains newline characters,
--- the function 'string' should be used.
-text :: String -> Doc
-text "" = Empty
-text s = Text (length s) s
+-- | @text s@ contains the literal string @s@. The string must not contain any
+-- newline (@'\n'@) characters. If the string contains newline characters,
+-- 'text' should be used.
+unsafeText :: Text -> Doc
+unsafeText  t
+  | T.null t = Empty
+  | otherwise = Text t
 
 -- | The @line@ document advances to the next line and indents to the current
 -- nesting level. Document @line@ behaves like @(text \" \")@ if the line break
@@ -923,11 +898,11 @@ flatAlt = FlatAlt
 
 flatten :: Doc -> Doc
 flatten = \case
-    FlatAlt x y   -> y
+    FlatAlt _ y   -> y
     Cat x y       -> Cat (flatten x) (flatten y)
     Nest i x      -> Nest i (flatten x)
     Line          -> Fail
-    Union x y     -> flatten x
+    Union x _     -> flatten x
     Column f      -> Column (flatten . f)
     Columns f     -> Columns (flatten . f)
     Nesting f     -> Nesting (flatten . f)
@@ -1107,7 +1082,7 @@ plain = \case
     Fail            -> Fail
     e@Empty         -> e
     c@(Char _)      -> c
-    t@(Text _ _)    -> t
+    t@(Text _)      -> t
     l@Line          -> l
     FlatAlt x y     -> FlatAlt (plain x) (plain y)
     Cat x y         -> Cat (plain x) (plain y)
@@ -1203,12 +1178,12 @@ renderFits fits rfrac w x
       -- best :: n = indentation of current line
       --         k = current column
       --        (ie. (k >= n) && (k - n == count of inserted characters)
-      best n k mb_fc mb_bc mb_in mb_it mb_un Nil = SEmpty
+      best _ _ _ _ _ _ _ Nil = SEmpty
       best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
             Fail          -> SFail
             Empty         -> best_typical n k ds
-            Char c        -> let k' = k+1 in seq k' (SChar c (best_typical n k' ds))
-            Text l s      -> let k' = k+l in seq k' (SText l s (best_typical n k' ds))
+            Char c        -> let k' = k+1          in seq k' (SChar c (best_typical n k' ds))
+            Text t        -> let k' = k+T.length t in seq k' (SText t (best_typical n k' ds))
             Line          -> SLine i (best_typical i i ds)
             FlatAlt x _   -> best_typical n k (Cons i x ds)
             Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
@@ -1253,13 +1228,13 @@ renderFits fits rfrac w x
 
 -- @fits1@ does 1 line lookahead.
 fits1 :: Int -> Int -> Int -> SimpleDoc -> Bool
-fits1 _ _ w x        | w < 0 = False
-fits1 _ _ w SFail = False
-fits1 _ _ w SEmpty = True
-fits1 p m w (SChar c x) = fits1 p m (w - 1) x
-fits1 p m w (SText l s x) = fits1 p m (w - l) x
-fits1 _ _ w (SLine i x) = True
-fits1 p m w (SSGR _ x) = fits1 p m w x
+fits1 _ _ w _ | w < 0   = False
+fits1 _ _ _ SFail       = False
+fits1 _ _ _ SEmpty      = True
+fits1 p m w (SChar _ x) = fits1 p m (w - 1) x
+fits1 p m w (SText t x) = fits1 p m (w - T.length t) x
+fits1 _ _ _ SLine{}     = True
+fits1 p m w (SSGR _ x)  = fits1 p m w x
 
 -- @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
@@ -1273,14 +1248,16 @@ fits1 p m w (SSGR _ x) = fits1 p m w x
 -- m = minimum nesting level to fit in
 -- w = the width in which to fit the first line
 fitsR :: Int -> Int -> Int -> SimpleDoc -> Bool
-fitsR p m w x        | w < 0 = False
-fitsR p m w SFail = False
-fitsR p m w SEmpty = True
-fitsR p m w (SChar c x) = fitsR p m (w - 1) x
-fitsR p m w (SText l s x) = fitsR p m (w - l) x
-fitsR p m w (SLine i x) | m < i = fitsR p m (p - i) x
-                        | otherwise = True
-fitsR p m w (SSGR _ x) = fitsR p m w x
+fitsR _ _ w _
+  | w < 0               = False
+fitsR _ _ _ SFail       = False
+fitsR _ _ _ SEmpty      = True
+fitsR p m w (SChar _ x) = fitsR p m (w - 1) x
+fitsR p m w (SText t x) = fitsR p m (w - T.length t) x
+fitsR p m _ (SLine i x)
+  | m < i               = fitsR p m (p - i) x
+  | otherwise           = True
+fitsR p m w (SSGR _ x)  = fitsR p m w x
 
 -----------------------------------------------------------
 -- renderCompact: renders documents without indentation
@@ -1297,17 +1274,17 @@ fitsR p m w (SSGR _ x) = fitsR p m w x
 renderCompact :: Doc -> SimpleDoc
 renderCompact x = scan 0 [x]
   where
-    scan k [] = SEmpty
+    scan _ [] = SEmpty
     scan k (d:ds) = case d of
         Fail            -> SFail
         Empty           -> scan k ds
         Char c          -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-        Text l s        -> let k' = k+l in seq k' (SText l s (scan k' ds))
+        Text t          -> let k' = k+T.length t in seq k' (SText t (scan k' ds))
         FlatAlt x _     -> scan k (x:ds)
         Line            -> SLine 0 (scan 0 ds)
         Cat x y         -> scan k (x:y:ds)
-        Nest j x        -> scan k (x:ds)
-        Union x y       -> scan k (y:ds)
+        Nest _ x        -> scan k (x:ds)
+        Union _ y       -> scan k (y:ds)
         Column f        -> scan k (f k:ds)
         Columns f       -> scan k (f Nothing:ds)
         Nesting f       -> scan k (f 0:ds)
@@ -1324,23 +1301,23 @@ renderCompact x = scan 0 [x]
 -----------------------------------------------------------
 
 
--- | @(displayS simpleDoc)@ takes the output @simpleDoc@ from a rendering
--- function and transforms it to a 'ShowS' type (for use in the 'Show' class).
+-- | @displayT simpleDoc@ takes the output @simpleDoc@ from a rendering function
+-- and transforms it to lazy text (for use in the 'Show' class).
 --
--- > showWidth :: Int -> Doc -> String
--- > showWidth w x = displayS (renderPretty 0.4 w x) ""
+-- > showWidth :: Int -> Doc -> Text
+-- > showWidth w x = displayT (renderPretty 0.4 w x) ""
 --
 -- ANSI color information will be discarded by this function unless you are
 -- running on a Unix-like operating system. This is due to a technical
 -- limitation in Windows ANSI support.
-displayS :: SimpleDoc -> ShowS
-displayS SFail = error $ "@SFail@ can not appear uncaught in a " ++
-                              "rendered @SimpleDoc@"
-displayS SEmpty = id
-displayS (SChar c x) = showChar c . displayS x
-displayS (SText l s x) = showString s . displayS x
-displayS (SLine i x) = showString ('\n':indentation i) . displayS x
-displayS (SSGR s x) = showString (setSGRCode s) . displayS x
+displayT :: SimpleDoc -> LTB.Builder
+displayT = \case
+    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty    -> mempty
+    SChar c x -> LTB.singleton c <> displayT x
+    SText t x -> LTB.fromText t <> displayT x
+    SLine i x -> LTB.singleton '\n' <> LTB.fromText (indentation i) <> displayT x
+    SSGR s x  -> LTB.fromString (setSGRCode s) <> displayT x
 
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file handle
@@ -1350,21 +1327,21 @@ displayS (SSGR s x) = showString (setSGRCode s) . displayS x
 --
 -- Any ANSI colorisation in @simpleDoc@ will be output.
 displayIO :: Handle -> SimpleDoc -> IO ()
-displayIO handle simpleDoc = display simpleDoc
-    where
-      display SFail = error $ "@SFail@ can not appear uncaught in a " ++
-                              "rendered @SimpleDoc@"
-      display SEmpty = return ()
-      display (SChar c x) = do{ hPutChar handle c; display x}
-      display (SText l s x) = do{ hPutStr handle s; display x}
-      display (SLine i x) = do{ hPutStr handle ('\n':indentation i); display x}
-      display (SSGR s x) = do{ hSetSGR handle s; display x}
+displayIO h simpleDoc = display simpleDoc
+  where
+    display = \case
+        SFail     -> error ("@SFail@ can not appear uncaught in a rendered @SimpleDoc@")
+        SEmpty    -> pure ()
+        SChar c x -> hPutChar h c *> display x
+        SText t x -> T.hPutStr h t *> display x
+        SLine i x -> hPutChar h '\n' *> T.hPutStr h (indentation i) *> display x
+        SSGR s x  -> hSetSGR h s *> display x
 
 -----------------------------------------------------------
 -- default pretty printers: show, putDoc and hPutDoc
 -----------------------------------------------------------
 instance Show Doc where
-  showsPrec d doc = displayS (renderPretty 0.4 80 doc)
+  showsPrec _ doc = shows (displayT (renderPretty 0.4 80 doc))
 
 -- | The action @(putDoc doc)@ pretty prints document @doc@ to the standard
 -- output, with a page width of 80 characters and a ribbon width of 32
@@ -1404,11 +1381,11 @@ hPutDoc handle doc = displayIO handle (renderPretty 0.4 80 doc)
 -- "indentation" used to insert tabs but tabs seem to cause
 -- more trouble than they solve :-)
 -----------------------------------------------------------
-spaces :: Int -> String
-spaces n        | n <= 0 = ""
-                | otherwise = replicate n ' '
+spaces :: Int -> Text
+spaces n | n <= 0    = mempty
+         | otherwise = T.replicate n " "
 
-indentation :: Int -> String
+indentation :: Int -> Text
 indentation n = spaces n
 
 --indentation n   | n >= 8 = '\t' : indentation (n-8)
