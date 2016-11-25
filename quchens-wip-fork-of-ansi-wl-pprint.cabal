@@ -1,6 +1,6 @@
 name:                quchens-wip-fork-of-ansi-wl-pprint
 version:             0
-cabal-version:       >= 1.8
+cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal output
 description:         This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
@@ -29,7 +29,7 @@ library
         , ansi-terminal >= 0.4.0 && < 0.7
         , text
 
-executable ansi-wl-pprint-example
+executable example
     main-is: app/Example.hs
     build-depends:
           base

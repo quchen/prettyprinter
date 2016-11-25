@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -36,7 +37,7 @@
 -- can be found in Philip Wadler's paper. The main differences with his original
 -- paper are:
 --
--- * The nil document is called 'empty'.
+-- * The nil document is called 'mempty'.
 --
 -- * The above combinator is called '<$>'. The operator '</>' is used for soft
 --   line breaks.
@@ -149,7 +150,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    displayIO,
 
    -- ** Simultaneous rendering and displaying of documents
-   putDoc, hPutDoc,
+   putDoc, hPutDoc, putDocW, hPutDocW,
 
 
    -- * Undocumented
@@ -192,7 +193,7 @@ infixr 5 </>, <//>
 -- $DocumentAlgebra
 -- The combinators in this library satisfy many algebraic laws.
 --
--- The concatenation operator '<>' is associative and has 'empty' as a left and
+-- The concatenation operator '<>' is associative and has 'mempty' as a left and
 -- right unit:
 --
 --     > x <> (y <> z) = (x <> y) <> z
@@ -220,7 +221,7 @@ infixr 5 </>, <//>
 --     > nest i (text s) = text s
 --     > nest i (align x) = align x
 --
--- The 'group' combinator is absorbed by 'empty'.  'group' is commutative with
+-- The 'group' combinator is absorbed by 'mempty'.  'group' is commutative with
 -- 'nest' and 'align':
 --
 --     > group empty = empty
@@ -228,7 +229,7 @@ infixr 5 </>, <//>
 --     > group (nest i x) = nest i (group x)
 --     > group (align x) = align (group x)
 --
--- The 'align' combinator is absorbed by 'empty' and 'text'. 'align' is
+-- The 'align' combinator is absorbed by 'mempty' and 'text'. 'align' is
 -- idempotent:
 --
 --     > align empty = empty
@@ -254,7 +255,6 @@ infixr 5 </>, <//>
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> :set -XOverloadedLists
 -- >>> :set -XLambdaCase
 
 -----------------------------------------------------------
@@ -306,7 +306,12 @@ semiBraces = encloseSep lbrace rbrace  semi
 --      ,200
 --      ,3000]
 -- @
-encloseSep :: Doc -> Doc -> Doc -> [Doc] -> Doc
+encloseSep
+    :: Doc   -- ^ <
+    -> Doc   -- ^ >
+    -> Doc   -- ^ ;
+    -> [Doc] -- ^ [x,y,z]
+    -> Doc   -- ^ <x;y;z>
 encloseSep left right sep ds = case ds of
     []  -> left <> right
     [d] -> left <> d <> right
@@ -373,16 +378,13 @@ hsep :: [Doc] -> Doc
 hsep = fold (<+>)
 
 
--- | @(vsep xs)@ concatenates all documents @xs@ vertically with @(\<$\>)@. If a
+-- | @vsep xs@ concatenates all documents @xs@ vertically with 'above'. If a
 -- 'group' undoes the line breaks inserted by @vsep@, all documents are
 -- separated with a space.
 --
--- > someText = map text (words ("text to lay out"))
--- >
--- > test = text "some" <+> vsep someText
---
--- This is layed out as:
---
+-- Using a simple 'vsep' alone yields
+
+-- >>> putDoc (text "some" <+> vsep (T.words ("text to lay out")))
 -- @
 -- some text
 -- to
@@ -390,19 +392,14 @@ hsep = fold (<+>)
 -- out
 -- @
 --
--- The 'align' combinator can be used to align the documents under their first
+-- The 'align' function can be used to align the documents under their first
 -- element
 --
--- > test = text "some" <+> align (vsep someText)
---
--- Which is printed as:
---
--- @
+-- >>> putDoc (text "some" <+> align (vsep (T.words ("text to lay out"))))
 -- some text
 --      to
 --      lay
 --      out
--- @
 vsep :: [Doc] -> Doc
 vsep = fold above
 
@@ -436,7 +433,6 @@ fold _ [] = mempty
 fold f ds = foldr1 f ds
 
 -- | @(x \<+\> y)@ concatenates document @x@ and @y@ with a @space@ in between.
-
 (<+>) :: Doc -> Doc -> Doc
 x <+> y = x <> space <> y
 
@@ -468,7 +464,7 @@ above' x y = x <> linebreak <> y
 softline :: Doc
 softline = group line
 
--- | @softbreak@ behaves like 'empty' if the resulting output fits the page,
+-- | @softbreak@ behaves like 'mempty' if the resulting output fits the page,
 -- otherwise it behaves like 'line'.
 --
 -- > softbreak = group linebreak
@@ -512,59 +508,59 @@ brackets = enclose lbracket rbracket
 enclose :: Doc -> Doc -> Doc -> Doc
 enclose l r x = l <> x <> r
 
--- | @lparen@ contains a left parenthesis, \"(\".
+-- | left parenthesis, \"(\"
 lparen :: Doc
 lparen = char '('
--- | @rparen@ contains a right parenthesis, \")\".
+-- | right parenthesis, \")\"
 rparen :: Doc
 rparen = char ')'
--- | @langle@ contains a left angle, \"\<\".
+-- | left angle, \"\<\"
 langle :: Doc
 langle = char '<'
--- | @rangle@ contains a right angle, \">\".
+-- | right angle, \">\"
 rangle :: Doc
 rangle = char '>'
--- | @lbrace@ contains a left brace, \"{\".
+-- | left brace, \"{\"
 lbrace :: Doc
 lbrace = char '{'
--- | @rbrace@ contains a right brace, \"}\".
+-- | right brace, \"}\"
 rbrace :: Doc
 rbrace = char '}'
--- | @lbracket@ contains a left square bracket, \"[\".
+-- | left square bracket, \"[\"
 lbracket :: Doc
 lbracket = char '['
--- | @rbracket@ contains a right square bracket, \"]\".
+-- | right square bracket, \"]\"
 rbracket :: Doc
 rbracket = char ']'
 
 
--- | @squote@ contains a single quote, \"'\".
+-- | single quote, \"'\"
 squote :: Doc
 squote = char '\''
--- | @dquote@ contains a double quote, '\"'.
+-- | double quote, '\"'
 dquote :: Doc
 dquote = char '"'
--- | @semi@ contains a semicolon, \";\".
+-- | semicolon, \";\"
 semi :: Doc
 semi = char ';'
--- | @colon@ contains a colon, \":\".
+-- | colon, \":\"
 colon :: Doc
 colon = char ':'
--- | @comma@ contains a comma, \",\".
+-- | comma, \",\"
 comma :: Doc
 comma = char ','
--- | @space@ contains a single space, \" \".
+-- | single space, \" \"
 --
 -- > x <+> y = x <> space <> y
 space :: Doc
 space = char ' '
--- | @dot@ contains a single dot, \".\".
+-- | single dot, \".\"
 dot :: Doc
 dot = char '.'
--- | @backslash@ contains a back slash, \"\\\".
+-- | back slash, \"\\\"
 backslash :: Doc
 backslash = char '\\'
--- | @equals@ contains an equal sign, \"=\".
+-- | equal sign, \"=\"
 equals :: Doc
 equals = char '='
 
@@ -591,8 +587,8 @@ text t = case T.uncons t of
 -- | The member @prettyList@ is only used to define the @instance Pretty a =>
 -- Pretty [a]@. In normal circumstances only the @pretty@ function is used.
 class Pretty a where
-  pretty        :: a -> Doc
-  prettyList    :: [a] -> Doc
+  pretty :: a -> Doc
+  prettyList :: [a] -> Doc
   prettyList = list . map pretty
 
 instance Pretty a => Pretty [a] where
@@ -639,54 +635,51 @@ instance Pretty a => Pretty (Maybe a) where
 -- semi primitive: fill and fillBreak
 -----------------------------------------------------------
 
+-- | @(fill i x)@ renders document @x@. It than appends @space@s until the width
+-- is equal to @i@. If the width of @x@ is already larger, nothing is appended.
+-- This combinator is quite useful in practice to output a list of bindings. The
+-- following example demonstrates this.
+--
+-- >>> :{
+-- let types = [ ("empty","Doc")
+--             , ("nest","Int -> Doc -> Doc")
+--             , ("linebreak","Doc") ]
+--     ptype (name, tp) = fill 6 (text name) <+> text "::" <+> text tp
+--     test = text "let" <+> align (vcat (map ptype types))
+-- in putDoc test
+-- :}
+-- let empty  :: Doc
+--     nest   :: Int -> Doc -> Doc
+--     linebreak :: Doc
+fill :: Int -> Doc -> Doc
+fill f d = width d (\w ->
+                  if (w >= f) then mempty
+                              else (spaces (f - w)))
+
+
 -- | @(fillBreak i x)@ first renders document @x@. It than appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
 -- @i@, the nesting level is increased by @i@ and a @line@ is appended. When we
 -- redefine @ptype@ in the previous example to use @fillBreak@, we get a useful
 -- variation of the previous output:
 --
--- > ptype (name,tp)
--- > = fillBreak 6 (text name) <+> text "::" <+> text tp
---
--- The output will now be:
---
--- @
+-- >>> :{
+-- let types = [ ("empty","Doc")
+--             , ("nest","Int -> Doc -> Doc")
+--             , ("linebreak","Doc") ]
+--     ptype (name, tp) = fillBreak 6 (text name) <+> text "::" <+> text tp
+--     test = text "let" <+> align (vcat (map ptype types))
+-- in putDoc test
+-- :}
 -- let empty  :: Doc
 --     nest   :: Int -> Doc -> Doc
 --     linebreak
 --            :: Doc
--- @
 fillBreak :: Int -> Doc -> Doc
 fillBreak f x = width x (\w ->
-                  if (w > f) then nest f linebreak
-                             else text (spaces (f - w)))
-
-
--- | @(fill i x)@ renders document @x@. It than appends @space@s until the width
--- is equal to @i@. If the width of @x@ is already larger, nothing is appended.
--- This combinator is quite useful in practice to output a list of bindings. The
--- following example demonstrates this.
---
--- > types = [("empty","Doc")
--- >          ,("nest","Int -> Doc -> Doc")
--- >          ,("linebreak","Doc")]
--- >
--- > ptype (name,tp)
--- > = fill 6 (text name) <+> text "::" <+> text tp
--- >
--- > test = text "let" <+> align (vcat (map ptype types))
---
--- Which is layed out as:
---
--- @
--- let empty  :: Doc
---     nest   :: Int -> Doc -> Doc
---     linebreak :: Doc
--- @
-fill :: Int -> Doc -> Doc
-fill f d = width d (\w ->
-                  if (w >= f) then mempty
-                              else text (spaces (f - w)))
+    if (w > f)
+        then nest f linebreak
+        else (spaces (f - w)))
 
 width :: Doc -> (Int -> Doc) -> Doc
 width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
@@ -698,60 +691,41 @@ width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
 
 -- | @(indent i x)@ indents document @x@ with @i@ spaces.
 --
--- > test = indent 4 (fillSep (map text
--- >         (words "the indent combinator indents these words !")))
---
--- Which lays out with a page width of 20 as:
---
--- @
---     the indent
---     combinator
---     indents these
---     words !
--- @
+-- >>> :{
+-- putDocW 40 (indent 4 (fillSep (map text
+--     (T.words "The indent function indents these words!"))))
+-- :}
+--     The indent
+--     function indents
+--     these words!
 indent :: Int -> Doc -> Doc
-indent i d = hang i (text (spaces i) <> d)
+indent i d = hang i ((spaces i) <> d)
 
--- | The hang combinator implements hanging indentation. @(hang i x)@ renders
+-- | The hang function implements hanging indentation. @(hang i x)@ renders
 -- document @x@ with a nesting level set to the current column plus @i@. The
 -- following example uses hanging indentation for some text:
 --
--- > test = hang 4 (fillSep (map text
--- >         (words "the hang combinator indents these words !")))
---
--- Which lays out on a page with a width of 20 characters as:
---
--- @
--- the hang combinator
---     indents these
---     words !
--- @
---
--- The @hang@ combinator is implemented as:
---
--- > hang i x = align (nest i x)
+-- >>> :{
+-- putDocW 40 (hang 4 (fillSep (map text
+--     (T.words "The hang function indents these words!"))))
+-- :}
+-- The hang
+--     function indents
+--     these words!
 hang :: Int -> Doc -> Doc
 hang i d = align (nest i d)
 
--- | @(align x)@ renders document @x@ with the nesting level set to the current
+-- | @align x@ renders document @x@ with the nesting level set to the current
 -- column. It is used for example to implement 'hang'.
 --
 -- As an example, we will put a document right above another one, regardless of
 -- the current nesting level:
 --
--- > x $$ y = align (x <$> y)
---
--- > test = text "hi" <+> (text "nice" $$ text "world")
---
--- which will be layed out as:
---
--- @
+-- >>> putDoc ("hi" <+> (align (vsep ["nice", "world"])))
 -- hi nice
 --    world
--- @
 align :: Doc -> Doc
-align d = column (\k ->
-                  nesting (\i -> nest (k - i) d))   --nesting might be negative :-)
+align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 
 
@@ -768,14 +742,8 @@ align d = column (\k ->
 -- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty prints document
 -- @doc@ with a page width of 80 characters and a ribbon width of 32 characters.
 --
--- > show (text "hello" <$> text "world")
---
--- Which would return the string \"hello\\nworld\", i.e.
---
--- @
--- hello
--- world
--- @
+-- >>> show (vsep ["hello", text "world"])
+-- "\"hello\\nworld\""
 data Doc =
       Fail
     | Empty
@@ -830,7 +798,7 @@ instance Monoid Doc where
     mconcat = hcat
 
 instance Semi.Semigroup Doc where
-    (<>) = beside
+    (<>) = Cat
 
 -- MCB: also added when "pretty" got the corresponding instances:
 instance IsString Doc where
@@ -857,7 +825,7 @@ line :: Doc
 line = FlatAlt Line space
 
 -- | The @linebreak@ document advances to the next line and indents to the
--- current nesting level. Document @linebreak@ behaves like 'empty' if the line
+-- current nesting level. Document @linebreak@ behaves like 'mempty' if the line
 -- break is undone by 'group'.
 linebreak :: Doc
 linebreak = FlatAlt Line mempty
@@ -867,21 +835,13 @@ linebreak = FlatAlt Line mempty
 hardline :: Doc
 hardline = Line
 
-beside :: Doc -> Doc -> Doc
-beside x y = Cat x y
-
 -- | @(nest i x)@ renders document @x@ with the current indentation level
 -- increased by i (See also 'hang', 'align' and 'indent').
 --
--- > nest 2 (text "hello" <$> text "world") <$> text "!"
---
--- outputs as:
---
--- @
+-- >>> putDoc (vsep [nest 2 (vsep ["hello", "world"]), "!"])
 -- hello
 --   world
 -- !
--- @
 nest :: Int -> Doc -> Doc
 nest i x = Nest i x
 
@@ -1167,8 +1127,12 @@ renderPretty = renderFits fits1
 renderSmart :: Float -> Int -> Doc -> SimpleDoc
 renderSmart = renderFits fitsR
 
-renderFits :: (Int -> Int -> Int -> SimpleDoc -> Bool)
-           -> Float -> Int -> Doc -> SimpleDoc
+renderFits
+    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. 'fits1'
+    -> Float -- ^ Ribbon fraction
+    -> Int   -- ^ Page width
+    -> Doc
+    -> SimpleDoc
 renderFits fits rfrac w x
     -- I used to do a @SSGR [Reset]@ here, but if you do that it will result in
     -- any rendered @Doc@ containing at least some ANSI control codes. This may
@@ -1178,64 +1142,73 @@ renderFits fits rfrac w x
     -- What I "really" want to do here is do an initial Reset iff there is some
     -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if
     -- someone complains!
-    = best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 x Nil)
-    where
-      -- r :: the ribbon width in characters
-      r = max 0 (min w (round (fromIntegral w * rfrac)))
+  = best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 x Nil)
+  where
+    -- r :: the ribbon width in characters
+    r = max 0 (min w (round (fromIntegral w * rfrac)))
 
-      -- best :: n = indentation of current line
-      --         k = current column
-      --        (ie. (k >= n) && (k - n == count of inserted characters)
-      best _ _ _ _ _ _ _ Nil = SEmpty
-      best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
-            Fail          -> SFail
-            Empty         -> best_typical n k ds
-            Char c        -> let k' = k+1          in seq k' (SChar c (best_typical n k' ds))
-            Text t        -> let k' = k+T.length t in seq k' (SText t (best_typical n k' ds))
-            Line          -> SLine i (best_typical i i ds)
-            FlatAlt x _   -> best_typical n k (Cons i x ds)
-            Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
-            Nest j x      -> let i' = i+j in seq i' (best_typical n k (Cons i' x ds))
-            Union x y     -> nicest n k (best_typical n k (Cons i x ds))
-                                        (best_typical n k (Cons i y ds))
-            Column f      -> best_typical n k (Cons i (f k) ds)
-            Columns f     -> best_typical n k (Cons i (f (Just w)) ds)
-            Nesting f     -> best_typical n k (Cons i (f i) ds)
-            Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
-              where
-                mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
-                mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
-            Intensify t x -> SSGR [SetConsoleIntensity t] (best n k mb_fc mb_bc (Just t) mb_it mb_un (Cons i x ds_restore))
-            Italicize t x -> SSGR [SetItalicized t] (best n k mb_fc mb_bc mb_in (Just t) mb_un (Cons i x ds_restore))
-            Underline u x -> SSGR [SetUnderlining u] (best n k mb_fc mb_bc mb_in mb_it (Just u) (Cons i x ds_restore))
-            RestoreFormat mb_fc' mb_bc' mb_in' mb_it' mb_un' -> SSGR sgrs (best n k mb_fc' mb_bc' mb_in' mb_it' mb_un' ds)
-              where
-                -- We need to be able to restore the entire SGR state, hence we
-                -- carry around what we believe that state should be in all the
-                -- arguments to this function. Note that in some cases we could
-                -- avoid the Reset of the entire state, but not in general.
-                sgrs = Reset : catMaybes [
-                    fmap (uncurry (SetColor Foreground)) mb_fc',
-                    fmap (uncurry (SetColor Background)) mb_bc',
-                    fmap SetConsoleIntensity mb_in',
-                    fmap SetItalicized mb_it',
-                    fmap SetUnderlining mb_un'
-                  ]
+    -- best :: n = indentation of current line
+    --         k = current column
+    --        (ie. (k >= n) && (k - n == count of inserted characters)
+    best _ _ _ _ _ _ _ Nil = SEmpty
+    best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
+      Fail          -> SFail
+      Empty         -> best_typical n k ds
+      Char c        -> let !k' = k+1          in SChar c (best_typical n k' ds)
+      Text t        -> let !k' = k+T.length t in SText t (best_typical n k' ds)
+      Line          -> SLine i (best_typical i i ds)
+      FlatAlt x _   -> best_typical n k (Cons i x ds)
+      Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
+      Nest j x      -> let !i' = i+j in best_typical n k (Cons i' x ds)
+      Union x y     -> nicest n k (best_typical n k (Cons i x ds))
+                                  (best_typical n k (Cons i y ds))
+      Column f      -> best_typical n k (Cons i (f k) ds)
+      Columns f     -> best_typical n k (Cons i (f (Just w)) ds)
+      Nesting f     -> best_typical n k (Cons i (f i) ds)
+      Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
         where
-          best_typical n' k' ds' = best n' k' mb_fc mb_bc mb_in mb_it mb_un ds'
-          ds_restore = Cons i (RestoreFormat mb_fc mb_bc mb_in mb_it mb_un) ds
+          mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
+          mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
+      Intensify t x -> SSGR [SetConsoleIntensity t] (best n k mb_fc mb_bc (Just t) mb_it mb_un (Cons i x ds_restore))
+      Italicize t x -> SSGR [SetItalicized t] (best n k mb_fc mb_bc mb_in (Just t) mb_un (Cons i x ds_restore))
+      Underline u x -> SSGR [SetUnderlining u] (best n k mb_fc mb_bc mb_in mb_it (Just u) (Cons i x ds_restore))
+      RestoreFormat mb_fc' mb_bc' mb_in' mb_it' mb_un' -> SSGR sgrs (best n k mb_fc' mb_bc' mb_in' mb_it' mb_un' ds)
+        where
+          -- We need to be able to restore the entire SGR state, hence we
+          -- carry around what we believe that state should be in all the
+          -- arguments to this function. Note that in some cases we could
+          -- avoid the Reset of the entire state, but not in general.
+          sgrs = Reset : catMaybes [
+              fmap (uncurry (SetColor Foreground)) mb_fc',
+              fmap (uncurry (SetColor Background)) mb_bc',
+              fmap SetConsoleIntensity mb_in',
+              fmap SetItalicized mb_it',
+              fmap SetUnderlining mb_un'
+            ]
+      where
+        best_typical n' k' ds' = best n' k' mb_fc mb_bc mb_in mb_it mb_un ds'
+        ds_restore = Cons i (RestoreFormat mb_fc mb_bc mb_in mb_it mb_un) ds
 
-      --nicest :: r = ribbon width, w = page width,
-      --          n = indentation of current line, k = current column
-      --          x and y, the (simple) documents to chose from.
-      --          precondition: first lines of x are longer than the first lines of y.
-      nicest n k x y    | fits w (min n k) width x = x
-                        | otherwise = y
-                        where
-                          width = min (w - k) (r - k + n)
+        -- Invariant: first lines of A are longer than the first lines of B.
+        nicest
+            :: Int -- ^ indentation of current line
+            -> Int -- ^ current column
+            -> SimpleDoc -- ^ Choice A
+            -> SimpleDoc -- ^ Choice B
+            -> SimpleDoc
+        nicest n k x y
+          | fits w (min n k) width x = x
+          | otherwise = y
+          where
+            width = min (w - k) (r - k + n)
 
 -- @fits1@ does 1 line lookahead.
-fits1 :: Int -> Int -> Int -> SimpleDoc -> Bool
+fits1
+    :: Int -- ^ Page width
+    -> Int -- ^ Minimum nesting level to fit in
+    -> Int -- ^ Width in which to fit the first line
+    -> SimpleDoc
+    -> Bool
 fits1 _ _ w _ | w < 0   = False
 fits1 _ _ _ SFail       = False
 fits1 _ _ _ SEmpty      = True
@@ -1251,11 +1224,12 @@ fits1 p m w (SSGR _ x)  = fits1 p m w x
 -- check that not only the current structure fits, but also the rest of the
 -- document, which would be slightly more intelligent but would have exponential
 -- runtime (and is prohibitively expensive in practice).
---
--- p = pagewidth
--- m = minimum nesting level to fit in
--- w = the width in which to fit the first line
-fitsR :: Int -> Int -> Int -> SimpleDoc -> Bool
+fitsR
+    :: Int -- ^ Page width
+    -> Int -- ^ Minimum nesting level to fit in
+    -> Int -- ^ Width in which to fit the first line
+    -> SimpleDoc
+    -> Bool
 fitsR _ _ w _
   | w < 0               = False
 fitsR _ _ _ SFail       = False
@@ -1324,7 +1298,7 @@ displayT = \case
     SEmpty    -> mempty
     SChar c x -> LTB.singleton c <> displayT x
     SText t x -> LTB.fromText t <> displayT x
-    SLine i x -> LTB.singleton '\n' <> LTB.fromText (indentation i) <> displayT x
+    SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> displayT x
     SSGR s x  -> LTB.fromString (setSGRCode s) <> displayT x
 
 
@@ -1335,14 +1309,14 @@ displayT = \case
 --
 -- Any ANSI colorisation in @simpleDoc@ will be output.
 displayIO :: Handle -> SimpleDoc -> IO ()
-displayIO h simpleDoc = display simpleDoc
+displayIO h = display
   where
     display = \case
         SFail     -> error ("@SFail@ can not appear uncaught in a rendered @SimpleDoc@")
         SEmpty    -> pure ()
         SChar c x -> hPutChar h c *> display x
         SText t x -> T.hPutStr h t *> display x
-        SLine i x -> hPutChar h '\n' *> T.hPutStr h (indentation i) *> display x
+        SLine i x -> hPutChar h '\n' *> T.hPutStr h (T.replicate i " ") *> display x
         SSGR s x  -> hSetSGR h s *> display x
 
 -----------------------------------------------------------
@@ -1351,52 +1325,30 @@ displayIO h simpleDoc = display simpleDoc
 instance Show Doc where
   showsPrec _ doc = shows (displayT (renderPretty 0.4 80 doc))
 
--- | The action @(putDoc doc)@ pretty prints document @doc@ to the standard
--- output, with a page width of 80 characters and a ribbon width of 32
--- characters.
+-- | @putDoc doc@ pretty prints document @doc@ to standard output, with a page
+-- width of 80 characters and a ribbon width of 32 characters.
 --
--- > main :: IO ()
--- > main = do{ putDoc (text "hello" <+> text "world") }
---
--- Which would output
---
--- @
+-- >>> putDoc ("hello" <+> "world")
 -- hello world
--- @
 --
 -- Any ANSI colorisation in @doc@ will be output.
 putDoc :: Doc -> IO ()
-putDoc doc = hPutDoc stdout doc
+putDoc = hPutDoc stdout
 
--- | @(hPutDoc handle doc)@ pretty prints document @doc@ to the file handle
--- @handle@ with a page width of 80 characters and a ribbon width of 32
--- characters.
---
--- > main = do{ handle <- openFile "MyFile" WriteMode
--- >          ; hPutDoc handle (vcat (map text
--- >                            ["vertical","text"]))
--- >          ; hClose handle
--- >          }
---
--- Any ANSI colorisation in @doc@ will be output.
+-- | 'putDoc', but with a page width parameter.
+putDocW :: Int -> Doc -> IO ()
+putDocW = hPutDocW stdout
+
+-- | 'putDoc', but instead of using 'stdout', print to a user-provided handle,
+-- e.g. a file or a socket.
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc handle doc = displayIO handle (renderPretty 0.4 80 doc)
+hPutDoc h doc = displayIO h (renderPretty 0.4 80 doc)
 
+-- | 'hPutDocW', but with a page width parameter.
+hPutDocW :: Handle -> Int -> Doc -> IO ()
+hPutDocW h w doc = displayIO h (renderPretty 0.4 w doc)
 
-
------------------------------------------------------------
--- insert spaces
--- "indentation" used to insert tabs but tabs seem to cause
--- more trouble than they solve :-)
------------------------------------------------------------
-spaces :: Int -> Text
+-- | Insert a number of spaces.
+spaces :: Int -> Doc
 spaces n | n <= 0    = mempty
-         | otherwise = T.replicate n " "
-
-indentation :: Int -> Text
-indentation n = spaces n
-
---indentation n   | n >= 8 = '\t' : indentation (n-8)
---                | otherwise = spaces n
-
---  LocalWords:  PPrint combinators Wadler Wadler's encloseSep
+         | otherwise = unsafeText (T.replicate n " ")
