@@ -700,9 +700,9 @@ spaces n | n <= 0    = mempty
 --     fillSep :: [Doc] -> Doc
 fill :: Int -> Doc -> Doc
 fill f d = width d (\w ->
-    if (w >= f)
+    if w >= f
         then mempty
-        else (spaces (f - w)))
+        else spaces (f - w))
 
 -- | @(fillBreak i x)@ first renders document @x@. It than appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
@@ -719,9 +719,9 @@ fill f d = width d (\w ->
 --           :: [Doc] -> Doc
 fillBreak :: Int -> Doc -> Doc
 fillBreak f x = width x (\w ->
-    if (w > f)
+    if w > f
         then nest f line'
-        else (spaces (f - w)))
+        else spaces (f - w))
 
 width :: Doc -> (Int -> Doc) -> Doc
 width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
@@ -740,7 +740,7 @@ width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
 --     function indents
 --     these words!
 indent :: Int -> Doc -> Doc
-indent i d = hang i ((spaces i) <> d)
+indent i d = hang i (spaces i <> d)
 
 -- | @('hang' i x)@ renders document @x@ with a nesting level set to the current
 -- column plus @i@.
@@ -1391,7 +1391,7 @@ displayIO :: Handle -> SimpleDoc -> IO ()
 displayIO h = display
   where
     display = \case
-        SFail     -> error ("@SFail@ can not appear uncaught in a rendered @SimpleDoc@")
+        SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
         SEmpty    -> pure ()
         SChar c x -> hPutChar h c *> display x
         SText t x -> T.hPutStr h t *> display x
