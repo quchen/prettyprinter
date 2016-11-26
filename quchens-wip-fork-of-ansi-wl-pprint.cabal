@@ -21,6 +21,8 @@ source-repository head
 
 library
     exposed-modules: Data.Text.PrettyPrint.Doc
+                   , Data.Text.PrettyPrint.Doc.Display.Text
+                   , Data.Text.PrettyPrint.Doc.Display.Handle
     ghc-options: -Wall -fno-warn-name-shadowing -Wcompat
     hs-source-dirs: src
 
