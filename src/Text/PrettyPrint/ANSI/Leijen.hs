@@ -76,7 +76,7 @@ module Text.PrettyPrint.ANSI.Leijen (
     Doc,
 
     -- * Basic functions
-    char, text, (<>), nest, line, line', group, softline, softline',
+    char, text, nest, line, line', group, softline, softline',
     hardline,
 
     -- * Alignment functions
@@ -93,7 +93,7 @@ module Text.PrettyPrint.ANSI.Leijen (
     align, hang, indent, encloseSep, list, tupled,
 
     -- * Operators
-    (<+>),
+    (<>), (<+>),
 
     -- * List functions
     hsep, vsep, fillSep, sep, vcat, fillCat, cat, punctuate,
@@ -146,7 +146,7 @@ module Text.PrettyPrint.ANSI.Leijen (
     -- ** Simple (i.e., rendered) documents
     SimpleDoc(..),
     renderPretty, renderCompact, renderSmart,
-    displayT,
+    displayLazyText, displayStrictText,
     displayIO,
 
     -- ** Simultaneous rendering and displaying of documents
@@ -180,6 +180,7 @@ import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
+import qualified Data.Text.Lazy         as LT
 import qualified Data.Text.Lazy.Builder as LTB
 
 infixr 6 <+>
@@ -857,7 +858,7 @@ data Doc =
 -- renderings of a document, values of the data type @SimpleDoc@ represent
 -- single renderings of a document.
 --
--- The library provides two default display functions 'displayT' and
+-- The library provides two default display functions 'displayLazyText' and
 -- 'displayIO'. You can provide your own display function by writing a function
 -- from a @SimpleDoc@ to your own output format.
 data SimpleDoc =
@@ -1404,23 +1405,30 @@ renderCompact x = scan 0 [x]
 -- Displayers:  displayS and displayIO
 -----------------------------------------------------------
 
--- | @displayT simpleDoc@ takes the output @simpleDoc@ from a rendering function
--- and transforms it to lazy text (for use in the 'Show' class).
+-- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering
+-- function and transforms it to lazy text.
 --
 -- > showWidth :: Int -> Doc -> Text
--- > showWidth w x = displayT (renderPretty 0.4 w x) ""
+-- > showWidth w x = displayLazyText (renderPretty 0.4 w x) ""
 --
 -- ANSI color information will be discarded by this function unless you are
 -- running on a Unix-like operating system. This is due to a technical
 -- limitation in Windows ANSI support.
-displayT :: SimpleDoc -> LTB.Builder
-displayT = \case
-    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty    -> mempty
-    SChar c x -> LTB.singleton c <> displayT x
-    SText t x -> LTB.fromText t <> displayT x
-    SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> displayT x
-    SSGR s x  -> LTB.fromString (setSGRCode s) <> displayT x
+displayLazyText :: SimpleDoc -> LT.Text
+displayLazyText = LTB.toLazyText . build
+  where
+    build = \case
+        SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty    -> mempty
+        SChar c x -> LTB.singleton c <> build x
+        SText t x -> LTB.fromText t <> build x
+        SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
+        SSGR s x  -> LTB.fromString (setSGRCode s) <> build x
+
+-- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering and
+-- transforms it to strict text.
+displayStrictText :: SimpleDoc -> Text
+displayStrictText = LT.toStrict . displayLazyText
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file handle
 -- @handle@. This function is used for example by 'hPutDoc':
@@ -1443,7 +1451,7 @@ displayIO h = display
 -- default pretty printers: show, putDoc and hPutDoc
 -----------------------------------------------------------
 instance Show Doc where
-  showsPrec _ doc = shows (displayT (renderPretty 0.4 80 doc))
+    showsPrec _ doc = shows (displayLazyText (renderPretty 0.4 80 doc))
 
 -- | @putDoc doc@ pretty prints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters (see
