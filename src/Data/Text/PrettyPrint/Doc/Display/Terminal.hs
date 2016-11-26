@@ -1,18 +1,24 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Data.Text.PrettyPrint.Doc.Display.Handle (
-    displayIO,
+-- | Display 'SimpleDoc' in a terminal.
+module Data.Text.PrettyPrint.Doc.Display.Terminal (
+    displayLazyText, displayStrictText, displayIO,
 
     putDoc, hPutDoc, putDocW, hPutDocW,
 ) where
 
 
 
-import qualified Data.Text           as T
-import qualified Data.Text.IO        as T
-import           System.Console.ANSI (hSetSGR)
-import           System.IO           (Handle, hPutChar, stdout)
+import           Data.Monoid
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as LTB
+import           System.Console.ANSI    (hSetSGR)
+import           System.Console.ANSI    (setSGRCode)
+import           System.IO              (Handle, hPutChar, stdout)
 
 import Data.Text.PrettyPrint.Doc
 
@@ -20,8 +26,32 @@ import Data.Text.PrettyPrint.Doc
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import Data.Text.PrettyPrint.Doc.Display.Handle
+-- >>> import Data.Text.PrettyPrint.Doc.Display.Terminal
 
+
+
+-- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering
+-- function and transforms it to lazy text, including ANSI styling directives
+-- for things like colorization.
+--
+-- ANSI color information will be discarded by this function unless you are
+-- running on a Unix-like operating system. This is due to a technical
+-- limitation in Windows ANSI support.
+displayLazyText :: SimpleDoc -> LT.Text
+displayLazyText = LTB.toLazyText . build
+  where
+    build = \case
+        SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty    -> mempty
+        SChar c x -> LTB.singleton c <> build x
+        SText t x -> LTB.fromText t <> build x
+        SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
+        SSGR s x  -> LTB.fromString (setSGRCode s) <> build x
+
+-- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering and
+-- transforms it to strict text.
+displayStrictText :: SimpleDoc -> Text
+displayStrictText = LT.toStrict . displayLazyText
 
 
 -- | @(displayIO handle simpleDoc)@ writes @simpleDoc@ to the file handle

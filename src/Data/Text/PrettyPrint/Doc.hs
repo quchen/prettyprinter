@@ -133,7 +133,7 @@ import           System.Console.ANSI
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import Data.Text.PrettyPrint.Doc.Display.Handle
+-- >>> import Data.Text.PrettyPrint.Doc.Display.Terminal
 
 
 

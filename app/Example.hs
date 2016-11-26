@@ -3,7 +3,7 @@
 module Main (main) where
 
 import Data.Text.PrettyPrint.Doc
-import Data.Text.PrettyPrint.Doc.Display.Handle
+import Data.Text.PrettyPrint.Doc.Display.Terminal
 
 import System.IO
 
