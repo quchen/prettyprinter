@@ -7,67 +7,31 @@
 -- Module      :  Text.PrettyPrint.ANSI.Leijen
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
--- License     :  BSD-style (see the file LICENSE)
+--                David Luposchainsky (c) 2016, http://github.io/quchen
+-- License     :  BSD-style (see the file LICENSE.md)
 --
--- Maintainer  :  Edward Kmett <ekmett@gmail.com>
--- Stability   :  provisional
+-- Maintainer  :  David Luposchainsky <dluposchainsky at google>
+-- Stability   :  experimental
 -- Portability :  portable
 --
+-- This module defines a prettyprinter to format text in a flexible and
+-- convenient way.
 --
--- This module is an extended implementation of the functional pretty printer
--- given by Philip Wadler (1997):
+-- It is based on previous work by Daan Leijen and Max Bolingbroke, who
+-- implemented and significantly extended the prettyprinter given by a paper by
+-- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
+-- convenience functions, styling, and new functionality. Their package,
+-- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint>/ is widely
+-- used in the Haskell ecosystem.
 --
--- @
---      \"A prettier printer\"
---      Draft paper, April 1997, revised March 1998.
---      <http://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf>
--- @
+-- However, ansi-wl-pprint is showing its age, resulting in several
+-- shortcomings:
 --
--- In their bare essence, the functions given by Wadler are not expressive
--- enough to describe some commonly occurring layouts. This library adds new
--- primitives to describe these layouts and works well in practice.
---
--- The library is based on a single way to concatenate documents, which is
--- associative and has both a left and right unit.  This simple design leads to
--- an efficient and short implementation. The simplicity is reflected in the
--- predictable behaviour of the functions which make them easy to use in
--- practice.
---
--- A thorough description of the primitive functions and their implementation
--- can be found in Philip Wadler's paper. The main differences with his original
--- paper are:
---
--- * The nil document is called 'mempty'.
---
--- * The above function is called '<$>'. The operator '</>' is used for soft
---   line breaks.
---
--- * There are three new primitives: 'align', 'fill' and 'fillBreak'. These are
---   very useful in practice.
---
--- * There are many additional useful functions, like 'fillSep' and 'list'.
---
--- * There are two renderers: 'renderPretty' for pretty printing, and
---   'renderCompact' for quickly rendered, compact output more suitable for
---   generating input to other programs.
---
--- * The pretty printing algorithm used by 'renderPretty' extends the algorithm
---   given by Wadler to take into account a \"ribbon width\", i.e., a desired
---   maximum number of non-indentation characters to output on any one line.
---
--- * There are two displayers, 'displayS' for strings and 'displayIO' for
---   file-based output.
---
--- * There is a 'Pretty' class.
---
--- * The implementation uses optimised representations and strictness
---   annotations.
---
--- * The library has been extended to allow formatting text for output to ANSI
---   style consoles. New functions allow control of foreground and background
---   color and the ability to make parts of the text bold or underlined.
---
------------------------------------------------------------
+--   - Definitions clashing with others that are now standard Haskell, such as
+--     @\<$>@
+--   - Hard to read operators, such as @\<//>@
+--   - Some undocumented definitions, not many examples
+
 module Data.Text.PrettyPrint.Doc (
     -- * The algebra of pretty-printing
     -- $DocumentAlgebra
@@ -76,8 +40,7 @@ module Data.Text.PrettyPrint.Doc (
     Doc,
 
     -- * Basic functions
-    char, text, nest, line, line', group, softline, softline',
-    hardline,
+    char, text, nest, line, line', group, softline, softline', hardline,
 
     -- * Alignment functions
     --
@@ -126,8 +89,8 @@ module Data.Text.PrettyPrint.Doc (
 
     -- ** Backcolor functions
     onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
-    ondullcyan, ondullwhite,
+    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue,
+    ondullmagenta, ondullcyan, ondullwhite,
 
     -- ** Emboldening functions
     bold, debold,
@@ -154,9 +117,16 @@ module Data.Text.PrettyPrint.Doc (
 
 ) where
 
-import System.IO (Handle, hPutChar, stdout)
-
-import System.Console.ANSI
+import           Data.Maybe             (catMaybes)
+import           Data.Monoid
+import qualified Data.Semigroup         as Semi (Semigroup ((<>)))
+import           Data.String            (IsString (..))
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as LTB
+import           System.Console.ANSI
     ( Color (..)
     , ColorIntensity (..)
     , ConsoleIntensity (..)
@@ -166,88 +136,9 @@ import System.Console.ANSI
     , hSetSGR
     , setSGRCode
     )
-
-import Data.Maybe  (catMaybes)
-import Data.String (IsString (..))
-
--- NB: if you import more from Data.Semigroup make sure the
---     build-depends version range is still accurate
--- NB2: if you consider re-exporting Semigroup((<>)) take into account
---      that only starting with semigroup-0.8 `infixr 6 <>` was used!
-import qualified Data.Semigroup as Semi (Semigroup ((<>)))
-
-import           Data.Monoid
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import qualified Data.Text.IO           as T
-import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
-
-infixr 6 <+>
+import           System.IO              (Handle, hPutChar, stdout)
 
 
-
--- $DocumentAlgebra
--- The functions in this library satisfy many algebraic laws.
---
--- The concatenation operator '<>' is associative and has 'mempty' as a left and
--- right unit:
---
---     > x <> (y <> z) = (x <> y) <> z
---     > x <> empty = x
---     > empty <> x = x
---
--- The 'text' function is a homomorphism from string concatenation to document
--- concatenation:
---
---     > text (s ++ t) = text s <> text t
---     > "" = empty
---
--- The 'char' function behaves like one-element text:
---
---     > char c = text [c]
---
--- The 'nest' function is a homomorphism from addition to document
--- composition.  'nest' also distributes through document concatenation and is
--- absorbed by 'text' and 'align':
---
---     > nest (i + j) x = nest i (nest j x)
---     > nest 0 x = x
---     > nest i (x <> y) = nest i x <> nest i y
---     > nest i empty = empty
---     > nest i (text s) = text s
---     > nest i (align x) = align x
---
--- The 'group' function is absorbed by 'mempty'.  'group' is commutative with
--- 'nest' and 'align':
---
---     > group empty = empty
---     > group (text s <> x) = text s <> group x
---     > group (nest i x) = nest i (group x)
---     > group (align x) = align (group x)
---
--- The 'align' function is absorbed by 'mempty' and 'text'. 'align' is
--- idempotent:
---
---     > align empty = empty
---     > align (text s) = text s
---     > align (align x) = align x
---
--- From the laws of the primitive functions, we can derive many other laws for
--- the derived functions.  For example, the /above/ operator '<$>' is defined
--- as:
---
---     > x <$> y = x <> line <> y
---
--- It follows that '<$>' is associative and that '<$>' and '<>' associate with
--- each other:
---
---     > x <$> (y <$> z) = (x <$> y) <$> z
---     > x <> (y <$> z) = (x <> y) <$> z
---     > x <$> (y <> z) = (x <$> y) <> z
---
--- Similar laws also hold for the other line break operators '</>', '<$$>', and
--- '<//>'.
 
 -- $setup
 -- >>> :set -XOverloadedStrings
@@ -271,11 +162,10 @@ list = encloseSep lbracket rbracket comma
 tupled :: [Doc] -> Doc
 tupled = encloseSep lparen rparen comma
 
--- | @(encloseSep l r sep xs)@ concatenates the documents @xs@ separated by
--- @sep@ and encloses the resulting document by @l@ and @r@.  are rendered
--- horizontally if that fits the page. Otherwise they are aligned vertically.
--- All separators are put in front of the elements. For example, the function
--- 'list' can be defined with @encloseSep@:
+-- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
+-- @sep@, and encloses the resulting document by @l@ and @r@. The documents are
+-- rendered horizontally if that fits the page, otherwise they are aligned
+-- vertically. All separators are put in front of the elements.
 --
 -- >>> let doc = encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
 -- >>> putDocW 80 ("list" <+> doc)
@@ -607,7 +497,7 @@ backslash = char '\\'
 equals :: Doc
 equals = char '='
 
--- | @(text t)@ concatenates all characters in @t@ using @line@ for newline
+-- | @('text' t)@ concatenates all characters in @t@ using @line@ for newline
 -- characters and @char@ for all other characters. The 'IsString' instance of
 -- 'Doc' uses this function.
 --
@@ -787,10 +677,8 @@ indent i d = hang i (spaces i <> d)
 -- | @('hang' i x)@ renders document @x@ with a nesting level set to the current
 -- column plus @i@.
 --
--- >>> :{
--- putDocW 40 (hang 4 (fillSep (map text
---     (T.words "The hang function indents these words!"))))
--- :}
+-- >>> let someWords = map text (T.words "The hang function indents these words!")
+-- >>> putDocW 40 (hang 4 (fillSep someWords))
 -- The hang
 --     function indents
 --     these words!
@@ -869,9 +757,7 @@ data SimpleDoc =
     | SLine !Int SimpleDoc -- ^ @Int@ = indentation level for the line
     | SSGR [SGR] SimpleDoc
 
--- | The empty document is, indeed, empty. Although @mempty@ has no content, it
--- does have a \'height\' of 1 and behaves exactly like @(text \"\")@ (and is
--- therefore not a unit of @\<$\>@).
+-- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
     mempty = Empty
     mappend = (Semi.<>)
@@ -884,13 +770,13 @@ instance Semi.Semigroup Doc where
 instance IsString Doc where
     fromString = text . T.pack
 
--- | @(char c)@ contains the literal character @c@. If the character is a
+-- | @('char' c)@ contains the literal character @c@. If the character is a
 -- a newline (@'\n'@), consider using 'line' instead.
 char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @(unsafeText s)@ contains the literal string @s@. The string must not
+-- | @('unsafeText' s)@ contains the literal string @s@. The string must not
 -- contain any newline (@'\n'@) characters, since this is an invariant of the
 -- 'Doc' type. If you're not sure, use the safer 'text'.
 unsafeText :: Text -> Doc
@@ -939,10 +825,12 @@ hardline = Line
 -- | @('nest' i x)@ renders document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
 --
--- >>> putDoc (vsep [nest 2 (vsep ["hello", "world"]), "!"])
--- hello
---   world
--- !
+-- >>> putDoc (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
+-- lorem
+--     ipsum
+--     dolor
+-- sit
+-- amet
 nest :: Int -> Doc -> Doc
 nest = Nest
 
@@ -1450,7 +1338,7 @@ displayIO h = display
 instance Show Doc where
     showsPrec _ doc = shows (displayLazyText (renderPretty 0.4 80 doc))
 
--- | @putDoc doc@ pretty prints document @doc@ to standard output, with a page
+-- | @putDoc doc@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters (see
 -- 'renderPretty' for documentation of those values.)
 --
