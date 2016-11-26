@@ -39,7 +39,7 @@
 --
 -- * The nil document is called 'mempty'.
 --
--- * The above combinator is called '<$>'. The operator '</>' is used for soft
+-- * The above function is called '<$>'. The operator '</>' is used for soft
 --   line breaks.
 --
 -- * There are three new primitives: 'align', 'fill' and 'fillBreak'. These are
@@ -196,17 +196,17 @@ infixr 5 </>, <//>
 --     > x <> empty = x
 --     > empty <> x = x
 --
--- The 'text' combinator is a homomorphism from string concatenation to document
+-- The 'text' function is a homomorphism from string concatenation to document
 -- concatenation:
 --
 --     > text (s ++ t) = text s <> text t
 --     > "" = empty
 --
--- The 'char' combinator behaves like one-element text:
+-- The 'char' function behaves like one-element text:
 --
 --     > char c = text [c]
 --
--- The 'nest' combinator is a homomorphism from addition to document
+-- The 'nest' function is a homomorphism from addition to document
 -- composition.  'nest' also distributes through document concatenation and is
 -- absorbed by 'text' and 'align':
 --
@@ -217,7 +217,7 @@ infixr 5 </>, <//>
 --     > nest i (text s) = text s
 --     > nest i (align x) = align x
 --
--- The 'group' combinator is absorbed by 'mempty'.  'group' is commutative with
+-- The 'group' function is absorbed by 'mempty'.  'group' is commutative with
 -- 'nest' and 'align':
 --
 --     > group empty = empty
@@ -225,7 +225,7 @@ infixr 5 </>, <//>
 --     > group (nest i x) = nest i (group x)
 --     > group (align x) = align (group x)
 --
--- The 'align' combinator is absorbed by 'mempty' and 'text'. 'align' is
+-- The 'align' function is absorbed by 'mempty' and 'text'. 'align' is
 -- idempotent:
 --
 --     > align empty = empty
@@ -278,7 +278,7 @@ semiBraces = encloseSep lbrace rbrace  semi
 -- | @(encloseSep l r sep xs)@ concatenates the documents @xs@ separated by
 -- @sep@ and encloses the resulting document by @l@ and @r@.  are rendered
 -- horizontally if that fits the page. Otherwise they are aligned vertically.
--- All separators are put in front of the elements. For example, the combinator
+-- All separators are put in front of the elements. For example, the function
 -- 'list' can be defined with @encloseSep@:
 --
 -- >>> let doc = encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
@@ -708,7 +708,7 @@ spaces n | n <= 0    = mempty
 
 -- | @(fill i x)@ renders document @x@. It than appends @space@s until the width
 -- is equal to @i@. If the width of @x@ is already larger, nothing is appended.
--- This combinator is quite useful in practice to output a list of bindings. The
+-- This function is quite useful in practice to output a list of bindings. The
 -- following example demonstrates this.
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("linebreak","Doc")]
@@ -929,7 +929,7 @@ nesting f = Nesting f
 columns :: (Maybe Int -> Doc) -> Doc
 columns f = Columns f
 
--- | The @group@ combinator is used to specify alternative layouts. @(group x)@
+-- | The @group@ function is used to specify alternative layouts. @(group x)@
 -- undoes all line breaks in document @x@. The resulting line is added to the
 -- current line if that fits the page. Otherwise, the document @x@ is rendered
 -- without any changes.
