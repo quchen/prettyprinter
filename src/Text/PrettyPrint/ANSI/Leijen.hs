@@ -726,7 +726,7 @@ spaces n | n <= 0    = mempty
 --     nest  :: Int -> Doc -> Doc
 --     fillSep :: [Doc] -> Doc
 fill :: Int -> Doc -> Doc
-fill f d = width d (\w ->
+fill f doc = width doc (\w ->
     if w >= f
         then mempty
         else spaces (f - w))
@@ -750,8 +750,21 @@ fillBreak f x = width x (\w ->
         then nest f line'
         else spaces (f - w))
 
+-- | @('width' doc f)@ renders the document 'doc', and makes the width of it
+-- available to a function.
+--
+-- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
+-- >>> putDoc (align (vsep (map annotate ["123", "123456", indent 3 "4567", vsep ["123", indent 3 "4567"]])))
+-- [123] <- width: 5
+-- [123456] <- width: 8
+-- [   4567] <- width: 9
+-- [123
+--    4567] <- width: 8
 width :: Doc -> (Int -> Doc) -> Doc
-width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
+width doc f
+  = column (\colStart ->
+        doc <> column (\colEnd ->
+            f (colEnd - colStart)))
 
 -----------------------------------------------------------
 -- semi primitive: Alignment and indentation
