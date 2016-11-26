@@ -68,7 +68,7 @@
 --   color and the ability to make parts of the text bold or underlined.
 --
 -----------------------------------------------------------
-module Text.PrettyPrint.ANSI.Leijen (
+module Data.Text.PrettyPrint.Doc (
     -- * The algebra of pretty-printing
     -- $DocumentAlgebra
 
@@ -1447,9 +1447,6 @@ displayIO h = display
         SLine i x -> hPutChar h '\n' *> T.hPutStr h (T.replicate i " ") *> display x
         SSGR s x  -> hSetSGR h s *> display x
 
------------------------------------------------------------
--- default pretty printers: show, putDoc and hPutDoc
------------------------------------------------------------
 instance Show Doc where
     showsPrec _ doc = shows (displayLazyText (renderPretty 0.4 80 doc))
 

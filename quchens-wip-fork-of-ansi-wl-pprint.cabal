@@ -20,7 +20,7 @@ source-repository head
 
 
 library
-    exposed-modules: Text.PrettyPrint.ANSI.Leijen
+    exposed-modules: Data.Text.PrettyPrint.Doc
     ghc-options: -Wall -fno-warn-name-shadowing -Wcompat
     hs-source-dirs: src
 

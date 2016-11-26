@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import Text.PrettyPrint.ANSI.Leijen
+import Data.Text.PrettyPrint.Doc
 
 import System.IO
 
