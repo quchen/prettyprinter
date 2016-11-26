@@ -76,7 +76,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    Doc,
 
    -- * Basic functions
-   char, text, (<>), nest, line, linebreak, group, softline, softbreak,
+   char, text, (<>), nest, line, line', group, softline, softline',
    hardline,
 
    -- * Alignment functions
@@ -90,7 +90,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    -- other functions. For example, @align@ shouldn't be used to pretty print
    -- all top-level declarations of a language, but using @hang@ for let
    -- expressions is fine.
-   align, hang, indent, encloseSep, list, tupled, semiBraces,
+   align, hang, indent, encloseSep, list, tupled,
 
    -- * Operators
    (<+>), (</>), (<//>),
@@ -254,26 +254,21 @@ infixr 5 </>, <//>
 
 
 
--- | Special case of 'encloseSep' with braces and 'comma' as separator.
+-- | Haskell-inspired special case of 'encloseSep' with braces and 'comma' as
+-- separator.
 --
 -- >>> putDocW 80 (list (map pretty [1,20,300,4000]))
 -- [1,20,300,4000]
 list :: [Doc] -> Doc
 list = encloseSep lbracket rbracket comma
 
--- | Special case of 'encloseSep' with parentheses and 'comma' as separator.
+-- | Haskell-inspired special case of 'encloseSep' with parentheses and 'comma'
+-- as separator.
 --
 -- >>> putDocW 80 (tupled (map pretty [1,20,300,4000]))
 -- (1,20,300,4000)
 tupled :: [Doc] -> Doc
 tupled = encloseSep lparen rparen comma
-
--- | Special case of 'encloseSep' with braces and 'semicolon' as separator.
---
--- >>> putDocW 80 (semiBraces (map pretty [1,20,300,4000]))
--- {1;20;300;4000}
-semiBraces :: [Doc] -> Doc
-semiBraces = encloseSep lbrace rbrace  semi
 
 -- | @(encloseSep l r sep xs)@ concatenates the documents @xs@ separated by
 -- @sep@ and encloses the resulting document by @l@ and @r@.  are rendered
@@ -290,11 +285,11 @@ semiBraces = encloseSep lbrace rbrace  semi
 --      ,300
 --      ,4000]
 encloseSep
-    :: Doc   -- ^ \<
-    -> Doc   -- ^ \>
-    -> Doc   -- ^ ;
-    -> [Doc] -- ^ \[x,y,z\]
-    -> Doc   -- ^ \<x;y;z\>
+    :: Doc   -- ^ left delimiter
+    -> Doc   -- ^ right delimiter
+    -> Doc   -- ^ separator
+    -> [Doc] -- ^ input documents
+    -> Doc
 encloseSep left right sep ds = case ds of
     []  -> left <> right
     [d] -> left <> d <> right
@@ -400,7 +395,7 @@ cat :: [Doc] -> Doc
 cat = group . vcat
 
 -- | @(fillCat xs)@ concatenates documents @xs@ horizontally with @('<>')@ as
--- long as its fits the page, then inserts a @linebreak@ and continues doing
+-- long as its fits the page, then inserts a @line'@ and continues doing
 -- that for all documents in @xs@. This is similar to how an ordinary word
 -- processor lays out the text if you just keep typing until you hit the maximum
 -- line length.
@@ -440,7 +435,7 @@ fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 fold _ [] = mempty
 fold f ds = foldr1 f ds
 
--- | @(x \<+\> y)@ concatenates document @x@ and @y@ with a @space@ in between.
+-- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @space@ in between.
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -455,25 +450,25 @@ x <+> y = x <> space <> y
 (</>) :: Doc -> Doc -> Doc
 x </> y = x <> softline <> y
 
--- | @(x \<\/\/\> y)@ concatenates document @x@ and @y@ with a 'softbreak' in
+-- | @(x \<\/\/\> y)@ concatenates document @x@ and @y@ with a 'softline'' in
 -- between. This effectively puts @x@ and @y@ either right next to or underneath
 -- each other.
 --
 -- See 'fillCat' for examples.
 (<//>) :: Doc -> Doc -> Doc
-x <//> y = x <> softbreak <> y
+x <//> y = x <> softline' <> y
 
 -- | @x `above` y@ concatenates @x@ and @y@ with a 'line' in between.
 above :: Doc -> Doc -> Doc
 above x y = x <> line <> y
 
--- | @x `above'` y@ concatenates document @x@ and @y@ with a @linebreak@ in
+-- | @x `above'` y@ concatenates document @x@ and @y@ with a @line'@ in
 -- between.
 above' :: Doc -> Doc -> Doc
-above' x y = x <> linebreak <> y
+above' x y = x <> line' <> y
 
--- | @softline@ behaves like 'space' if the resulting output fits the page,
--- otherwise it behaves like 'line'.
+-- | @softline@ behaves like @'space'@ if the resulting output fits the page,
+-- otherwise like @'line'@.
 --
 -- >>> putDocW 80 ("lorem ipsum" <> softline <> "dolor sit amet")
 -- lorem ipsum dolor sit amet
@@ -483,16 +478,19 @@ above' x y = x <> linebreak <> y
 softline :: Doc
 softline = group line
 
--- | @softbreak@ behaves like 'mempty' if the resulting output fits the page,
--- otherwise it behaves like 'line'.
+-- | @'softline''@ is like @'softline'@, but behaves like @'mempty'@ if the
+-- resulting output does not fit on the page (instead of @'space'@).
 --
--- >>> putDocW 80 ("lorem ipsum" <> softbreak <> "dolor sit amet")
+-- In other words, @'line'@ is to @'line''@ how @'softline'@ is to
+-- @'softline''@.
+--
+-- >>> putDocW 80 ("lorem ipsum" <> softline' <> "dolor sit amet")
 -- lorem ipsumdolor sit amet
--- >>> putDocW 40 ("lorem ipsum" <> softbreak <> "dolor sit amet")
+-- >>> putDocW 40 ("lorem ipsum" <> softline' <> "dolor sit amet")
 -- lorem ipsum
 -- dolor sit amet
-softbreak :: Doc
-softbreak = group linebreak
+softline' :: Doc
+softline' = group line'
 
 -- | >>> putDoc (squotes "hello")
 -- 'hello'
@@ -607,7 +605,7 @@ backslash = char '\\'
 equals :: Doc
 equals = char '='
 
--- | @text s@ concatenates all characters in @s@ using @line@ for newline
+-- | @(text t)@ concatenates all characters in @t@ using @line@ for newline
 -- characters and @char@ for all other characters. The 'IsString' instance of
 -- 'Doc' uses this function.
 --
@@ -711,16 +709,17 @@ spaces n | n <= 0    = mempty
 -- This function is quite useful in practice to output a list of bindings. The
 -- following example demonstrates this.
 --
--- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("linebreak","Doc")]
--- >>> let ptype (name, tp) = fill 6 (text name) <+> "::" <+> text tp
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
+-- >>> let ptype (name, tp) = fill 5 (text name) <+> "::" <+> text tp
 -- >>> putDoc ("let" <+> align (vcat (map ptype types)))
--- let empty  :: Doc
---     nest   :: Int -> Doc -> Doc
---     linebreak :: Doc
+-- let empty :: Doc
+--     nest  :: Int -> Doc -> Doc
+--     fillSep :: [Doc] -> Doc
 fill :: Int -> Doc -> Doc
 fill f d = width d (\w ->
-                  if (w >= f) then mempty
-                              else (spaces (f - w)))
+    if (w >= f)
+        then mempty
+        else (spaces (f - w)))
 
 -- | @(fillBreak i x)@ first renders document @x@. It than appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
@@ -728,17 +727,17 @@ fill f d = width d (\w ->
 -- redefine @ptype@ in the previous example to use @fillBreak@, we get a useful
 -- variation of the previous output:
 --
--- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("linebreak","Doc")]
--- >>> let ptype (name, tp) = fillBreak 6 (text name) <+> "::" <+> text tp
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
+-- >>> let ptype (name, tp) = fillBreak 5 (text name) <+> "::" <+> text tp
 -- >>> putDoc ("let" <+> align (vcat (map ptype types)))
--- let empty  :: Doc
---     nest   :: Int -> Doc -> Doc
---     linebreak
---            :: Doc
+-- let empty :: Doc
+--     nest  :: Int -> Doc -> Doc
+--     fillSep
+--           :: [Doc] -> Doc
 fillBreak :: Int -> Doc -> Doc
 fillBreak f x = width x (\w ->
     if (w > f)
-        then nest f linebreak
+        then nest f line'
         else (spaces (f - w)))
 
 width :: Doc -> (Int -> Doc) -> Doc
@@ -748,7 +747,7 @@ width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
 -- semi primitive: Alignment and indentation
 -----------------------------------------------------------
 
--- | @(indent i x)@ indents document @x@ with @i@ spaces.
+-- | @('indent' i x)@ indents document @x@ with @i@ spaces.
 --
 -- >>> :{
 -- putDocW 40 (indent 4 (fillSep (map text
@@ -760,7 +759,7 @@ width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
 indent :: Int -> Doc -> Doc
 indent i d = hang i ((spaces i) <> d)
 
--- | @(hang i x)@ renders document @x@ with a nesting level set to the current
+-- | @('hang' i x)@ renders document @x@ with a nesting level set to the current
 -- column plus @i@.
 --
 -- >>> :{
@@ -773,8 +772,8 @@ indent i d = hang i ((spaces i) <> d)
 hang :: Int -> Doc -> Doc
 hang i d = align (nest i d)
 
--- | @align x@ renders document @x@ with the nesting level set to the current
--- column. It is used for example to implement 'hang'.
+-- | @('align' x)@ renders document @x@ with the nesting level set to the
+-- current column. It is used for example to implement 'hang'.
 --
 -- As an example, we will put a document right above another one, regardless of
 -- the current nesting level:
@@ -794,11 +793,12 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- More specifically, a value of type @Doc@ represents a non-empty set of
--- possible renderings of a document.  The rendering functions select one of
+-- possible renderings of a document. The rendering functions select one of
 -- these possibilities.
 --
--- @Doc@ is an instance of the 'Show' class. @(show doc)@ pretty prints document
--- @doc@ with a page width of 80 characters and a ribbon width of 32 characters.
+-- The simplest renderer is via the 'Show' class. @('show' doc)@ pretty prints
+-- document @doc@ with a page width of 80 characters and a ribbon width of 32
+-- characters.
 --
 -- >>> show (vsep ["hello", "world"])
 -- "\"hello\\nworld\""
@@ -865,17 +865,18 @@ char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @unsafeText s@ contains the literal string @s@. The string must not contain
--- any newline (@'\n'@) characters. If you're not sure, use the safer (but less
--- performant) 'text'.
+-- | @(unsafeText s)@ contains the literal string @s@. The string must not
+-- contain any newline (@'\n'@) characters. If you're not sure, use the safer
+-- (but less performant) 'text'.
 unsafeText :: Text -> Doc
 unsafeText  t
   | T.null t = Empty
   | otherwise = Text t
 
 -- | The @line@ document advances to the next line and indents to the current
--- nesting level. Document @line@ behaves like @(text \" \")@ if the line break
--- is undone by 'group'.
+-- nesting level.
+--
+-- @line@ behaves like @'space'@ if the line break is undone by 'group'.
 --
 -- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
 -- >>> putDoc doc
@@ -886,20 +887,19 @@ unsafeText  t
 line :: Doc
 line = FlatAlt Line space
 
--- | The @linebreak@ document advances to the next line and indents to the
--- current nesting level. Document @linebreak@ behaves like 'mempty' if the line
--- break is undone by 'group'.
+-- | @'line''@ behaves like @'line'@, but behaves like @'mempty'@ if the line
+-- break is undone by 'group' (instead of @'space'@).
 --
--- >>> let doc = "lorem ipsum" <> linebreak <> "dolor sit amet"
+-- >>> let doc = "lorem ipsum" <> line' <> "dolor sit amet"
 -- >>> putDoc doc
 -- lorem ipsum
 -- dolor sit amet
 -- >>> putDoc (group doc)
 -- lorem ipsumdolor sit amet
-linebreak :: Doc
-linebreak = FlatAlt Line mempty
+line' :: Doc
+line' = FlatAlt Line mempty
 
--- | A 'hardline' is always rendered as a line break, even when 'group'ed.
+-- | A @'hardline'@ is always rendered as a line break, even when 'group'ed.
 --
 -- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
 -- >>> putDoc doc
@@ -911,7 +911,7 @@ linebreak = FlatAlt Line mempty
 hardline :: Doc
 hardline = Line
 
--- | @(nest i x)@ renders document @x@ with the current indentation level
+-- | @('nest' i x)@ renders document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
 --
 -- >>> putDoc (vsep [nest 2 (vsep ["hello", "world"]), "!"])
@@ -957,7 +957,7 @@ nesting = Nesting
 columns :: (Maybe Int -> Doc) -> Doc
 columns = Columns
 
--- | @(group x)@ undoes all line breaks in document @x@. The resulting line is
+-- | @('group' x)@ undoes all line breaks in document @x@. The resulting line is
 -- added to the current line if that fits the page. Otherwise, the document @x@
 -- is rendered without any changes.
 --
@@ -1190,7 +1190,7 @@ renderPretty = renderFits fits1
 --
 -- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
 --
--- If we put a softbreak (+ nesting 2) after each open parenthesis, and align
+-- If we put a softline' (+ nesting 2) after each open parenthesis, and align
 -- the elements of the list to match the opening brackets, this will render with
 -- @renderPretty@ and a page width of 20 as:
 --
