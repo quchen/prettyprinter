@@ -96,7 +96,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    (<+>),
 
    -- * List functions
-   hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
+   hsep, vsep, fillSep, sep, vcat, fillCat, cat, punctuate,
 
    -- * Filler functions
    fill, fillBreak,
@@ -296,18 +296,17 @@ encloseSep left right sep ds = case ds of
 
 
 
--- | @(punctuate p xs)@ concatenates all documents in @xs@ with document @p@
--- except for the last document.
+-- | @('punctuate' p xs)@ appends @p@ to all but the last document in @xs@.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
--- >>> putDocW 80 (parens (align (cat (punctuate comma docs))))
--- (lorem,ipsum,dolor,sit,amet)
--- >>> putDocW 40 (parens (align (cat (punctuate comma docs))))
--- (lorem,
---  ipsum,
---  dolor,
---  sit,
---  amet)
+-- >>> putDocW 80 (cat (punctuate comma docs))
+-- lorem,ipsum,dolor,sit,amet
+-- >>> putDocW 20 (cat (punctuate comma docs))
+-- lorem,
+-- ipsum,
+-- dolor,
+-- sit,
+-- amet
 --
 -- If you want put the commas in front of their elements instead of at the end,
 -- you should use 'tupled' or, in general, 'encloseSep'.
@@ -316,28 +315,29 @@ punctuate _ [] = []
 punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
 
------------------------------------------------------------
--- high-level functions
------------------------------------------------------------
 
--- | @(sep xs)@ concatenates all documents @xs@ either horizontally with
--- @(\<+\>)@, if it fits the page, or vertically with @above'@.
+-- | @'sep' xs@ tries rendering the documents @xs@ separated with 'space's, and
+-- if this does not fit the page, separates them with newlines.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
--- >>> putDocW 80 (sep docs)
--- lorem ipsum dolor sit amet
--- >>> putDocW 32 (sep docs)
--- lorem
--- ipsum
--- dolor
--- sit
--- amet
+-- In other words, @'sep'@ is @'vsep'@ with @'group'@ baked in.
+--
+-- >>> let doc = "some" <+> sep ["text", "to", "lay", "out"]
+-- >>> putDocW 80 doc
+-- some text to lay out
+-- >>> putDocW 20 doc
+-- some text
+-- to
+-- lay
+-- out
 sep :: [Doc] -> Doc
 sep = group . vsep
 
--- | @(fillSep xs)@ concatenates documents @xs@ horizontally with @(\<+\>)@ as
--- long as its fits the page, than inserts a @line@ and continues doing that for
--- all documents in @xs@.
+-- | @('fillSep' xs)@ concatenates the documents @xs@ horizontally with @'<+>'@
+-- as long as it fits the page, then inserts a @'line'@ and continues doing that
+-- for all documents in @xs@.
+--
+-- (@'line'@ means that if 'group'ed, the documents are separated with a 'space'
+-- instead of newlines.)
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
 -- >>> putDocW 80 (fillSep docs)
@@ -346,42 +346,51 @@ sep = group . vsep
 -- lorem ipsum
 -- dolor sit
 -- amet
+-- >>> putDocW 80 ("Docs:" <+> group (fillSep docs))
+-- Docs: lorem ipsum dolor sit amet
 fillSep :: [Doc] -> Doc
-fillSep = fold (\x y -> x <> softline <> y)
+fillSep = concatWith (\x y -> x <> softline <> y)
 
--- | @(hsep xs)@ concatenates all documents @xs@ horizontally with @(\<+\>)@.
+-- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
 -- >>> putDoc (hsep docs)
 -- lorem ipsum dolor sit amet
 hsep :: [Doc] -> Doc
-hsep = fold (<+>)
+hsep = concatWith (<+>)
 
--- | @vsep xs@ concatenates all documents @xs@ vertically with 'above'. If a
--- 'group' undoes the line breaks inserted by @vsep@, all documents are
--- separated with a space.
+-- | @('vsep' xs)@ concatenates all documents @xs@ above each other. If a
+-- 'group' undoes the line breaks inserted by @vsep@, the documents are
+-- separated with a space instead.
 --
--- Using a simple 'vsep' alone yields
+-- Using 'vsep' alone yields
 --
--- >>> putDoc ("some" <+> vsep (map text (T.words ("text to lay out"))))
+-- >>> putDoc ("some" <+> vsep (["text", "to", "lay", "out"]))
 -- some text
 -- to
 -- lay
 -- out
 --
+-- 'group'ing a 'vsep' separates the documents with a space if it fits the page
+-- (and does nothing otherwise). See the @'sep'@ convenience function for this
+-- use case.
+--
 -- The 'align' function can be used to align the documents under their first
 -- element:
 --
--- >>> putDoc ("some" <+> align (vsep (map text (T.words ("text to lay out")))))
+-- >>> putDoc ("some" <+> align (vsep (["text", "to", "lay", "out"])))
 -- some text
 --      to
 --      lay
 --      out
 vsep :: [Doc] -> Doc
-vsep = fold above
+vsep = concatWith above
 
--- | @cat xs@ concatenates all documents @xs@ either horizontally with
--- @('<>')@ if it fits the page, or vertically with @above'@.
+-- | @('cat' xs)@ tries rendering the documents @xs@ separated with nothing, and
+-- if this does not fit the page, separates them with newlines.
+--
+-- In other words, @'sep'@ is @'vsep'@ with @'group'@ baked in, just like
+-- @'sep'@ is to @'vsep'@.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
@@ -393,11 +402,14 @@ vsep = fold above
 cat :: [Doc] -> Doc
 cat = group . vcat
 
--- | @(fillCat xs)@ concatenates documents @xs@ horizontally with @('<>')@ as
--- long as its fits the page, then inserts a @line'@ and continues doing
--- that for all documents in @xs@. This is similar to how an ordinary word
--- processor lays out the text if you just keep typing until you hit the maximum
--- line length.
+-- | @('fillCat' xs)@ concatenates documents @xs@ horizontally with @'<>'@ as
+-- long as it fits the page, then inserts a @'line''@ and continues doing that
+-- for all documents in @xs@. This is similar to how an ordinary word processor
+-- lays out the text if you just keep typing after you hit the maximum line
+-- length.
+--
+-- (@'line''@ means that if 'group'ed, the documents are separated with nothing
+-- instead of newlines.)
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 ("Docs:" <+> fillCat docs)
@@ -405,8 +417,10 @@ cat = group . vcat
 -- >>> putDocW 40 ("Docs:" <+> fillCat docs)
 -- Docs: loremipsum
 -- dolor
+-- >>> putDocW 80 ("Docs:" <+> group (fillCat docs))
+-- Docs: loremipsumdolor
 fillCat :: [Doc] -> Doc
-fillCat = fold (\x y -> x <> softline' <> y)
+fillCat = concatWith (\x y -> x <> softline' <> y)
 
 -- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@.
 --
@@ -414,11 +428,13 @@ fillCat = fold (\x y -> x <> softline' <> y)
 -- >>> putDoc (hcat docs)
 -- loremipsumdolor
 hcat :: [Doc] -> Doc
-hcat = fold (<>)
+hcat = concatWith (<>)
 
--- | @(vcat xs)@ concatenates all documents @xs@ vertically with @above'@. If
--- a 'group' undoes the line breaks inserted by @vcat@, all documents are
--- directly concatenated.
+-- | @('vcat' xs)@ vertically concatenates the documents @xs@. If it is
+-- 'group'ed, the line breaks are removed.
+--
+-- In other words @'vcat'@ is like @'vsep'@, with newlines removed instead of
+-- replaced by 'space's.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 (vcat docs)
@@ -428,11 +444,12 @@ hcat = fold (<>)
 -- >>> putDocW 40 (group (vcat docs))
 -- loremipsumdolor
 vcat :: [Doc] -> Doc
-vcat = fold above'
+vcat = concatWith above'
 
-fold :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
-fold _ [] = mempty
-fold f ds = foldr1 f ds
+-- | 'foldr', with an empty special case for empty arguments.
+concatWith :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
+concatWith _ [] = mempty
+concatWith f ds = foldr1 f ds
 
 -- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @space@ in between.
 --
@@ -475,41 +492,41 @@ softline = group line
 softline' :: Doc
 softline' = group line'
 
--- | >>> putDoc (squotes "hello")
--- 'hello'
+-- | >>> putDoc (squotes "…")
+-- '…'
 squotes :: Doc -> Doc
 squotes = enclose squote squote
 
--- | >>> putDoc (dquotes "hello")
--- "hello"
+-- | >>> putDoc (dquotes "…")
+-- "…"
 dquotes :: Doc -> Doc
 dquotes = enclose dquote dquote
 
--- | >>> putDoc (braces "hello")
--- {hello}
+-- | >>> putDoc (braces "…")
+-- {…}
 braces :: Doc -> Doc
 braces = enclose lbrace rbrace
 
--- | >>> putDoc (parens "hello")
--- (hello)
+-- | >>> putDoc (parens "…")
+-- (…)
 parens :: Doc -> Doc
 parens = enclose lparen rparen
 
--- | >>> putDoc (angles "hello")
--- <hello>
+-- | >>> putDoc (angles "…")
+-- <…>
 angles :: Doc -> Doc
 angles = enclose langle rangle
 
--- | >>> putDoc (brackets "hello")
--- [hello]
+-- | >>> putDoc (brackets "…")
+-- […]
 brackets :: Doc -> Doc
 brackets = enclose lbracket rbracket
 
--- | @(enclose l r x)@ encloses document @x@ between documents @l@ and @r@ using
--- @(\<\>)@.
+-- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
+-- using @'<>'@.
 --
--- >>> putDoc (enclose lbrace rangle "hello")
--- {hello>
+-- >>> putDoc (enclose "AAA" "ZZZ" "…")
+-- AAA…ZZZ
 enclose :: Doc -> Doc -> Doc -> Doc
 enclose l r x = l <> x <> r
 
@@ -607,8 +624,9 @@ text t = case T.uncons t of
 -- overloading "pretty"
 -----------------------------------------------------------
 
--- | The member @prettyList@ is only used to define the @instance Pretty a =>
--- Pretty [a]@. In normal circumstances only the @pretty@ function is used.
+-- | The member @'prettyList'@ is only used to define the @instance
+-- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
+-- function is used.
 class Pretty a where
 
     -- | >>> putDoc (pretty 1 <+> pretty "hello" <+> pretty 1.234)
@@ -620,9 +638,16 @@ class Pretty a where
     prettyList :: [a] -> Doc
     prettyList = list . map pretty
 
+-- | >>> putDoc (pretty [1,2,3])
+-- [1,2,3]
 instance Pretty a => Pretty [a] where
     pretty = prettyList
 
+
+-- | Identity transformation.
+--
+-- >>> putDoc (pretty (pretty 123))
+-- 123
 instance Pretty Doc where
     pretty = id
 
@@ -637,9 +662,11 @@ instance Pretty Bool where
     pretty = unsafeText . T.pack . show
 
 -- | >>> putDoc (pretty 'c')
--- 'c'
+-- c
+-- >>> putDoc (pretty ("string" :: [Char]))
+-- string
 instance Pretty Char where
-    pretty = unsafeText . T.pack . show
+    pretty = unsafeText . T.singleton
     prettyList = text . fromString
 
 -- | >>> putDoc (pretty (123 :: Int))
@@ -687,10 +714,10 @@ spaces :: Int -> Doc
 spaces n | n <= 0    = mempty
          | otherwise = unsafeText (T.replicate n " ")
 
--- | @(fill i x)@ renders document @x@. It than appends @space@s until the width
--- is equal to @i@. If the width of @x@ is already larger, nothing is appended.
--- This function is quite useful in practice to output a list of bindings. The
--- following example demonstrates this.
+-- | @('fill' i x)@ renders document @x@. It then appends @space@s until the
+-- width is equal to @i@. If the width of @x@ is already larger, nothing is
+-- appended. This function is quite useful in practice to output a list of
+-- bindings. The following example demonstrates this.
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
 -- >>> let ptype (name, tp) = fill 5 (text name) <+> "::" <+> text tp
@@ -704,11 +731,11 @@ fill f d = width d (\w ->
         then mempty
         else spaces (f - w))
 
--- | @(fillBreak i x)@ first renders document @x@. It than appends @space@s
+-- | @('fillBreak' i x)@ first renders document @x@. It then appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
 -- @i@, the nesting level is increased by @i@ and a @line@ is appended. When we
--- redefine @ptype@ in the previous example to use @fillBreak@, we get a useful
--- variation of the previous output:
+-- redefine @ptype@ in the example given in 'fill' to use @'fillBreak'@, we get
+-- a useful variation of the output:
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
 -- >>> let ptype (name, tp) = fillBreak 5 (text name) <+> "::" <+> text tp
@@ -816,16 +843,16 @@ data Doc =
 -- renderings of a document, values of the data type @SimpleDoc@ represent
 -- single renderings of a document.
 --
--- The @Int@ in @SLine@ contains the indentation for that line. The library
--- provides two default display functions 'displayS' and 'displayIO'. You can
--- provide your own display function by writing a function from a @SimpleDoc@ to
--- your own output format.
-data SimpleDoc = SFail
-                | SEmpty
-                | SChar Char SimpleDoc
-                | SText Text SimpleDoc
-                | SLine !Int SimpleDoc
-                | SSGR [SGR] SimpleDoc
+-- The library provides two default display functions 'displayT' and
+-- 'displayIO'. You can provide your own display function by writing a function
+-- from a @SimpleDoc@ to your own output format.
+data SimpleDoc =
+      SFail
+    | SEmpty
+    | SChar Char SimpleDoc
+    | SText Text SimpleDoc
+    | SLine !Int SimpleDoc -- ^ @Int@ = indentation level for the line
+    | SSGR [SGR] SimpleDoc
 
 -- | The empty document is, indeed, empty. Although @mempty@ has no content, it
 -- does have a \'height\' of 1 and behaves exactly like @(text \"\")@ (and is
