@@ -31,12 +31,13 @@ displayLazyText :: SimpleDoc -> LT.Text
 displayLazyText = LTB.toLazyText . build
   where
     build = \case
-        SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-        SEmpty    -> mempty
-        SChar c x -> LTB.singleton c <> build x
-        SText t x -> LTB.fromText t <> build x
-        SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
-        SStyle s x -> build x
+        SFail      -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty     -> mempty
+        SChar c x  -> LTB.singleton c <> build x
+        SText t x  -> LTB.fromText t <> build x
+        SLine i x  -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
+        SStyle _ x -> build x
+        SUnStyle x -> build x
 
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.

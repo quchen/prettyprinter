@@ -705,7 +705,8 @@ data Doc =
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
     | Style Style Doc -- ^ Add style information
-    | UnStyle -- ^ Remove one 'Style' information (only used during rendering)
+    | UnStyle -- ^ Remove one 'Style' information (only used during rendering).
+              --   Invariant: each of these must be paired with an 'UnStyle'.
 
 data Style =
       SItalicized
@@ -733,7 +734,8 @@ data SimpleDoc =
     | SChar Char SimpleDoc
     | SText Text SimpleDoc
     | SLine !Int SimpleDoc   -- ^ @Int@ = indentation level for the line
-    | SStyle Style SimpleDoc -- ^ Style and styled document
+    | SStyle Style SimpleDoc -- ^ Style and styled document. Invariant: each of
+                             --   these must be paired with a 'SUnStyle'.
     | SUnStyle SimpleDoc     -- ^ Discard one previous style information
 
 -- | Empty document, and direct concatenation (without adding any spacing).
