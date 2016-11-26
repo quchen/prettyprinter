@@ -529,6 +529,8 @@ instance Pretty a => Pretty [a] where
 
 -- | Identity transformation.
 --
+-- >>> putDoc (pretty 123)
+-- 123
 -- >>> putDoc (pretty (pretty 123))
 -- 123
 instance Pretty Doc where
