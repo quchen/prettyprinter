@@ -710,7 +710,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- hello
 -- world
 data Doc =
-      Fail
+      Fail -- ^ Occurs when flattening a line. It is a bug if this is possible.
     | Empty -- ^ The empty document; unit of 'Cat' (observationally)
     | Char Char -- ^ invariant: char is not '\n'
     | Text Text -- ^ invariant: text doesn't contain '\n'
