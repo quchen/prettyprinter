@@ -760,9 +760,8 @@ width d f = column (\k1 -> d <> column (\k2 -> f (k2 - k1)))
 indent :: Int -> Doc -> Doc
 indent i d = hang i ((spaces i) <> d)
 
--- | The hang function implements hanging indentation. @(hang i x)@ renders
--- document @x@ with a nesting level set to the current column plus @i@. The
--- following example uses hanging indentation for some text:
+-- | @(hang i x)@ renders document @x@ with a nesting level set to the current
+-- column plus @i@.
 --
 -- >>> :{
 -- putDocW 40 (hang 4 (fillSep (map text
@@ -780,9 +779,9 @@ hang i d = align (nest i d)
 -- As an example, we will put a document right above another one, regardless of
 -- the current nesting level:
 --
--- >>> putDoc ("hi" <+> (align (vsep ["nice", "world"])))
--- hi nice
---    world
+-- >>> putDoc ("lorem" <+> (align (vsep ["ipsum", "dolor"])))
+-- lorem ipsum
+--       dolor
 align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
@@ -816,8 +815,8 @@ data Doc =
     | Column  (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | Color ConsoleLayer ColorIntensity -- ^ Introduces coloring /around/ the embedded document
-            Color Doc
+    | Color ConsoleLayer ColorIntensity
+            Color Doc -- ^ Introduces coloring /around/ the embedded document
     | Intensify ConsoleIntensity Doc
     | Italicize Bool Doc
     | Underline Underlining Doc
@@ -913,26 +912,54 @@ hardline :: Doc
 hardline = Line
 
 -- | @(nest i x)@ renders document @x@ with the current indentation level
--- increased by i (See also 'hang', 'align' and 'indent').
+-- increased by @i@. See also 'hang', 'align' and 'indent'.
 --
 -- >>> putDoc (vsep [nest 2 (vsep ["hello", "world"]), "!"])
 -- hello
 --   world
 -- !
 nest :: Int -> Doc -> Doc
-nest i x = Nest i x
+nest = Nest
 
-column, nesting :: (Int -> Doc) -> Doc
-column f = Column f
-nesting f = Nesting f
+-- | Render a document depending on which column it starts being rendered.
+-- 'align' is implemented in terms of 'column'.
+--
+-- >>> let doc = "prefix" <+> column (\l -> brackets ("Column:" <+> pretty l))
+-- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- prefix [Column: 7]
+--     prefix [Column: 11]
+--         prefix [Column: 15]
+column :: (Int -> Doc) -> Doc
+column = Column
 
+-- | Render a document depending on the 'nest'ing level of the current line.
+-- 'align' is implemented in terms of 'nesting'.
+--
+-- >>> let doc = "prefix" <+> nesting (\l -> brackets ("Nested:" <+> pretty l))
+-- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- prefix [Nested: 0]
+--     prefix [Nested: 4]
+--         prefix [Nested: 8]
+nesting :: (Int -> Doc) -> Doc
+nesting = Nesting
+
+-- | Render a document depending on the page width.
+--
+-- >>> let doc = "prefix" <+> columns (\l -> brackets ("Width:" <+> pretty l))
+-- >>> putDocW 64 (vsep [indent n doc | n <- [0,4,8]])
+-- prefix [Width: 64]
+--     prefix [Width: 64]
+--         prefix [Width: 64]
+--
+-- Whether the page width is @'Just' n@ or @Nothing@ depends on the renderer. Of
+-- the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
+-- @'Just' <pagewidth>@.
 columns :: (Maybe Int -> Doc) -> Doc
-columns f = Columns f
+columns = Columns
 
--- | The @group@ function is used to specify alternative layouts. @(group x)@
--- undoes all line breaks in document @x@. The resulting line is added to the
--- current line if that fits the page. Otherwise, the document @x@ is rendered
--- without any changes.
+-- | @(group x)@ undoes all line breaks in document @x@. The resulting line is
+-- added to the current line if that fits the page. Otherwise, the document @x@
+-- is rendered without any changes.
 --
 -- See 'vcat' and 'line' for examples.
 group :: Doc -> Doc
@@ -1199,7 +1226,7 @@ renderSmart = renderFits fitsR
 renderFits
     :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. 'fits1'
     -> Float -- ^ Ribbon fraction
-    -> Int   -- ^ Page width
+    -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
 renderFits fits rfrac w x
@@ -1216,9 +1243,12 @@ renderFits fits rfrac w x
     -- r :: the ribbon width in characters
     r = max 0 (min w (round (fromIntegral w * rfrac)))
 
-    -- best :: n = indentation of current line
-    --         k = current column
-    --        (ie. (k >= n) && (k - n == count of inserted characters)
+    -- i: current column in the output
+    -- n: indentation of current line
+    -- k: current column
+    --   Therefore:
+    --     - k >= n
+    --     - k - n = count of inserted characters in current line
     best _ _ _ _ _ _ _ Nil = SEmpty
     best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
       Fail          -> SFail
