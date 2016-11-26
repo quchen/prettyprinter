@@ -93,7 +93,7 @@ module Text.PrettyPrint.ANSI.Leijen (
    align, hang, indent, encloseSep, list, tupled,
 
    -- * Operators
-   (<+>), (</>), (<//>),
+   (<+>),
 
    -- * List functions
    hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate,
@@ -182,7 +182,6 @@ import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy.Builder as LTB
 
 infixr 6 <+>
-infixr 5 </>, <//>
 
 
 
@@ -348,7 +347,7 @@ sep = group . vsep
 -- dolor sit
 -- amet
 fillSep :: [Doc] -> Doc
-fillSep = fold (</>)
+fillSep = fold (\x y -> x <> softline <> y)
 
 -- | @(hsep xs)@ concatenates all documents @xs@ horizontally with @(\<+\>)@.
 --
@@ -407,7 +406,7 @@ cat = group . vcat
 -- Docs: loremipsum
 -- dolor
 fillCat :: [Doc] -> Doc
-fillCat = fold (<//>)
+fillCat = fold (\x y -> x <> softline' <> y)
 
 -- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@.
 --
@@ -441,22 +440,6 @@ fold f ds = foldr1 f ds
 -- hello world
 (<+>) :: Doc -> Doc -> Doc
 x <+> y = x <> space <> y
-
--- | @(x \<\/\> y)@ concatenates document @x@ and @y@ with a 'softline' in
--- between. This effectively puts @x@ and @y@ either next to (with a @space@ in
--- between) or underneath each other.
---
--- See 'fillSep' for examples.
-(</>) :: Doc -> Doc -> Doc
-x </> y = x <> softline <> y
-
--- | @(x \<\/\/\> y)@ concatenates document @x@ and @y@ with a 'softline'' in
--- between. This effectively puts @x@ and @y@ either right next to or underneath
--- each other.
---
--- See 'fillCat' for examples.
-(<//>) :: Doc -> Doc -> Doc
-x <//> y = x <> softline' <> y
 
 -- | @x `above` y@ concatenates @x@ and @y@ with a 'line' in between.
 above :: Doc -> Doc -> Doc
