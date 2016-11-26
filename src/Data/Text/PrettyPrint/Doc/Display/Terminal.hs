@@ -48,6 +48,30 @@ displayLazyText = LTB.toLazyText . build
         SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
         SSGR s x  -> LTB.fromString (setSGRCode s) <> build x
 
+-- renderWithColourWIP :: SimpleDoc -> STVar [SGR] -> ST s _
+renderWithColourWIP = \case
+    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty    -> pure mempty
+    SChar c x -> do
+        let x = LTB.singleton c
+        rest <- build x
+        pure (x <> rest)
+    SText t x -> do
+        let x = LTB.fromText t
+        rest <- build x
+        pure (x <> rest)
+    SLine i x -> do
+        let x = LTB.singleton '\n' <> LTB.fromText (T.replicate i " ")
+        rest <- build x
+        pure (x <> rest)
+    Style styleAdditions x -> do
+        currentStyle <- peek
+        let newStyle = currentStyle `addStyles` styleAdditions
+        let newStyleAnsi = LTB.fromString (setSGRCode (fromStyle newStyle))
+        let currentStyleAnsi = LTB.fromString (setSGRCode (fromStyle currentStyle))
+        rest <- build x
+        pure (newStyleAnsi <> rest <> currentStyleAnsi)
+
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
 displayStrictText :: SimpleDoc -> Text

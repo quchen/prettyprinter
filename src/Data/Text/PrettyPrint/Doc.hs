@@ -75,14 +75,9 @@ module Data.Text.PrettyPrint.Doc (
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
     dquote, semi, colon, comma, space, dot, backslash, equals,
 
-    -- * ANSI formatting functions
-    --
-    -- | This terminal formatting functionality is, as far as possible, portable
-    -- across platforms with their varying terminals. However, note that to
-    -- display ANSI colors and formatting will only be displayed on Windows
-    -- consoles if the 'Doc' value is output using the 'putDoc' function or one
-    -- of its friends.  Rendering the 'Doc' to a 'String' and then outputing
-    -- /that/ will only work on Unix-style operating systems.
+    -- * Styling
+
+    Style(..), SColor(..), SIntensity(..), SLayer(..),
 
     -- ** Forecolor functions
     black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
@@ -93,11 +88,8 @@ module Data.Text.PrettyPrint.Doc (
     ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue,
     ondullmagenta, ondullcyan, ondullwhite,
 
-    -- ** Emboldening functions
-    bold, debold,
-
-    -- ** Underlining functions
-    underline, deunderline,
+    -- ** Font style functions
+    bold, italics, underline,
 
     -- ** Formatting elimination functions
     plain,
@@ -113,21 +105,11 @@ module Data.Text.PrettyPrint.Doc (
 
 ) where
 
-import           Data.Maybe          (catMaybes)
 import           Data.Monoid
-import qualified Data.Semigroup      as Semi (Semigroup ((<>)))
-import           Data.String         (IsString (..))
-import           Data.Text           (Text)
-import qualified Data.Text           as T
-import           System.Console.ANSI
-    ( Color (..)
-    , ColorIntensity (..)
-    , ConsoleIntensity (..)
-    , ConsoleLayer (..)
-    , SGR (..)
-    , Underlining (..)
-    , setSGRCode
-    )
+import qualified Data.Semigroup as Semi (Semigroup ((<>)))
+import           Data.String    (IsString (..))
+import           Data.Text      (Text)
+import qualified Data.Text      as T
 
 
 
@@ -172,10 +154,10 @@ encloseSep
     -> Doc   -- ^ separator
     -> [Doc] -- ^ input documents
     -> Doc
-encloseSep left right sep ds = case ds of
-    []  -> left <> right
-    [d] -> left <> d <> right
-    _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
+encloseSep l r s ds = case ds of
+    []  -> l <> r
+    [d] -> l <> d <> r
+    _   -> align (cat (zipWith (<>) (l : repeat s) ds) <> r)
 
 
 
@@ -722,16 +704,18 @@ data Doc =
     | Column  (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | Color ConsoleLayer ColorIntensity
-            Color Doc -- ^ Introduces coloring /around/ the embedded document
-    | Intensify ConsoleIntensity Doc
-    | Italicize Bool Doc
-    | Underline Underlining Doc
-    | RestoreFormat (Maybe (ColorIntensity, Color))  -- Only used during the rendered phase, to signal a SGR should be issued to restore the terminal formatting.
-                    (Maybe (ColorIntensity, Color))  -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block).
-                    (Maybe ConsoleIntensity)         -- Intensity to revert to.
-                    (Maybe Bool)                     -- Italicization to revert to.
-                    (Maybe Underlining)              -- Underlining to revert to.
+    | Style Style Doc -- ^ Add style information
+    | UnStyle -- ^ Remove one 'Style' information (only used during rendering)
+
+data Style =
+      SItalicized
+    | SBold
+    | SUnderlined
+    | SColor SLayer SIntensity SColor
+
+data SColor = SBlack | SRed | SGreen | SYellow | SBlue | SMagenta | SCyan | SWhite
+data SIntensity = SVivid | SDull
+data SLayer = SForeground | SBackground
 
 -- | The data type @SimpleDoc@ represents rendered documents and is used by the
 -- display functions.
@@ -748,8 +732,9 @@ data SimpleDoc =
     | SEmpty
     | SChar Char SimpleDoc
     | SText Text SimpleDoc
-    | SLine !Int SimpleDoc -- ^ @Int@ = indentation level for the line
-    | SSGR [SGR] SimpleDoc
+    | SLine !Int SimpleDoc   -- ^ @Int@ = indentation level for the line
+    | SStyle Style SimpleDoc -- ^ Style and styled document
+    | SUnStyle SimpleDoc     -- ^ Discard one previous style information
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -774,9 +759,10 @@ char c = Char c
 -- contain any newline (@'\n'@) characters, since this is an invariant of the
 -- 'Doc' type. If you're not sure, use the safer 'text'.
 unsafeText :: Text -> Doc
-unsafeText  t
-  | T.null t = Empty
-  | otherwise = Text t
+unsafeText t = case T.compareLength t 1 of
+    LT -> Empty
+    EQ -> Char (T.head t)
+    GT -> Text t
 
 -- | The @line@ document advances to the next line and indents to the current
 -- nesting level.
@@ -882,167 +868,87 @@ flatten = \case
     Column f      -> Column (flatten . f)
     Columns f     -> Columns (flatten . f)
     Nesting f     -> Nesting (flatten . f)
-    Color l i c x -> Color l i c (flatten x)
-    Intensify i x -> Intensify i (flatten x)
-    Italicize b x -> Italicize b (flatten x)
-    Underline u x -> Underline u (flatten x)
+    Style s x     -> Style s (flatten x)
     other         -> other
 
 -----------------------------------------------------------
 -- Colors
 -----------------------------------------------------------
 
--- | Displays a document with the black forecolor
 black :: Doc -> Doc
--- | Displays a document with the red forecolor
+black = Style (SColor SForeground SVivid SBlack)
 red :: Doc -> Doc
--- | Displays a document with the green forecolor
+red = Style (SColor SForeground SVivid SRed)
 green :: Doc -> Doc
--- | Displays a document with the yellow forecolor
+green = Style (SColor SForeground SVivid SGreen)
 yellow :: Doc -> Doc
--- | Displays a document with the blue forecolor
+yellow = Style (SColor SForeground SVivid SYellow)
 blue :: Doc -> Doc
--- | Displays a document with the magenta forecolor
+blue = Style (SColor SForeground SVivid SBlue)
 magenta :: Doc -> Doc
--- | Displays a document with the cyan forecolor
+magenta = Style (SColor SForeground SVivid SMagenta)
 cyan :: Doc -> Doc
--- | Displays a document with the white forecolor
+cyan = Style (SColor SForeground SVivid SCyan)
 white :: Doc -> Doc
--- | Displays a document with the dull black forecolor
+white = Style (SColor SForeground SVivid SWhite)
 dullblack :: Doc -> Doc
--- | Displays a document with the dull red forecolor
+dullblack = Style (SColor SForeground SDull SBlack)
 dullred :: Doc -> Doc
--- | Displays a document with the dull green forecolor
+dullred = Style (SColor SForeground SDull SRed)
 dullgreen :: Doc -> Doc
--- | Displays a document with the dull yellow forecolor
+dullgreen = Style (SColor SForeground SDull SGreen)
 dullyellow :: Doc -> Doc
--- | Displays a document with the dull blue forecolor
+dullyellow = Style (SColor SForeground SDull SYellow)
 dullblue :: Doc -> Doc
--- | Displays a document with the dull magenta forecolor
+dullblue = Style (SColor SForeground SDull SBlue)
 dullmagenta :: Doc -> Doc
--- | Displays a document with the dull cyan forecolor
+dullmagenta = Style (SColor SForeground SDull SMagenta)
 dullcyan :: Doc -> Doc
--- | Displays a document with the dull white forecolor
+dullcyan = Style (SColor SForeground SDull SCyan)
 dullwhite :: Doc -> Doc
-(black, dullblack) = colorFunctions Black
-(red, dullred) = colorFunctions Red
-(green, dullgreen) = colorFunctions Green
-(yellow, dullyellow) = colorFunctions Yellow
-(blue, dullblue) = colorFunctions Blue
-(magenta, dullmagenta) = colorFunctions Magenta
-(cyan, dullcyan) = colorFunctions Cyan
-(white, dullwhite) = colorFunctions White
+dullwhite = Style (SColor SForeground SDull SWhite)
 
--- | Displays a document with a forecolor given in the first parameter
-color :: Color -> Doc -> Doc
--- | Displays a document with a dull forecolor given in the first parameter
-dullcolor :: Color -> Doc -> Doc
-color = Color Foreground Vivid
-dullcolor = Color Foreground Dull
-
-colorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
-colorFunctions what = (color what, dullcolor what)
-
--- | Displays a document with the black backcolor
 onblack :: Doc -> Doc
--- | Displays a document with the red backcolor
+onblack = Style (SColor SBackground SVivid SBlack)
 onred :: Doc -> Doc
--- | Displays a document with the green backcolor
+onred = Style (SColor SBackground SVivid SRed)
 ongreen :: Doc -> Doc
--- | Displays a document with the yellow backcolor
+ongreen = Style (SColor SBackground SVivid SGreen)
 onyellow :: Doc -> Doc
--- | Displays a document with the blue backcolor
+onyellow = Style (SColor SBackground SVivid SYellow)
 onblue :: Doc -> Doc
--- | Displays a document with the magenta backcolor
+onblue = Style (SColor SBackground SVivid SBlue)
 onmagenta :: Doc -> Doc
--- | Displays a document with the cyan backcolor
+onmagenta = Style (SColor SBackground SVivid SMagenta)
 oncyan :: Doc -> Doc
--- | Displays a document with the white backcolor
+oncyan = Style (SColor SBackground SVivid SCyan)
 onwhite :: Doc -> Doc
--- | Displays a document with the dull black backcolor
+onwhite = Style (SColor SBackground SVivid SWhite)
 ondullblack :: Doc -> Doc
--- | Displays a document with the dull red backcolor
+ondullblack = Style (SColor SBackground SDull SBlack)
 ondullred :: Doc -> Doc
--- | Displays a document with the dull green backcolor
+ondullred = Style (SColor SBackground SDull SRed)
 ondullgreen :: Doc -> Doc
--- | Displays a document with the dull yellow backcolor
+ondullgreen = Style (SColor SBackground SDull SGreen)
 ondullyellow :: Doc -> Doc
--- | Displays a document with the dull blue backcolor
+ondullyellow = Style (SColor SBackground SDull SYellow)
 ondullblue :: Doc -> Doc
--- | Displays a document with the dull magenta backcolor
+ondullblue = Style (SColor SBackground SDull SBlue)
 ondullmagenta :: Doc -> Doc
--- | Displays a document with the dull cyan backcolor
+ondullmagenta = Style (SColor SBackground SDull SMagenta)
 ondullcyan :: Doc -> Doc
--- | Displays a document with the dull white backcolor
+ondullcyan = Style (SColor SBackground SDull SCyan)
 ondullwhite :: Doc -> Doc
-(onblack, ondullblack) = oncolorFunctions Black
-(onred, ondullred) = oncolorFunctions Red
-(ongreen, ondullgreen) = oncolorFunctions Green
-(onyellow, ondullyellow) = oncolorFunctions Yellow
-(onblue, ondullblue) = oncolorFunctions Blue
-(onmagenta, ondullmagenta) = oncolorFunctions Magenta
-(oncyan, ondullcyan) = oncolorFunctions Cyan
-(onwhite, ondullwhite) = oncolorFunctions White
+ondullwhite = Style (SColor SBackground SDull SWhite)
 
--- | Displays a document with a backcolor given in the first parameter
-oncolor :: Color -> Doc -> Doc
--- | Displays a document with a dull backcolor given in the first parameter
-ondullcolor :: Color -> Doc -> Doc
-oncolor = Color Background Vivid
-ondullcolor = Color Background Dull
-
-oncolorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
-oncolorFunctions what = (oncolor what, ondullcolor what)
-
------------------------------------------------------------
--- Console Intensity
------------------------------------------------------------
-
--- | Displays a document in a heavier font weight
 bold :: Doc -> Doc
-bold = Intensify BoldIntensity
+bold = Style SBold
 
--- | Displays a document in the normal font weight
-debold :: Doc -> Doc
-debold = Intensify NormalIntensity
+italics :: Doc -> Doc
+italics = Style SItalicized
 
--- NB: I don't support FaintIntensity here because it is not widely supported by
--- terminals.
-
------------------------------------------------------------
--- Italicization
------------------------------------------------------------
-
-{-
-
-I'm in two minds about providing these functions, since italicization is so
-rarely implemented. It is especially bad because "italicization" may cause the
-meaning of colors to flip, which will look a bit weird, to say the least...
-
--- | Displays a document in italics. This is not widely supported, and it's use
--- is not recommended
-italicize :: Doc -> Doc
-italicize = Italicize True
-
--- | Displays a document with no italics
-deitalicize :: Doc -> Doc
-deitalicize = Italicize False
-
--}
-
------------------------------------------------------------
--- Underlining
------------------------------------------------------------
-
--- | Displays a document with underlining
 underline :: Doc -> Doc
-underline = Underline SingleUnderline
-
--- | Displays a document with no underlining
-deunderline :: Doc -> Doc
-deunderline = Underline NoUnderline
-
--- NB: I don't support DoubleUnderline here because it is not widely supported by terminals.
+underline = Style SUnderlined
 
 -----------------------------------------------------------
 -- Removing formatting
@@ -1051,23 +957,20 @@ deunderline = Underline NoUnderline
 -- | Removes all colorisation, emboldening and underlining from a document
 plain :: Doc -> Doc
 plain = \case
-    Fail            -> Fail
-    e@Empty         -> e
-    c@(Char _)      -> c
-    t@(Text _)      -> t
-    l@Line          -> l
-    FlatAlt x y     -> FlatAlt (plain x) (plain y)
-    Cat x y         -> Cat (plain x) (plain y)
-    Nest i x        -> Nest i (plain x)
-    Union x y       -> Union (plain x) (plain y)
-    Column f        -> Column (plain . f)
-    Columns f       -> Columns (plain . f)
-    Nesting f       -> Nesting (plain . f)
-    Color _ _ _ x   -> plain x
-    Intensify _ x   -> plain x
-    Italicize _ x   -> plain x
-    Underline _ x   -> plain x
-    RestoreFormat{} -> Empty
+    Fail        -> Fail
+    e@Empty     -> e
+    c@(Char _)  -> c
+    t@(Text _)  -> t
+    l@Line      -> l
+    FlatAlt x y -> FlatAlt (plain x) (plain y)
+    Cat x y     -> Cat (plain x) (plain y)
+    Nest i x    -> Nest i (plain x)
+    Union x y   -> Union (plain x) (plain y)
+    Column f    -> Column (plain . f)
+    Columns f   -> Columns (plain . f)
+    Nesting f   -> Nesting (plain . f)
+    Style _ x   -> plain x
+    UnStyle     -> mempty
 
 -----------------------------------------------------------
 -- Renderers
@@ -1136,7 +1039,7 @@ renderFits
     -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
-renderFits fits rfrac w x
+renderFits fits rfrac pageWidth doc
     -- I used to do a @SSGR [Reset]@ here, but if you do that it will result in
     -- any rendered @Doc@ containing at least some ANSI control codes. This may
     -- be undesirable if you want to render to non-ANSI devices by simply not
@@ -1145,68 +1048,89 @@ renderFits fits rfrac w x
     -- What I "really" want to do here is do an initial Reset iff there is some
     -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if
     -- someone complains!
-  = best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 x Nil)
+  = best 0 0 (Cons 0 doc Nil)
   where
-    -- r :: the ribbon width in characters
-    r = max 0 (min w (round (fromIntegral w * rfrac)))
+    ribbonWidth = max 0 (min pageWidth (round (fromIntegral pageWidth * rfrac)))
 
-    -- i: current column in the output
-    -- n: indentation of current line
-    -- k: current column
-    --   Therefore:
-    --     - k >= n
-    --     - k - n = count of inserted characters in current line
-    best _ _ _ _ _ _ _ Nil = SEmpty
-    best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
-      Fail          -> SFail
-      Empty         -> best_typical n k ds
-      Char c        -> let !k' = k+1          in SChar c (best_typical n k' ds)
-      Text t        -> let !k' = k+T.length t in SText t (best_typical n k' ds)
-      Line          -> SLine i (best_typical i i ds)
-      FlatAlt x _   -> best_typical n k (Cons i x ds)
-      Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
-      Nest j x      -> let !i' = i+j in best_typical n k (Cons i' x ds)
-      Union x y     -> nicest n k (best_typical n k (Cons i x ds))
-                                  (best_typical n k (Cons i y ds))
-      Column f      -> best_typical n k (Cons i (f k) ds)
-      Columns f     -> best_typical n k (Cons i (f (Just w)) ds)
-      Nesting f     -> best_typical n k (Cons i (f i) ds)
-      Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
-        where
-          mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
-          mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
-      Intensify t x -> SSGR [SetConsoleIntensity t] (best n k mb_fc mb_bc (Just t) mb_it mb_un (Cons i x ds_restore))
-      Italicize t x -> SSGR [SetItalicized t] (best n k mb_fc mb_bc mb_in (Just t) mb_un (Cons i x ds_restore))
-      Underline u x -> SSGR [SetUnderlining u] (best n k mb_fc mb_bc mb_in mb_it (Just u) (Cons i x ds_restore))
-      RestoreFormat mb_fc' mb_bc' mb_in' mb_it' mb_un' -> SSGR sgrs (best n k mb_fc' mb_bc' mb_in' mb_it' mb_un' ds)
-        where
-          -- We need to be able to restore the entire SGR state, hence we
-          -- carry around what we believe that state should be in all the
-          -- arguments to this function. Note that in some cases we could
-          -- avoid the Reset of the entire state, but not in general.
-          sgrs = Reset : catMaybes [
-              fmap (uncurry (SetColor Foreground)) mb_fc',
-              fmap (uncurry (SetColor Background)) mb_bc',
-              fmap SetConsoleIntensity mb_in',
-              fmap SetItalicized mb_it',
-              fmap SetUnderlining mb_un'
-            ]
+    -- * current column >= current line's indentation
+    -- * current column - current indentaion = number of chars inserted in line
+    best
+        :: Int -- ^ Current line's indentation
+        -> Int -- ^ Current column
+        -> Docs -- ^ Documents remaining to be handled (in order)
+        -> SimpleDoc
+    best _ _ Nil = SEmpty
+    best lineIndent currentColumn (Cons i d ds) = case d of
+        Fail -> SFail
+
+        -- If the next chunk to convert is empty, we simply continue.
+        Empty -> best lineIndent currentColumn ds
+
+        -- To render a character, insert it and increase the column count by
+        -- one.
+        Char c -> let !col' = currentColumn+1
+                  in SChar c (best lineIndent col' ds)
+
+        -- To render text, insert it and increase the column count by the length
+        -- of the inserted text. Note that it is an invariant of 'Text' to not
+        -- contain any newlines, so we need not worry about wrapping and
+        -- resetting the column count.
+        Text t -> let !col' = currentColumn+T.length t
+                  in SText t (best lineIndent col' ds)
+
+        -- Insert a line break, and reset the current column to the current
+        -- indentation level.
+        Line -> SLine i (best i i ds)
+
+        -- An unflattened pair of alternatives is simply rendered as the first
+        -- alternative.
+        FlatAlt x _ -> best lineIndent currentColumn (Cons i x ds)
+
+        -- The concatenation of two documents is expanded to render one after
+        -- the other (duh).
+        Cat x y -> best lineIndent currentColumn (Cons i x (Cons i y ds))
+
+        -- A nested document is rendered by increasing the indentation index,
+        -- and then rendering the contained document.
+        Nest j x -> let !i' = i+j
+                    in best lineIndent currentColumn (Cons i' x ds)
+
+        -- The union of two documents tries rendering the first, and if this
+        -- does not fit the layout constraints, falls back to the second.
+        Union x y -> nicest (best lineIndent currentColumn (Cons i x ds))
+                            (best lineIndent currentColumn (Cons i y ds))
+
+        -- A column-aware document is rendered by providing the contained
+        -- function with the current column.
+        Column f -> best lineIndent currentColumn (Cons i (f currentColumn) ds)
+
+        -- A page width aware document is rendered by providing the contained
+        -- function with the page width.
+        Columns f -> best lineIndent currentColumn (Cons i (f (Just pageWidth)) ds)
+
+        -- A nesting-aware document is rendered by providing the contained
+        -- function with the current indentation level.
+        Nesting f -> best lineIndent currentColumn (Cons i (f i) ds)
+
+        -- A styled document is rendered by rendering the contained document
+        -- with style information added, and appending an 'UnStyle' to revert it
+        -- once its scope is left.
+        Style s x -> SStyle s (best lineIndent currentColumn (Cons i x (Cons i UnStyle ds)))
+
+        UnStyle -> SUnStyle (best lineIndent currentColumn ds)
       where
-        best_typical n' k' ds' = best n' k' mb_fc mb_bc mb_in mb_it mb_un ds'
-        ds_restore = Cons i (RestoreFormat mb_fc mb_bc mb_in mb_it mb_un) ds
-
         -- Invariant: first lines of A are longer than the first lines of B.
         nicest
-            :: Int -- ^ indentation of current line
-            -> Int -- ^ current column
-            -> SimpleDoc -- ^ Choice A
+            :: SimpleDoc -- ^ Choice A
             -> SimpleDoc -- ^ Choice B
             -> SimpleDoc
-        nicest n k x y
-          | fits w (min n k) width x = x
+        nicest x y
+          | fits pageWidth (min lineIndent currentColumn) maxAllowableColumn x = x
           | otherwise = y
           where
-            width = min (w - k) (r - k + n)
+            columnsUntilLineFiled = pageWidth - currentColumn
+            columnsUntilRibbonFilled = ribbonWidth - currentColumn
+            maxAllowableColumn = min columnsUntilLineFiled (columnsUntilRibbonFilled + lineIndent)
 
 -- @fits1@ does 1 line lookahead.
 fits1
@@ -1215,13 +1139,14 @@ fits1
     -> Int -- ^ Width in which to fit the first line
     -> SimpleDoc
     -> Bool
-fits1 _ _ w _ | w < 0   = False
-fits1 _ _ _ SFail       = False
-fits1 _ _ _ SEmpty      = True
-fits1 p m w (SChar _ x) = fits1 p m (w - 1) x
-fits1 p m w (SText t x) = fits1 p m (w - T.length t) x
-fits1 _ _ _ SLine{}     = True
-fits1 p m w (SSGR _ x)  = fits1 p m w x
+fits1 _ _ w _ | w < 0    = False
+fits1 _ _ _ SFail        = False
+fits1 _ _ _ SEmpty       = True
+fits1 p m w (SChar _ x)  = fits1 p m (w - 1) x
+fits1 p m w (SText t x)  = fits1 p m (w - T.length t) x
+fits1 _ _ _ SLine{}      = True
+fits1 p m w (SStyle _ x) = fits1 p m w x
+fits1 p m w (SUnStyle x) = fits1 p m w x
 
 -- @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
@@ -1237,15 +1162,16 @@ fitsR
     -> SimpleDoc
     -> Bool
 fitsR _ _ w _
-  | w < 0               = False
-fitsR _ _ _ SFail       = False
-fitsR _ _ _ SEmpty      = True
-fitsR p m w (SChar _ x) = fitsR p m (w - 1) x
-fitsR p m w (SText t x) = fitsR p m (w - T.length t) x
+  | w < 0                = False
+fitsR _ _ _ SFail        = False
+fitsR _ _ _ SEmpty       = True
+fitsR p m w (SChar _ x)  = fitsR p m (w - 1) x
+fitsR p m w (SText t x)  = fitsR p m (w - T.length t) x
 fitsR p m _ (SLine i x)
-  | m < i               = fitsR p m (p - i) x
-  | otherwise           = True
-fitsR p m w (SSGR _ x)  = fitsR p m w x
+  | m < i                = fitsR p m (p - i) x
+  | otherwise            = True
+fitsR p m w (SStyle _ x) = fitsR p m w x
+fitsR p m w (SUnStyle x) = fitsR p m w x
 
 -----------------------------------------------------------
 -- renderCompact: renders documents without indentation
@@ -1259,27 +1185,26 @@ fitsR p m w (SSGR _ x)  = fitsR p m w x
 --
 -- This rendering function does not add any colorisation information.
 renderCompact :: Doc -> SimpleDoc
-renderCompact x = scan 0 [x]
+renderCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
     scan k (d:ds) = case d of
-        Fail            -> SFail
-        Empty           -> scan k ds
-        Char c          -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-        Text t          -> let k' = k+T.length t in seq k' (SText t (scan k' ds))
-        FlatAlt x _     -> scan k (x:ds)
-        Line            -> SLine 0 (scan 0 ds)
-        Cat x y         -> scan k (x:y:ds)
-        Nest _ x        -> scan k (x:ds)
-        Union _ y       -> scan k (y:ds)
-        Column f        -> scan k (f k:ds)
-        Columns f       -> scan k (f Nothing:ds)
-        Nesting f       -> scan k (f 0:ds)
-        Color _ _ _ x   -> scan k (x:ds)
-        Intensify _ x   -> scan k (x:ds)
-        Italicize _ x   -> scan k (x:ds)
-        Underline _ x   -> scan k (x:ds)
-        RestoreFormat{} -> scan k ds
+        Fail        -> SFail
+        Empty       -> scan k ds
+        Char c      -> let !k' = k+1
+                       in SChar c (scan k' ds)
+        Text t      -> let !k' = k+T.length t
+                       in SText t (scan k' ds)
+        FlatAlt x _ -> scan k (x:ds)
+        Line        -> SLine 0 (scan 0 ds)
+        Cat x y     -> scan k (x:y:ds)
+        Nest _ x    -> scan k (x:ds)
+        Union _ y   -> scan k (y:ds)
+        Column f    -> scan k (f k:ds)
+        Columns f   -> scan k (f Nothing:ds)
+        Nesting f   -> scan k (f 0:ds)
+        Style _ x   -> scan k (x:ds)
+        UnStyle     -> scan k ds
 
 
 
@@ -1288,9 +1213,10 @@ instance Show Doc where
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty    -> id
-    SChar c x -> showChar c . displayString x
-    SText t x -> showString (T.unpack t) . displayString x
-    SLine i x -> showString ('\n':replicate i ' ') . displayString x
-    SSGR s x  -> showString (setSGRCode s) . displayString x
+    SFail      -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty     -> id
+    SChar c x  -> showChar c . displayString x
+    SText t x  -> showString (T.unpack t) . displayString x
+    SLine i x  -> showString ('\n':replicate i ' ') . displayString x
+    SStyle _ x -> displayString x
+    SUnStyle x -> displayString x

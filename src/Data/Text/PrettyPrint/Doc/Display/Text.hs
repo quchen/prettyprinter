@@ -21,13 +21,12 @@ import Data.Text.PrettyPrint.Doc
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
 
-
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering
 -- function and transforms it to lazy text.
 --
--- ANSI color information will be discarded by this function unless you are
--- running on a Unix-like operating system. This is due to a technical
--- limitation in Windows ANSI support.
+-- All styling information is discarded. If this is undesirable, maybe the
+-- functions in "Data.Text.PrettyPrint.Doc.Display.Terminal" are closer to what
+-- you are looking for.
 displayLazyText :: SimpleDoc -> LT.Text
 displayLazyText = LTB.toLazyText . build
   where
@@ -37,7 +36,7 @@ displayLazyText = LTB.toLazyText . build
         SChar c x -> LTB.singleton c <> build x
         SText t x -> LTB.fromText t <> build x
         SLine i x -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
-        SSGR _ x  -> "TODO text style stuff" <> build x
+        SStyle s x -> build x
 
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
