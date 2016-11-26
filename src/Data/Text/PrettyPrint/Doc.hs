@@ -31,6 +31,7 @@
 --     @\<$>@
 --   - Hard to read operators, such as @\<//>@
 --   - Some undocumented definitions, not many examples
+--   - Based on 'String' instead of 'Text'
 
 module Data.Text.PrettyPrint.Doc (
     -- * The algebra of pretty-printing
@@ -713,8 +714,9 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- document @doc@ with a page width of 80 characters and a ribbon width of 32
 -- characters.
 --
--- >>> show (vsep ["hello", "world"])
--- "\"hello\\nworld\""
+-- >>> putStrLn (show (vsep ["hello", "world"]))
+-- hello
+-- world
 data Doc =
       Fail
     | Empty -- ^ The empty document; unit of 'Cat' (observationally)
@@ -1289,9 +1291,17 @@ renderCompact x = scan 0 [x]
 
 
 
------------------------------------------------------------
--- Displayers:  displayS and displayIO
------------------------------------------------------------
+instance Show Doc where
+    showsPrec _ doc = displayString (renderPretty 0.4 80 doc)
+
+displayString :: SimpleDoc -> ShowS
+displayString = \case
+    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty    -> id
+    SChar c x -> showChar c . displayString x
+    SText t x -> showString (T.unpack t) . displayString x
+    SLine i x -> showString ('\n':replicate i ' ') . displayString x
+    SSGR s x  -> showString (setSGRCode s) . displayString x
 
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering
 -- function and transforms it to lazy text.
@@ -1334,9 +1344,6 @@ displayIO h = display
         SText t x -> T.hPutStr h t *> display x
         SLine i x -> hPutChar h '\n' *> T.hPutStr h (T.replicate i " ") *> display x
         SSGR s x  -> hSetSGR h s *> display x
-
-instance Show Doc where
-    showsPrec _ doc = shows (displayLazyText (renderPretty 0.4 80 doc))
 
 -- | @putDoc doc@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters (see
