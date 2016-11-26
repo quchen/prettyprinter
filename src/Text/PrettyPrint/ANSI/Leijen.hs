@@ -77,7 +77,7 @@ module Text.PrettyPrint.ANSI.Leijen (
 
    -- * Basic functions
    char, text, (<>), nest, line, linebreak, group, softline, softbreak,
-   hardline, flatAlt,
+   hardline,
 
    -- * Alignment functions
    --
@@ -805,19 +805,18 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- "\"hello\\nworld\""
 data Doc =
       Fail
-    | Empty
-    | Char Char             -- invariant: char is not '\n'
-    | Text Text             -- invariant: text doesn't contain '\n'
-    | Line
-    | FlatAlt Doc Doc       -- Render the first doc, but when
-                            -- flattened, render the second.
-    | Cat Doc Doc
-    | Nest !Int Doc
-    | Union Doc Doc         -- invariant: first lines of first doc longer than the first lines of the second doc
+    | Empty -- ^ The empty document; unit of 'Cat' (observationally)
+    | Char Char -- ^ invariant: char is not '\n'
+    | Text Text -- ^ invariant: text doesn't contain '\n'
+    | Line -- ^ Line break
+    | FlatAlt Doc Doc -- ^ Render the first doc, but when flattened (via group), render the second.
+    | Cat Doc Doc -- ^ Concatenation of two documents
+    | Nest !Int Doc -- ^ Document indented by a number of columns
+    | Union Doc Doc -- ^ invariant: first lines of first doc longer than the first lines of the second doc
     | Column  (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | Color ConsoleLayer ColorIntensity -- Introduces coloring /around/ the embedded document
+    | Color ConsoleLayer ColorIntensity -- ^ Introduces coloring /around/ the embedded document
             Color Doc
     | Intensify ConsoleIntensity Doc
     | Italicize Bool Doc
@@ -901,8 +900,7 @@ line = FlatAlt Line space
 linebreak :: Doc
 linebreak = FlatAlt Line mempty
 
--- | A linebreak that will never be flattened; it is guaranteed to render as a
--- newline, even if 'group'ed.
+-- | A 'hardline' is always rendered as a line break, even when 'group'ed.
 --
 -- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
 -- >>> putDoc doc
@@ -939,20 +937,6 @@ columns f = Columns f
 -- See 'vcat' and 'line' for examples.
 group :: Doc -> Doc
 group x = Union (flatten x) x
-
--- | A document that is normally rendered as the first argument, but when
--- 'group'ed, is rendered as the second document.
---
--- >>> let doc = flatAlt "lorem ipsum dolor sit amet" "hello world"
--- >>> putDoc doc
--- lorem ipsum dolor sit amet
--- >>> putDoc (group doc)
--- hello world
-flatAlt
-    :: Doc -- ^ Standard rendering
-    -> Doc -- ^ Fallback when 'group'ed
-    -> Doc
-flatAlt = FlatAlt
 
 flatten :: Doc -> Doc
 flatten = \case
