@@ -69,89 +69,90 @@
 --
 -----------------------------------------------------------
 module Text.PrettyPrint.ANSI.Leijen (
-   -- * The algebra of pretty-printing
-   -- $DocumentAlgebra
+    -- * The algebra of pretty-printing
+    -- $DocumentAlgebra
 
-   -- * Documents
-   Doc,
+    -- * Documents
+    Doc,
 
-   -- * Basic functions
-   char, text, (<>), nest, line, line', group, softline, softline',
-   hardline,
+    -- * Basic functions
+    char, text, (<>), nest, line, line', group, softline, softline',
+    hardline,
 
-   -- * Alignment functions
-   --
-   -- | The functions in this section cannot be described by Wadler's original
-   -- functions. They align their output relative to the current output
-   -- position — in contrast to @nest@ which always aligns to the current
-   -- nesting level. This deprives these functions from being \`optimal\'. In
-   -- practice however they prove to be very useful. The functions in this
-   -- section should be used with care, since they are more expensive than the
-   -- other functions. For example, @align@ shouldn't be used to pretty print
-   -- all top-level declarations of a language, but using @hang@ for let
-   -- expressions is fine.
-   align, hang, indent, encloseSep, list, tupled,
+    -- * Alignment functions
+    --
+    -- | The functions in this section cannot be described by Wadler's original
+    -- functions. They align their output relative to the current output
+    -- position — in contrast to @nest@ which always aligns to the current
+    -- nesting level. This deprives these functions from being \`optimal\'. In
+    -- practice however they prove to be very useful. The functions in this
+    -- section should be used with care, since they are more expensive than the
+    -- other functions. For example, @align@ shouldn't be used to pretty print
+    -- all top-level declarations of a language, but using @hang@ for let
+    -- expressions is fine.
+    align, hang, indent, encloseSep, list, tupled,
 
-   -- * Operators
-   (<+>),
+    -- * Operators
+    (<+>),
 
-   -- * List functions
-   hsep, vsep, fillSep, sep, vcat, fillCat, cat, punctuate,
+    -- * List functions
+    hsep, vsep, fillSep, sep, vcat, fillCat, cat, punctuate,
 
-   -- * Filler functions
-   fill, fillBreak,
+    -- * Reactive/conditional rendering
+    column, columns, nesting, width,
 
-   -- * Bracketing functions
-   enclose, squotes, dquotes, parens, angles, braces, brackets,
+    -- * Filler functions
+    fill, fillBreak,
 
-   -- * Named character functions
-   lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
-   dquote, semi, colon, comma, space, dot, backslash, equals,
+    -- * Bracketing functions
+    enclose, squotes, dquotes, parens, angles, braces, brackets,
 
-   -- * ANSI formatting functions
-   --
-   -- | This terminal formatting functionality is, as far as possible, portable
-   -- across platforms with their varying terminals. However, note that to
-   -- display ANSI colors and formatting will only be displayed on Windows
-   -- consoles if the 'Doc' value is output using the 'putDoc' function or one
-   -- of its friends.  Rendering the 'Doc' to a 'String' and then outputing
-   -- /that/ will only work on Unix-style operating systems.
+    -- * Named character functions
+    lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
+    dquote, semi, colon, comma, space, dot, backslash, equals,
 
-   -- ** Forecolor functions
-   black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
-   dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
+    -- * ANSI formatting functions
+    --
+    -- | This terminal formatting functionality is, as far as possible, portable
+    -- across platforms with their varying terminals. However, note that to
+    -- display ANSI colors and formatting will only be displayed on Windows
+    -- consoles if the 'Doc' value is output using the 'putDoc' function or one
+    -- of its friends.  Rendering the 'Doc' to a 'String' and then outputing
+    -- /that/ will only work on Unix-style operating systems.
 
-   -- ** Backcolor functions
-   onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-   ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
-   ondullcyan, ondullwhite,
+    -- ** Forecolor functions
+    black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
+    dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
 
-   -- ** Emboldening functions
-   bold, debold,
+    -- ** Backcolor functions
+    onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
+    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta,
+    ondullcyan, ondullwhite,
 
-   -- ** Underlining functions
-   underline, deunderline,
+    -- ** Emboldening functions
+    bold, debold,
 
-   -- ** Formatting elimination functions
-   plain,
+    -- ** Underlining functions
+    underline, deunderline,
 
-   -- * Pretty class
-   Pretty(..),
+    -- ** Formatting elimination functions
+    plain,
 
-   -- * Rendering and displaying documents
+    -- * Pretty class
+    Pretty(..),
 
-   -- ** Simple (i.e., rendered) documents
-   SimpleDoc(..),
-   renderPretty, renderCompact, renderSmart,
-   displayT,
-   displayIO,
+    -- * Rendering and displaying documents
 
-   -- ** Simultaneous rendering and displaying of documents
-   putDoc, hPutDoc, putDocW, hPutDocW,
+    -- ** Simple (i.e., rendered) documents
+    SimpleDoc(..),
+    renderPretty, renderCompact, renderSmart,
+    displayT,
+    displayIO,
 
-   -- * Undocumented
-   column, columns, nesting, width
-   ) where
+    -- ** Simultaneous rendering and displaying of documents
+    putDoc, hPutDoc, putDocW, hPutDocW,
+
+) where
 
 import System.IO (Handle, hPutChar, stdout)
 
@@ -889,8 +890,8 @@ char '\n' = line
 char c = Char c
 
 -- | @(unsafeText s)@ contains the literal string @s@. The string must not
--- contain any newline (@'\n'@) characters. If you're not sure, use the safer
--- (but less performant) 'text'.
+-- contain any newline (@'\n'@) characters, since this is an invariant of the
+-- 'Doc' type. If you're not sure, use the safer 'text'.
 unsafeText :: Text -> Doc
 unsafeText  t
   | T.null t = Empty
