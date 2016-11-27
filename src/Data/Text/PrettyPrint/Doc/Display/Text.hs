@@ -21,6 +21,8 @@ import Data.Text.PrettyPrint.Doc
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
 
+
+
 -- | @('displayLazyText' sdoc)@ takes the output @sdoc@ from a rendering
 -- function and transforms it to lazy text.
 --

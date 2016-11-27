@@ -21,8 +21,9 @@ source-repository head
 
 library
     exposed-modules: Data.Text.PrettyPrint.Doc
-                   , Data.Text.PrettyPrint.Doc.Display.Text
+                   , Data.Text.PrettyPrint.Doc.Display.Html
                    , Data.Text.PrettyPrint.Doc.Display.Terminal
+                   , Data.Text.PrettyPrint.Doc.Display.Text
     ghc-options: -Wall -Wcompat
     hs-source-dirs: src
 
