@@ -704,9 +704,7 @@ data Doc =
     | Column  (Int -> Doc)
     | Columns (Maybe Int -> Doc)
     | Nesting (Int -> Doc)
-    | Style Style Doc -- ^ Add style information
-    | UnStyle -- ^ Remove one 'Style' information (only used during rendering).
-              --   Invariant: each of these must be paired with an 'UnStyle'.
+    | Style Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
 
 data Style =
       SItalicized
@@ -733,10 +731,15 @@ data SimpleDoc =
     | SEmpty
     | SChar Char SimpleDoc
     | SText Text SimpleDoc
-    | SLine !Int SimpleDoc   -- ^ @Int@ = indentation level for the line
-    | SStyle Style SimpleDoc -- ^ Style and styled document. Invariant: each of
-                             --   these must be paired with a 'SUnStyle'.
-    | SUnStyle SimpleDoc     -- ^ Discard one previous style information
+
+    -- | @Int@ = indentation level for the line
+    | SLine !Int SimpleDoc
+
+    -- | Style and styled document, followed by the (unstyled) rest.
+    --
+    -- Note that the fitting functions assume that styling does not alter the
+    -- size of the text, like for example rendering italics as "*lorem*" does.
+    | SStyle Style SimpleDoc SimpleDoc
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -972,7 +975,6 @@ plain = \case
     Columns f   -> Columns (plain . f)
     Nesting f   -> Nesting (plain . f)
     Style _ x   -> plain x
-    UnStyle     -> mempty
 
 -----------------------------------------------------------
 -- Renderers
@@ -1041,16 +1043,7 @@ renderFits
     -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
-renderFits fits rfrac pageWidth doc
-    -- I used to do a @SSGR [Reset]@ here, but if you do that it will result in
-    -- any rendered @Doc@ containing at least some ANSI control codes. This may
-    -- be undesirable if you want to render to non-ANSI devices by simply not
-    -- making use of the ANSI color functions I provide.
-    --
-    -- What I "really" want to do here is do an initial Reset iff there is some
-    -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if
-    -- someone complains!
-  = best 0 0 (Cons 0 doc Nil)
+renderFits fits rfrac pageWidth doc = best 0 0 (Cons 0 doc Nil)
   where
     ribbonWidth = max 0 (min pageWidth (round (fromIntegral pageWidth * rfrac)))
 
@@ -1099,8 +1092,10 @@ renderFits fits rfrac pageWidth doc
 
         -- The union of two documents tries rendering the first, and if this
         -- does not fit the layout constraints, falls back to the second.
-        Union x y -> nicest (best lineIndent currentColumn (Cons i x ds))
-                            (best lineIndent currentColumn (Cons i y ds))
+        Union x y -> selectNicer lineIndent
+                                 currentColumn
+                                 (best lineIndent currentColumn (Cons i x ds))
+                                 (best lineIndent currentColumn (Cons i y ds))
 
         -- A column-aware document is rendered by providing the contained
         -- function with the current column.
@@ -1117,40 +1112,52 @@ renderFits fits rfrac pageWidth doc
         -- A styled document is rendered by rendering the contained document
         -- with style information added, and appending an 'UnStyle' to revert it
         -- once its scope is left.
-        Style s x -> SStyle s (best lineIndent currentColumn (Cons i x (Cons i UnStyle ds)))
+        Style s x -> SStyle s (best lineIndent currentColumn (Cons i x Nil))
+                              (best lineIndent currentColumn ds)
 
-        UnStyle -> SUnStyle (best lineIndent currentColumn ds)
+    selectNicer
+        :: Int       -- ^ Indentation of current line
+        -> Int       -- ^ Current column
+        -> SimpleDoc -- ^ Choice A. Invariant: first lines must be longer than B's.
+        -> SimpleDoc -- ^ Choice B.
+        -> SimpleDoc -- ^ The nicer one among A and B, depending on which one
+                     --   fits better.
+    selectNicer lineIndent currentColumn x y
+      | fits pageWidth minNestingLevel availableWidth x = x
+      | otherwise = y
       where
-        -- Invariant: first lines of A are longer than the first lines of B.
-        nicest
-            :: SimpleDoc -- ^ Choice A
-            -> SimpleDoc -- ^ Choice B
-            -> SimpleDoc
-        nicest x y
-          | fits pageWidth (min lineIndent currentColumn) maxAllowableColumn x = x
-          | otherwise = y
-          where
-            columnsUntilLineFiled = pageWidth - currentColumn
-            columnsUntilRibbonFilled = ribbonWidth - currentColumn
-            maxAllowableColumn = min columnsUntilLineFiled (columnsUntilRibbonFilled + lineIndent)
+        minNestingLevel = min lineIndent currentColumn
+        availableWidth
+          = let columnsLeftInLine   = pageWidth - currentColumn
+                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+            in min columnsLeftInLine columnsLeftInRibbon
 
--- @fits1@ does 1 line lookahead.
+-- | @fits1@ does 1 line lookahead.
 fits1
     :: Int -- ^ Page width
-    -> Int -- ^ Minimum nesting level to fit in
+    -> int -- ^ Minimum nesting level to fit in. Unused by this algorithm.
     -> Int -- ^ Width in which to fit the first line
     -> SimpleDoc
     -> Bool
-fits1 _ _ w _ | w < 0    = False
-fits1 _ _ _ SFail        = False
-fits1 _ _ _ SEmpty       = True
-fits1 p m w (SChar _ x)  = fits1 p m (w - 1) x
-fits1 p m w (SText t x)  = fits1 p m (w - T.length t) x
-fits1 _ _ _ SLine{}      = True
-fits1 p m w (SStyle _ x) = fits1 p m w x
-fits1 p m w (SUnStyle x) = fits1 p m w x
+fits1 _ _ w _ | w < 0      = False
+fits1 _ _ _ SFail          = False
+fits1 _ _ _ SEmpty         = True
+fits1 p m w (SChar _ x)    = fits1 p m (w - 1) x
+fits1 p m w (SText t x)    = fits1 p m (w - T.length t) x
+fits1 _ _ _ SLine{}        = True
+fits1 p m w (SStyle _ x y) = fits1 p m w (eraseStyles x y)
 
--- @fitsR@ has a little more lookahead: assuming that nesting roughly
+-- | Erase all style information for use in the fitting functions.
+eraseStyles :: SimpleDoc -> SimpleDoc -> SimpleDoc
+eraseStyles x y = case x of
+    SFail          -> SFail
+    SEmpty         -> SEmpty
+    SChar c k      -> SChar c (eraseStyles k y)
+    SText t k      -> SText t (eraseStyles k y)
+    SLine i k      -> SLine i (eraseStyles k y)
+    SStyle _ k1 k2 -> eraseStyles k1 k2
+
+-- | @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
 -- fits, but the entire syntactic structure being formatted at this level of
 -- indentation fits. If we were to remove the second case for @SLine@, we would
@@ -1164,16 +1171,16 @@ fitsR
     -> SimpleDoc
     -> Bool
 fitsR _ _ w _
-  | w < 0                = False
-fitsR _ _ _ SFail        = False
-fitsR _ _ _ SEmpty       = True
-fitsR p m w (SChar _ x)  = fitsR p m (w - 1) x
-fitsR p m w (SText t x)  = fitsR p m (w - T.length t) x
+  | w < 0                  = False
+fitsR _ _ _ SFail          = False
+fitsR _ _ _ SEmpty         = True
+fitsR p m w (SChar _ x)    = fitsR p m (w - 1) x
+fitsR p m w (SText t x)    = fitsR p m (w - T.length t) x
 fitsR p m _ (SLine i x)
-  | m < i                = fitsR p m (p - i) x
-  | otherwise            = True
-fitsR p m w (SStyle _ x) = fitsR p m w x
-fitsR p m w (SUnStyle x) = fitsR p m w x
+  | m < i                  = fitsR p m (p - i) x
+  | otherwise              = True
+fitsR p m w (SStyle _ x y) = fitsR p m w (eraseStyles x y)
+-- fitsR p m w (SUnStyle x) = fitsR p m w x
 
 -----------------------------------------------------------
 -- renderCompact: renders documents without indentation
@@ -1206,7 +1213,6 @@ renderCompact doc = scan 0 [doc]
         Columns f   -> scan k (f Nothing:ds)
         Nesting f   -> scan k (f 0:ds)
         Style _ x   -> scan k (x:ds)
-        UnStyle     -> scan k ds
 
 
 
@@ -1215,10 +1221,9 @@ instance Show Doc where
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail      -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty     -> id
-    SChar c x  -> showChar c . displayString x
-    SText t x  -> showString (T.unpack t) . displayString x
-    SLine i x  -> showString ('\n':replicate i ' ') . displayString x
-    SStyle _ x -> displayString x
-    SUnStyle x -> displayString x
+    SFail        -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty       -> id
+    SChar c x    -> showChar c . displayString x
+    SText t x    -> showString (T.unpack t) . displayString x
+    SLine i x    -> showString ('\n':replicate i ' ') . displayString x
+    SStyle _ y x -> displayString x <> displayString y

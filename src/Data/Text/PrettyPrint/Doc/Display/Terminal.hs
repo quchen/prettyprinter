@@ -41,13 +41,12 @@ displayLazyText :: SimpleDoc -> LT.Text
 displayLazyText = LTB.toLazyText . build
   where
     build = \case
-        SFail      -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-        SEmpty     -> mempty
-        SChar c x  -> LTB.singleton c <> build x
-        SText t x  -> LTB.fromText t <> build x
-        SLine i x  -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
-        SStyle _ x -> {- LTB.fromString (setSGRCode s) <> -} build x
-        SUnStyle x -> build x
+        SFail        -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty       -> mempty
+        SChar c x    -> LTB.singleton c <> build x
+        SText t x    -> LTB.fromText t <> build x
+        SLine i x    -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
+        SStyle _ x y -> {- LTB.fromString (setSGRCode s) <> -} build x <> build y
 
 -- -- renderWithColourWIP :: SimpleDoc -> STVar [SGR] -> ST s _
 -- renderWithColourWIP = \case
@@ -89,13 +88,12 @@ displayIO :: Handle -> SimpleDoc -> IO ()
 displayIO h = display
   where
     display = \case
-        SFail      -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-        SEmpty     -> pure ()
-        SChar c x  -> hPutChar h c *> display x
-        SText t x  -> T.hPutStr h t *> display x
-        SLine i x  -> hPutChar h '\n' *> T.hPutStr h (T.replicate i " ") *> display x
-        SStyle _ x -> {- hSetSGR h s *> -} display x
-        SUnStyle x -> display x
+        SFail        -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty       -> pure ()
+        SChar c x    -> hPutChar h c *> display x
+        SText t x    -> T.hPutStr h t *> display x
+        SLine i x    -> hPutChar h '\n' *> T.hPutStr h (T.replicate i " ") *> display x
+        SStyle _ x y -> {- hSetSGR h s *> -} display x <> display y
 
 -- | @putDoc doc@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters (see
