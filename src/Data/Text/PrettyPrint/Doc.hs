@@ -2,7 +2,6 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
------------------------------------------------------------------------------
 -- |
 -- Module      :  Text.PrettyPrint.ANSI.Leijen
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
@@ -535,10 +534,6 @@ text t = case T.uncons t of
 
 
 
------------------------------------------------------------
--- overloading "pretty"
------------------------------------------------------------
-
 -- | The member @'prettyList'@ is only used to define the @instance
 -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
 -- function is used.
@@ -666,9 +661,7 @@ fillBreak f x = width x (\w ->
         then nest f line'
         else spaces (f - w))
 
------------------------------------------------------------
--- semi primitive: Alignment and indentation
------------------------------------------------------------
+
 
 -- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
 -- current cursor position.
@@ -722,10 +715,6 @@ align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 
-
------------------------------------------------------------
--- Primitives
------------------------------------------------------------
 
 -- | The abstract data type @Doc@ represents pretty documents.
 --
@@ -941,10 +930,6 @@ flatten = \case
     Style s x   -> Style s (flatten x)
     other       -> other
 
------------------------------------------------------------
--- Colors
------------------------------------------------------------
-
 black :: Doc -> Doc
 black = Style (SColor SForeground SVivid SBlack)
 red :: Doc -> Doc
@@ -1020,10 +1005,6 @@ italics = Style SItalicized
 underline :: Doc -> Doc
 underline = Style SUnderlined
 
------------------------------------------------------------
--- Removing formatting
------------------------------------------------------------
-
 -- | Removes all colorisation, emboldening and underlining from a document
 plain :: Doc -> Doc
 plain = \case
@@ -1040,14 +1021,6 @@ plain = \case
     PageWidth f -> PageWidth (plain . f)
     Nesting f   -> Nesting (plain . f)
     Style _ x   -> plain x
-
------------------------------------------------------------
--- Renderers
------------------------------------------------------------
-
------------------------------------------------------------
--- renderPretty: the default pretty printing algorithm
------------------------------------------------------------
 
 -- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
 data Docs = Nil
@@ -1246,11 +1219,6 @@ fitsR p m _ (SLine i x)
   | otherwise              = True
 fitsR p m w (SStyle _ x y) = fitsR p m w (eraseStyles x y)
 -- fitsR p m w (SUnStyle x) = fitsR p m w x
-
------------------------------------------------------------
--- renderCompact: renders documents without indentation
---  fast and fewer characters output, good for machines
------------------------------------------------------------
 
 -- | @(renderCompact x)@ renders document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this renderer is very fast. The
