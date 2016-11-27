@@ -710,7 +710,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- world
 data Doc =
       Fail -- ^ Occurs when flattening a line. It is a bug if this is possible.
-    | Empty -- ^ The empty document; unit of 'Cat' (observationally)
+    | Empty -- ^ The empty document; unit of Cat (observationally)
     | Char Char -- ^ invariant: char is not '\n'
     | Text Text -- ^ invariant: text doesn't contain '\n'
     | Line -- ^ Line break
@@ -721,7 +721,8 @@ data Doc =
     | Column (Int -> Doc) -- ^ React on the current cursor position, see 'column'
     | PageWidth (Maybe Int -> Doc) -- ^ React on the document's width, see 'pageWidth'
     | Nesting (Int -> Doc) -- ^ React on the current nesting level, see 'nesting'
-    | Style Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
+    | StylePush Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
+    | StylePop -- ^ Remove one previously pushed style. Used only during rendering.
 
 data Style =
       SItalicized
@@ -752,11 +753,14 @@ data SimpleDoc =
     -- | @Int@ = indentation level for the line
     | SLine !Int SimpleDoc
 
-    -- | Style and styled document, followed by the (unstyled) rest.
-    --
-    -- Note that the fitting functions assume that styling does not alter the
-    -- size of the text, like for example rendering italics as /*lorem*/ does.
-    | SStyle Style SimpleDoc SimpleDoc
+    -- | Apply a style to the remaining document. The display function should do
+    -- this until it hits a 'SStylePop' entry.
+    | SStylePush Style SimpleDoc
+
+    -- | Undo one previously set 'SStylePush'.
+    | SStylePop SimpleDoc
+
+
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -793,7 +797,7 @@ char c = Char c
 text :: Text -> Doc
 text = vsep . map unsafeText . T.splitOn "\n"
 
--- | @('unsafeText' s)@ contains the literal string @s@.
+-- | @(unsafeText s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
 -- invariant of the 'Text' constructor. If you're not sure, use the safer
@@ -916,95 +920,96 @@ group x = Union (flatten x) x
 
 flatten :: Doc -> Doc
 flatten = \case
-    FlatAlt _ y -> y
-    Cat x y     -> Cat (flatten x) (flatten y)
-    Nest i x    -> Nest i (flatten x)
-    Line        -> Fail
-    Union x _   -> flatten x
-    Column f    -> Column (flatten . f)
-    PageWidth f -> PageWidth (flatten . f)
-    Nesting f   -> Nesting (flatten . f)
-    Style s x   -> Style s (flatten x)
+    FlatAlt _ y   -> y
+    Cat x y       -> Cat (flatten x) (flatten y)
+    Nest i x      -> Nest i (flatten x)
+    Line          -> Fail
+    Union x _     -> flatten x
+    Column f      -> Column (flatten . f)
+    PageWidth f   -> PageWidth (flatten . f)
+    Nesting f     -> Nesting (flatten . f)
+    StylePush s x -> StylePush s (flatten x)
 
-    x@Fail   -> x
-    x@Empty  -> x
-    x@Char{} -> x
-    x@Text{} -> x
+    x@Fail       -> x
+    x@Empty      -> x
+    x@Char{}     -> x
+    x@Text{}     -> x
+    x@StylePop{} -> x
 
 black :: Doc -> Doc
-black = Style (SColor SForeground SVivid SBlack)
+black = StylePush (SColor SForeground SVivid SBlack)
 red :: Doc -> Doc
-red = Style (SColor SForeground SVivid SRed)
+red = StylePush (SColor SForeground SVivid SRed)
 green :: Doc -> Doc
-green = Style (SColor SForeground SVivid SGreen)
+green = StylePush (SColor SForeground SVivid SGreen)
 yellow :: Doc -> Doc
-yellow = Style (SColor SForeground SVivid SYellow)
+yellow = StylePush (SColor SForeground SVivid SYellow)
 blue :: Doc -> Doc
-blue = Style (SColor SForeground SVivid SBlue)
+blue = StylePush (SColor SForeground SVivid SBlue)
 magenta :: Doc -> Doc
-magenta = Style (SColor SForeground SVivid SMagenta)
+magenta = StylePush (SColor SForeground SVivid SMagenta)
 cyan :: Doc -> Doc
-cyan = Style (SColor SForeground SVivid SCyan)
+cyan = StylePush (SColor SForeground SVivid SCyan)
 white :: Doc -> Doc
-white = Style (SColor SForeground SVivid SWhite)
+white = StylePush (SColor SForeground SVivid SWhite)
 dullblack :: Doc -> Doc
-dullblack = Style (SColor SForeground SDull SBlack)
+dullblack = StylePush (SColor SForeground SDull SBlack)
 dullred :: Doc -> Doc
-dullred = Style (SColor SForeground SDull SRed)
+dullred = StylePush (SColor SForeground SDull SRed)
 dullgreen :: Doc -> Doc
-dullgreen = Style (SColor SForeground SDull SGreen)
+dullgreen = StylePush (SColor SForeground SDull SGreen)
 dullyellow :: Doc -> Doc
-dullyellow = Style (SColor SForeground SDull SYellow)
+dullyellow = StylePush (SColor SForeground SDull SYellow)
 dullblue :: Doc -> Doc
-dullblue = Style (SColor SForeground SDull SBlue)
+dullblue = StylePush (SColor SForeground SDull SBlue)
 dullmagenta :: Doc -> Doc
-dullmagenta = Style (SColor SForeground SDull SMagenta)
+dullmagenta = StylePush (SColor SForeground SDull SMagenta)
 dullcyan :: Doc -> Doc
-dullcyan = Style (SColor SForeground SDull SCyan)
+dullcyan = StylePush (SColor SForeground SDull SCyan)
 dullwhite :: Doc -> Doc
-dullwhite = Style (SColor SForeground SDull SWhite)
+dullwhite = StylePush (SColor SForeground SDull SWhite)
 
 onblack :: Doc -> Doc
-onblack = Style (SColor SBackground SVivid SBlack)
+onblack = StylePush (SColor SBackground SVivid SBlack)
 onred :: Doc -> Doc
-onred = Style (SColor SBackground SVivid SRed)
+onred = StylePush (SColor SBackground SVivid SRed)
 ongreen :: Doc -> Doc
-ongreen = Style (SColor SBackground SVivid SGreen)
+ongreen = StylePush (SColor SBackground SVivid SGreen)
 onyellow :: Doc -> Doc
-onyellow = Style (SColor SBackground SVivid SYellow)
+onyellow = StylePush (SColor SBackground SVivid SYellow)
 onblue :: Doc -> Doc
-onblue = Style (SColor SBackground SVivid SBlue)
+onblue = StylePush (SColor SBackground SVivid SBlue)
 onmagenta :: Doc -> Doc
-onmagenta = Style (SColor SBackground SVivid SMagenta)
+onmagenta = StylePush (SColor SBackground SVivid SMagenta)
 oncyan :: Doc -> Doc
-oncyan = Style (SColor SBackground SVivid SCyan)
+oncyan = StylePush (SColor SBackground SVivid SCyan)
 onwhite :: Doc -> Doc
-onwhite = Style (SColor SBackground SVivid SWhite)
+onwhite = StylePush (SColor SBackground SVivid SWhite)
 ondullblack :: Doc -> Doc
-ondullblack = Style (SColor SBackground SDull SBlack)
+ondullblack = StylePush (SColor SBackground SDull SBlack)
 ondullred :: Doc -> Doc
-ondullred = Style (SColor SBackground SDull SRed)
+ondullred = StylePush (SColor SBackground SDull SRed)
 ondullgreen :: Doc -> Doc
-ondullgreen = Style (SColor SBackground SDull SGreen)
+ondullgreen = StylePush (SColor SBackground SDull SGreen)
 ondullyellow :: Doc -> Doc
-ondullyellow = Style (SColor SBackground SDull SYellow)
+ondullyellow = StylePush (SColor SBackground SDull SYellow)
 ondullblue :: Doc -> Doc
-ondullblue = Style (SColor SBackground SDull SBlue)
+ondullblue = StylePush (SColor SBackground SDull SBlue)
 ondullmagenta :: Doc -> Doc
-ondullmagenta = Style (SColor SBackground SDull SMagenta)
+ondullmagenta = StylePush (SColor SBackground SDull SMagenta)
 ondullcyan :: Doc -> Doc
-ondullcyan = Style (SColor SBackground SDull SCyan)
+ondullcyan = StylePush (SColor SBackground SDull SCyan)
 ondullwhite :: Doc -> Doc
-ondullwhite = Style (SColor SBackground SDull SWhite)
+ondullwhite = StylePush (SColor SBackground SDull SWhite)
 
 bold :: Doc -> Doc
-bold = Style SBold
+bold = StylePush SBold
 
 italics :: Doc -> Doc
-italics = Style SItalicized
+italics = StylePush SItalicized
 
 underline :: Doc -> Doc
-underline = Style SUnderlined
+underline = StylePush SUnderlined
 
 -- | Remove all styling information.
 --
@@ -1019,23 +1024,24 @@ underline = Style SUnderlined
 -- before rendering.
 plain :: Doc -> Doc
 plain = \case
-    Fail        -> Fail
-    e@Empty     -> e
-    c@(Char _)  -> c
-    t@(Text _)  -> t
-    l@Line      -> l
-    FlatAlt x y -> FlatAlt (plain x) (plain y)
-    Cat x y     -> Cat (plain x) (plain y)
-    Nest i x    -> Nest i (plain x)
-    Union x y   -> Union (plain x) (plain y)
-    Column f    -> Column (plain . f)
-    PageWidth f -> PageWidth (plain . f)
-    Nesting f   -> Nesting (plain . f)
-    Style _ x   -> plain x
+    Fail          -> Fail
+    FlatAlt x y   -> FlatAlt (plain x) (plain y)
+    Cat x y       -> Cat (plain x) (plain y)
+    Nest i x      -> Nest i (plain x)
+    Union x y     -> Union (plain x) (plain y)
+    Column f      -> Column (plain . f)
+    PageWidth f   -> PageWidth (plain . f)
+    Nesting f     -> Nesting (plain . f)
+    StylePush _ x -> plain x
+
+    x@Empty      -> x
+    x@Char{}     -> x
+    x@Text{}     -> x
+    x@Line       -> x
+    x@StylePop{} -> x
 
 -- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
-data Docs = Nil
-          | Cons !Int Doc Docs
+data Docs = Nil | Cons !Int Doc Docs
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(renderPretty ribbonfrac width x)@ renders document @x@ with a
@@ -1087,7 +1093,7 @@ renderSmart :: Float -> Int -> Doc -> SimpleDoc
 renderSmart = renderFits fitsR
 
 renderFits
-    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. 'fits1'
+    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. fits1
     -> Float -- ^ Ribbon fraction, typically around @0.5@
     -> Int   -- ^ Page width, often @80@
     -> Doc
@@ -1159,10 +1165,13 @@ renderFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         Nesting f -> best lineIndent currentColumn (Cons i (f i) ds)
 
         -- A styled document is rendered by rendering the contained document
-        -- with style information added, and appending an 'UnStyle' to revert it
+        -- with style information added, and appending a 'StylePop' to revert it
         -- once its scope is left.
-        Style s x -> SStyle s (best lineIndent currentColumn (Cons i x Nil))
-                              (best lineIndent currentColumn ds)
+        StylePush s x -> SStylePush s (best lineIndent currentColumn (Cons i x (Cons i StylePop ds)))
+
+        -- Popping a style ultimately instructs the displaying function to
+        -- revert to the style before the last 'StylePush'.
+        StylePop -> SStylePop (best lineIndent currentColumn ds)
 
     selectNicer
         :: Int       -- ^ Indentation of current line
@@ -1188,23 +1197,14 @@ fits1
     -> Int -- ^ Width in which to fit the first line
     -> SimpleDoc
     -> Bool
-fits1 _ _ w _ | w < 0      = False
-fits1 _ _ _ SFail          = False
-fits1 _ _ _ SEmpty         = True
-fits1 p m w (SChar _ x)    = fits1 p m (w - 1) x
-fits1 p m w (SText t x)    = fits1 p m (w - T.length t) x
-fits1 _ _ _ SLine{}        = True
-fits1 p m w (SStyle _ x y) = fits1 p m w (eraseStyles x y)
-
--- | Erase all style information for use in the fitting functions.
-eraseStyles :: SimpleDoc -> SimpleDoc -> SimpleDoc
-eraseStyles x y = case x of
-    SFail          -> SFail
-    SEmpty         -> SEmpty
-    SChar c k      -> SChar c (eraseStyles k y)
-    SText t k      -> SText t (eraseStyles k y)
-    SLine i k      -> SLine i (eraseStyles k y)
-    SStyle _ k1 k2 -> eraseStyles k1 k2
+fits1 _ _ w _ | w < 0        = False
+fits1 _ _ _ SFail            = False
+fits1 _ _ _ SEmpty           = True
+fits1 p m w (SChar _ x)      = fits1 p m (w - 1) x
+fits1 p m w (SText t x)      = fits1 p m (w - T.length t) x
+fits1 _ _ _ SLine{}          = True
+fits1 p m w (SStylePush _ x) = fits1 p m w x
+fits1 p m w (SStylePop x)    = fits1 p m w x
 
 -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
@@ -1220,16 +1220,16 @@ fitsR
     -> SimpleDoc
     -> Bool
 fitsR _ _ w _
-  | w < 0                  = False
-fitsR _ _ _ SFail          = False
-fitsR _ _ _ SEmpty         = True
-fitsR p m w (SChar _ x)    = fitsR p m (w - 1) x
-fitsR p m w (SText t x)    = fitsR p m (w - T.length t) x
+  | w < 0                    = False
+fitsR _ _ _ SFail            = False
+fitsR _ _ _ SEmpty           = True
+fitsR p m w (SChar _ x)      = fitsR p m (w - 1) x
+fitsR p m w (SText t x)      = fitsR p m (w - T.length t) x
 fitsR p m _ (SLine i x)
-  | m < i                  = fitsR p m (p - i) x
-  | otherwise              = True
-fitsR p m w (SStyle _ x y) = fitsR p m w (eraseStyles x y)
--- fitsR p m w (SUnStyle x) = fitsR p m w x
+  | m < i                    = fitsR p m (p - i) x
+  | otherwise                = True
+fitsR p m w (SStylePush _ x) = fitsR p m w x
+fitsR p m w (SStylePop x)    = fitsR p m w x
 
 -- | @(renderCompact x)@ renders document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this renderer is very fast. The
@@ -1242,21 +1242,20 @@ renderCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
     scan k (d:ds) = case d of
-        Fail        -> SFail
-        Empty       -> scan k ds
-        Char c      -> let !k' = k+1
-                       in SChar c (scan k' ds)
-        Text t      -> let !k' = k+T.length t
-                       in SText t (scan k' ds)
-        FlatAlt x _ -> scan k (x:ds)
-        Line        -> SLine 0 (scan 0 ds)
-        Cat x y     -> scan k (x:y:ds)
-        Nest _ x    -> scan k (x:ds)
-        Union _ y   -> scan k (y:ds)
-        Column f    -> scan k (f k:ds)
-        PageWidth f -> scan k (f Nothing:ds)
-        Nesting f   -> scan k (f 0:ds)
-        Style _ x   -> scan k (x:ds)
+        Fail          -> SFail
+        Empty         -> scan k ds
+        Char c        -> let !k' = k+1 in SChar c (scan k' ds)
+        Text t        -> let !k' = k+T.length t in SText t (scan k' ds)
+        FlatAlt x _   -> scan k (x:ds)
+        Line          -> SLine 0 (scan 0 ds)
+        Cat x y       -> scan k (x:y:ds)
+        Nest _ x      -> scan k (x:ds)
+        Union _ y     -> scan k (y:ds)
+        Column f      -> scan k (f k:ds)
+        PageWidth f   -> scan k (f Nothing:ds)
+        Nesting f     -> scan k (f 0:ds)
+        StylePush _ x -> scan k (x:ds)
+        StylePop      -> scan k ds
 
 
 
@@ -1265,12 +1264,13 @@ instance Show Doc where
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail        -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty       -> id
-    SChar c x    -> showChar c . displayString x
-    SText t x    -> showString (T.unpack t) . displayString x
-    SLine i x    -> showString ('\n':replicate i ' ') . displayString x
-    SStyle _ y x -> displayString x <> displayString y
+    SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty         -> id
+    SChar c x      -> showChar c . displayString x
+    SText t x      -> showString (T.unpack t) . displayString x
+    SLine i x      -> showString ('\n':replicate i ' ') . displayString x
+    SStylePush _ x -> displayString x
+    SStylePop x    -> displayString x
 
 
 

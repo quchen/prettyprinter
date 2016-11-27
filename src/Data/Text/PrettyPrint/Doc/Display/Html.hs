@@ -8,15 +8,20 @@
 -- Therefoew, we choose semantic tags like @<strong>@ instead, which are similar
 -- in their default renderings in most browsers.
 module Data.Text.PrettyPrint.Doc.Display.Html (
-    displayLazyHtmlText,
-    displayStrictHtmlText,
+    displayLazy,
+    displayStrict,
 ) where
 
+
+
+import           Control.Monad.Trans.Class
+import           Control.Monad.Trans.State
+import           Control.Monad.Trans.Writer
 import           Data.Monoid
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import qualified Data.Text.Lazy             as LT
+import qualified Data.Text.Lazy.Builder     as LTB
 
 import Data.Text.PrettyPrint.Doc
 
@@ -30,39 +35,55 @@ import Data.Text.PrettyPrint.Doc
 
 
 
--- | @('displayLazyHtmlText' sdoc)@ takes the output @sdoc@ from a rendering
--- function and transforms it to lazy text with HTML tags added. The output
--- contains significant whitespace, which HTML rendering swallows. This can be
--- avoided by putting the result in a @<pre>@ environment.
+-- | @('displayLazy' sdoc)@ takes the output @sdoc@ from a rendering function
+-- and transforms it to lazy text with HTML tags added. The output contains
+-- significant whitespace, which HTML rendering swallows. This can be avoided by
+-- putting the result in a @<pre>@ environment.
 --
 -- >>> let doc = "This text" <+> bold ("is strong" <+> italics "with emphasis")
--- >>> let pprint = LT.putStrLn . displayLazyHtmlText . renderPretty 0.4 40
+-- >>> let pprint = LT.putStrLn . displayLazy . renderPretty 0.4 40
 -- >>> pprint (plain doc)
 -- This text is strong with emphasis
 -- >>> pprint doc
 -- This text <strong>is strong <em>with emphasis</em></strong>
-displayLazyHtmlText :: SimpleDoc -> LT.Text
-displayLazyHtmlText = LTB.toLazyText . build
-  where
-    build = \case
-        SFail        -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-        SEmpty       -> mempty
-        SChar c x    -> LTB.singleton c <> build x
-        SText t x    -> LTB.fromText t <> build x
-        SLine i x    -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
-        SStyle s x y -> applyStyle s x <> build y
+--
+-- >>> displayLazy (renderPretty 0.4 80 (red "TODO"))
+displayLazy :: SimpleDoc -> LT.Text
+displayLazy doc
+  = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) []
+    in if null remainingStyles
+        then LTB.toLazyText resultBuilder
+        else error ("There are "
+                    <> show (length remainingStyles)
+                    <> " unpaired styles! Please report this as a bug.")
 
-    applyStyle :: Style -> SimpleDoc -> LTB.Builder
-    applyStyle s d = case s of
-        SItalicized  -> htmlItalicize (build d)
-        SBold        -> htmlBolden (build d)
-        SUnderlined  -> htmlUnderline (build d)
-        SColor l i c -> htmlColorize l i c (build d)
+build :: SimpleDoc -> WriterT LTB.Builder (State [Style]) ()
+build = \case
+    SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty -> pure ()
+    SChar c x -> do tell (LTB.singleton c)
+                    build x
+    SText t x -> do tell (LTB.fromText t)
+                    build x
+    SLine i x -> do tell (LTB.singleton '\n' )
+                    tell (LTB.fromText (T.replicate i " "))
+                    build x
+    SStylePush s x -> do
+        lift (modify (s:))
+        tell (htmlTagFor s Opening)
+        build x
+    SStylePop x -> do
+        s <- lift get >>= \case
+            [] -> error "Attempted to pop a style off an empty stack.\
+                        \ Please report this as a bug."
+            s':ss -> lift (put ss) *> pure s'
+        tell (htmlTagFor s Closing)
+        build x
 
--- | Strict 'Text' version of 'displayLazyHtmlText'.
+-- | Strict 'Text' version of 'displayLazy'.
 --
 -- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), "out"]))
--- >>> let pprint = T.putStrLn . displayStrictHtmlText . renderPretty 0.4 40
+-- >>> let pprint = T.putStrLn . displayStrict . renderPretty 0.4 40
 -- >>> pprint (plain doc)
 -- some text
 --      to
@@ -73,27 +94,25 @@ displayLazyHtmlText = LTB.toLazyText . build
 --      to
 --      <em>nicely <strong>lay</strong></em>
 --      out
-displayStrictHtmlText :: SimpleDoc -> Text
-displayStrictHtmlText = LT.toStrict . displayLazyHtmlText
+displayStrict :: SimpleDoc -> Text
+displayStrict = LT.toStrict . displayLazy
 
-htmlBolden, htmlItalicize, htmlUnderline :: LTB.Builder -> LTB.Builder
-htmlBolden    = encloseInTag "strong" Nothing
-htmlItalicize = encloseInTag "em" Nothing
-htmlUnderline = encloseInTag "span" (Just "style=\"text-decoration: underline\"")
+-- | Opening or closing HTML tag part?
+data OpenClose = Opening | Closing
 
-htmlColorize :: SLayer -> SIntensity -> SColor -> LTB.Builder -> LTB.Builder
-htmlColorize _l _s _c x = x
+htmlTagFor :: Style -> OpenClose -> LTB.Builder
+htmlTagFor = \case
+    SItalicized -> htmlTag "em" Nothing
+    SBold -> htmlTag "strong" Nothing
+    SUnderlined -> htmlTag "span" (Just "style=\"text-decoration: underline\"")
+    SColor _ _ _ -> error "TODO: HTML colour rendering"
 
 -- | Enclose a document in an HTML tag
-encloseInTag
+htmlTag
     :: LTB.Builder -- ^ Tag name, e.g. @span@
     -> Maybe LTB.Builder -- ^ Tag attributes, e.g. @style="text-decoration: underline"@
-    -> LTB.Builder -- ^ Document to enclose
+    -> OpenClose
     -> LTB.Builder
-encloseInTag tag attrs doc = mconcat
-    [ "<", tag
-    , case attrs of Nothing -> mempty
-                    Just attrs' -> " " <> attrs'
-    , ">"
-    , doc
-    , "</", tag, ">" ]
+htmlTag tag attrs openClose = case openClose of
+    Opening -> "<" <> tag <> maybe mempty (" " <>) attrs <> ">"
+    Closing -> "</" <> tag <> ">"
