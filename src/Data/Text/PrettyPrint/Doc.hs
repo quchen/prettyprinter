@@ -16,29 +16,7 @@
 -- This module defines a prettyprinter to format text in a flexible and
 -- convenient way.
 --
--- It is based on previous work by Daan Leijen and Max Bolingbroke, who
--- implemented and significantly extended the prettyprinter given by a paper by
--- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
--- convenience functions, styling, and new functionality. Their package,
--- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint>/ is widely
--- used in the Haskell ecosystem.
---
--- However, ansi-wl-pprint is showing its age, resulting in several
--- shortcomings:
---
---   - Definitions clashing with others that are now standard Haskell, such as
---     @\<$>@
---   - Hard to read operators, such as @\<//>@
---   - Some undocumented definitions, not many examples
---   - Based on 'String' instead of 'Text'
---
--- This modified package addresses and modernizes these issues:
---
---   - No clashing definitions
---   - All but the essential @'<>'@ and @'<+>'@ operators removed
---   - Everything extensively documented, with references to other functions and
---     runnable code examples
---   - No 'String' to be found (convert to 'Text' first if you have one)
+-- __TODO__ example
 module Data.Text.PrettyPrint.Doc (
     -- * Documents
     Doc,
@@ -75,7 +53,7 @@ module Data.Text.PrettyPrint.Doc (
     -- ** 'cat' family
     --
     -- | When 'group'ed, these will remove newlines.
-    vcat, fillCat, cat,
+    hcat, vcat, fillCat, cat,
     -- ** Others
     punctuate,
 
@@ -129,6 +107,16 @@ module Data.Text.PrettyPrint.Doc (
     -- constraints the best.
     SimpleDoc(..),
     renderPretty, renderCompact, renderSmart,
+
+    -- * Notes
+
+    -- ** Historical
+    --
+    -- $history
+
+    -- ** Algebraic properties
+    --
+    -- $algebra
 
 ) where
 
@@ -320,7 +308,10 @@ cat = group . vcat
 fillCat :: [Doc] -> Doc
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
--- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@.
+-- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@
+-- (i.e. without any spacing).
+--
+-- It is provided only for consistency, since it is identical to 'mconcat'.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDoc (hcat docs)
@@ -519,19 +510,6 @@ backslash = char '\\'
 equals :: Doc
 equals = char '='
 
--- | @('text' t)@ concatenates all characters in @t@ using @line@ for newline
--- characters and @char@ for all other characters. The 'IsString' instance of
--- 'Doc' uses this function.
---
--- >>> putDoc "hello\nworld"
--- hello
--- world
-text :: Text -> Doc
-text t = case T.uncons t of
-    Nothing -> Empty
-    Just ('\n', rest) -> line <> text rest
-    _otherwise -> vsep (map unsafeText (T.splitOn "\n" t))
-
 
 
 -- | The member @'prettyList'@ is only used to define the @instance
@@ -680,8 +658,9 @@ indent :: Int -> Doc -> Doc
 indent i d = hang i (spaces i <> d)
 
 -- | @('hang' i x)@ renders document @x@ with a nesting level set to the
--- /current column/ plus @i@. Compare this to 'nest', which is based on the
--- /current nesting level/ plus @i@:
+-- /current column/ plus @i@. This differs from 'nest', which is based on the
+-- /current nesting level/ plus @i@. When you're not sure, try the more
+-- efficient 'nest' first.
 --
 -- >>> let doc = fillSep (map text (T.words "Indenting these words with hang or align"))
 -- >>> putDocW 40 ("prefix" <+> nest 4 doc)
@@ -757,13 +736,13 @@ data SLayer = SForeground | SBackground
 -- | The data type @SimpleDoc@ represents rendered documents and is used by the
 -- display functions.
 --
--- Whereas values of the data type 'Doc' represent non-empty sets of possible
--- renderings of a document, values of the data type @SimpleDoc@ represent
--- single renderings of a document.
+-- A simplified view is that @'Doc' = ['SimpleDoc']@, and the rendering
+-- functions pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all
+-- complexity contained in 'Doc' resolved, making it very easy to convert it to
+-- other formats, such as plain text or terminal output.
 --
--- The library provides two default display functions 'displayLazyText' and
--- 'displayIO'. You can provide your own display function by writing a function
--- from a @SimpleDoc@ to your own output format.
+-- To write your own Doc to X converter, it is therefore sufficient to convert
+-- from 'SimpleDoc'.
 data SimpleDoc =
       SFail
     | SEmpty
@@ -788,19 +767,37 @@ instance Monoid Doc where
 instance Semi.Semigroup Doc where
     (<>) = Cat
 
--- MCB: also added when "pretty" got the corresponding instances:
+-- | >>> putDoc "hello\nworld"
+-- hello
+-- world
 instance IsString Doc where
     fromString = text . T.pack
 
--- | @('char' c)@ contains the literal character @c@. If the character is a
--- a newline (@'\n'@), consider using 'line' instead.
+-- | @('char' c)@ contains the literal character @c@.
+--
+-- Instead of @('char' '\n')@, consider using @'line'@ as a more readable
+-- alternative.
+--
+-- >>> putDoc (char 'f' <> char 'o' <> char 'o')
+-- foo
 char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @('unsafeText' s)@ contains the literal string @s@. The string must not
--- contain any newline (@'\n'@) characters, since this is an invariant of the
--- 'Doc' type. If you're not sure, use the safer 'text'.
+-- | @('text' t)@ concatenates all lines in @t@ using @'line'@. The 'IsString'
+-- instance of 'Doc' uses this function.
+--
+-- >>> putDoc (text "hello\nworld")
+-- hello
+-- world
+text :: Text -> Doc
+text = vsep . map unsafeText . T.splitOn "\n"
+
+-- | @('unsafeText' s)@ contains the literal string @s@.
+--
+-- The string must not contain any newline characters, since this is an
+-- invariant of the 'Text' constructor. If you're not sure, use the safer
+-- 'text'.
 unsafeText :: Text -> Doc
 unsafeText t = case T.compareLength t 1 of
     LT -> Empty
@@ -879,7 +876,7 @@ column = Column
 nesting :: (Int -> Doc) -> Doc
 nesting = Nesting
 
--- | Render a document depending on the page width.
+-- | Render a document depending on the page width, if one has been specified.
 --
 -- >>> let doc = "prefix" <+> pageWidth (\l -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
@@ -887,8 +884,8 @@ nesting = Nesting
 --     prefix [Width: 32]
 --         prefix [Width: 32]
 --
--- Whether the page width is @'Just' n@ or @Nothing@ depends on the renderer. Of
--- the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
+-- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the renderer.
+-- Of the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
 pageWidth :: (Maybe Int -> Doc) -> Doc
 pageWidth = PageWidth
@@ -928,7 +925,11 @@ flatten = \case
     PageWidth f -> PageWidth (flatten . f)
     Nesting f   -> Nesting (flatten . f)
     Style s x   -> Style s (flatten x)
-    other       -> other
+
+    x@Fail   -> x
+    x@Empty  -> x
+    x@Char{} -> x
+    x@Text{} -> x
 
 black :: Doc -> Doc
 black = Style (SColor SForeground SVivid SBlack)
@@ -1005,7 +1006,17 @@ italics = Style SItalicized
 underline :: Doc -> Doc
 underline = Style SUnderlined
 
--- | Removes all colorisation, emboldening and underlining from a document
+-- | Remove all styling information.
+--
+-- Although 'plain' is idempotent,
+--
+-- @
+-- 'plain' . 'plain' = 'plain'
+-- @
+--
+-- it should not be used without caution, for each invocation traverses the
+-- entire contained document. The most common place to use 'plain' is just
+-- before rendering.
 plain :: Doc -> Doc
 plain = \case
     Fail        -> Fail
@@ -1260,3 +1271,100 @@ displayString = \case
     SText t x    -> showString (T.unpack t) . displayString x
     SLine i x    -> showString ('\n':replicate i ' ') . displayString x
     SStyle _ y x -> displayString x <> displayString y
+
+
+
+-- $history
+--
+-- This module is based on previous work by Daan Leijen and Max Bolingbroke, who
+-- implemented and significantly extended the prettyprinter given by a paper by
+-- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
+-- convenience functions, styling, and new functionality. Their package,
+-- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint> is widely
+-- used in the Haskell ecosystem.
+--
+-- However, ansi-wl-pprint is showing its age, resulting in several
+-- shortcomings:
+--
+--   - Definitions clashing with others that are now standard Haskell, such as
+--     @\<$>@
+--   - Hard to read operators, such as @\<//>@
+--   - Some undocumented definitions, not many examples
+--   - Based on 'String' instead of 'Text'
+--
+-- This modified package addresses and modernizes these issues:
+--
+--   - No clashing definitions
+--   - All but the essential @'<>'@ and @'<+>'@ operators removed
+--   - Everything extensively documented, with references to other functions and
+--     runnable code examples
+--   - No 'String' to be found (convert to 'Text' first if you have one)
+
+
+
+-- $algebra
+--
+-- The functions in this library satisfy many algebraic laws.
+--
+-- The 'text' function is a homomorphism from text concatenation to document
+-- concatenation:
+--
+-- @
+-- 'text' (s '<>' t) = 'text' s '<>' 'text' t
+-- 'text' 'mempty' = 'mempty'
+-- @
+--
+-- The 'char' function behaves like one-element text:
+--
+-- @
+-- 'char' c = 'text' ('T.singleton' c)
+-- @
+--
+-- The 'nest' function is a homomorphism from addition to document composition.
+-- 'nest' also distributes through document concatenation and is absorbed by
+-- 'text' (without newlines) and 'align':
+--
+-- @
+-- 'nest' (i '+' j) x = 'nest' i ('nest' j x)
+-- 'nest' 0 x = x
+-- 'nest' i (x '<>' y) = 'nest' i x '<>' 'nest' i y
+-- 'nest' i 'mempty' = 'mempty'
+-- 'nest' i ('text' t) = 'text' t -- no newline in t
+-- 'nest' i ('align' x) = 'align' x
+-- @
+--
+-- The 'group' function is absorbed by 'mempty'. 'group' is commutative with
+-- 'nest' and 'align':
+--
+-- @
+-- 'group' 'mempty' = 'mempty'
+-- 'group' ('text' s '<>' x) = 'text' s '<>' 'group' x
+-- 'group' ('nest' i x) = 'nest' i ('group' x)
+-- 'group' ('align' x) = 'align' ('group' x)
+-- @
+--
+-- The 'align' function is absorbed by 'mempty' and 'text'. 'align' is
+-- idempotent:
+--
+-- @
+-- 'align' 'mempty' = 'mempty'
+-- 'align' ('text' s) = 'text' s
+-- 'align' ('align' x) = 'align' x
+-- @
+--
+-- From the laws of the primitive functions, we can derive many other laws for
+-- the derived functions. For example, the /spaced/ operator '<+>' is defined
+-- as:
+--
+-- @
+-- x '<+>' y = x '<>' 'space' '<>' y
+-- @
+--
+-- It follows that '<+>' is associative and that '<+>' and '<>' associate with
+-- each other:
+--
+-- @
+-- x '<+>' (y '<+>' z) = (x '<+>' y) '<+>' z
+-- x '<>' (y '<+>' z) = (x '<>' y) '<+>' z
+-- x '<+>' (y <> z) = (x '<+>' y) '<>' z
+-- @
