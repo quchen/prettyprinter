@@ -40,14 +40,18 @@ import Data.Text.PrettyPrint.Doc
 -- significant whitespace, which HTML rendering swallows. This can be avoided by
 -- putting the result in a @<pre>@ environment.
 --
--- >>> let doc = "This text" <+> bold ("is strong" <+> italics "with emphasis")
 -- >>> let pprint = LT.putStrLn . displayLazy . renderPretty 0.4 40
+-- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), dullred "out"]))
 -- >>> pprint (plain doc)
--- This text is strong with emphasis
+-- some text
+--      to
+--      nicely lay
+--      out
 -- >>> pprint doc
--- This text <strong>is strong <em>with emphasis</em></strong>
---
--- >>> displayLazy (renderPretty 0.4 80 (red "TODO"))
+-- some <strong>text</strong>
+--      to
+--      <em>nicely <strong>lay</strong></em>
+--      <span style="color: rgb(205, 0, 0)">out</span>
 displayLazy :: SimpleDoc -> LT.Text
 displayLazy doc
   = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) []
@@ -81,19 +85,6 @@ build = \case
         build x
 
 -- | Strict 'Text' version of 'displayLazy'.
---
--- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), "out"]))
--- >>> let pprint = T.putStrLn . displayStrict . renderPretty 0.4 40
--- >>> pprint (plain doc)
--- some text
---      to
---      nicely lay
---      out
--- >>> pprint doc
--- some <strong>text</strong>
---      to
---      <em>nicely <strong>lay</strong></em>
---      out
 displayStrict :: SimpleDoc -> Text
 displayStrict = LT.toStrict . displayLazy
 
@@ -105,7 +96,28 @@ htmlTagFor = \case
     SItalicized -> htmlTag "em" Nothing
     SBold -> htmlTag "strong" Nothing
     SUnderlined -> htmlTag "span" (Just "style=\"text-decoration: underline\"")
-    SColor _ _ _ -> error "TODO: HTML colour rendering"
+    SColor SForeground dv c -> htmlTag "span" (Just ("style=\"color: " <> cssColor dv c <> "\""))
+    SColor SBackground dv c -> htmlTag "span" (Just ("style=\"background: " <> cssColor dv c <> "\""))
+
+cssColor :: SIntensity -> SColor -> LTB.Builder
+cssColor SDull = \case
+    SBlack   -> "rgb(0, 0, 0)"
+    SRed     -> "rgb(205, 0, 0)"
+    SGreen   -> "rgb(0, 205, 0)"
+    SYellow  -> "rgb(205, 205, 0)"
+    SBlue    -> "rgb(0, 0, 238)"
+    SMagenta -> "rgb(205, 0, 205)"
+    SCyan    -> "rgb(0, 205, 205)"
+    SWhite   -> "rgb(229, 229, 229)"
+cssColor SVivid = \case
+    SBlack   -> "rgb(127, 127, 127)"
+    SRed     -> "rgb(255, 0, 0)"
+    SGreen   -> "rgb(0, 255, 0)"
+    SYellow  -> "rgb(255, 255, 0)"
+    SBlue    -> "rgb(92, 92, 255)"
+    SMagenta -> "rgb(255, 0, 255)"
+    SCyan    -> "rgb(0, 255, 255)"
+    SWhite   -> "rgb(255, 255, 255)"
 
 -- | Enclose a document in an HTML tag
 htmlTag
