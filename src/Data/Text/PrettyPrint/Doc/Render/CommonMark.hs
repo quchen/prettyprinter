@@ -1,10 +1,10 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Display 'SimpleDoc' as common markdown AKA CommonMark in 'Text' format.
-module Data.Text.PrettyPrint.Doc.Display.CommonMark (
-    displayLazy,
-    displayStrict,
+-- | Render 'SimpleDoc' as common markdown AKA CommonMark in 'Text' format.
+module Data.Text.PrettyPrint.Doc.Render.CommonMark (
+    renderLazy,
+    renderStrict,
 ) where
 
 
@@ -34,13 +34,13 @@ import Data.Text.PrettyPrint.Doc
 -- are ignored.
 --
 -- >>> let doc = "This text" <+> italics ("is emphasized" <+> bold "even stronger" <> "!")
--- >>> let pprint = LT.putStrLn . displayLazy . renderPretty 0.4 40
+-- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty 0.4 40
 -- >>> pprint doc
 -- This text *is emphasized **even stronger**!*
 -- >>> pprint (red doc)
 -- This text *is emphasized **even stronger**!*
-displayLazy :: SimpleDoc -> LT.Text
-displayLazy doc
+renderLazy :: SimpleDoc -> LT.Text
+renderLazy doc
   = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) []
     in if null remainingStyles
         then LTB.toLazyText resultBuilder
@@ -77,6 +77,6 @@ styleToMarker = \case
     SBold       -> LTB.fromString "**"
     _other      -> mempty
 
--- | Strict version of 'displayLazy'.
-displayStrict :: SimpleDoc -> Text
-displayStrict = LT.toStrict . displayLazy
+-- | Strict version of 'renderLazy'.
+renderStrict :: SimpleDoc -> Text
+renderStrict = LT.toStrict . renderLazy

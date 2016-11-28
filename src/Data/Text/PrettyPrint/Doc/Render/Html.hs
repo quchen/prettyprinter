@@ -1,15 +1,15 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Display 'SimpleDoc' as 'HTML' encoded as 'Text'.
+-- | Render 'SimpleDoc' as 'HTML' encoded as 'Text'.
 --
 -- Since the 'Doc' language talks about 'bold'ening and not emphasis for
--- example, we do not have a correct corresponding HTML tag to display this.
+-- example, we do not have a correct corresponding HTML tag to render this.
 -- Therefoew, we choose semantic tags like @<strong>@ instead, which are similar
 -- in their default renderings in most browsers.
-module Data.Text.PrettyPrint.Doc.Display.Html (
-    displayLazy,
-    displayStrict,
+module Data.Text.PrettyPrint.Doc.Render.Html (
+    renderLazy,
+    renderStrict,
 ) where
 
 
@@ -35,12 +35,12 @@ import Data.Text.PrettyPrint.Doc
 
 
 
--- | @('displayLazy' sdoc)@ takes the output @sdoc@ from a rendering function
+-- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text with HTML tags added. The output contains
 -- significant whitespace, which HTML rendering swallows. This can be avoided by
 -- putting the result in a @<pre>@ environment.
 --
--- >>> let pprint = LT.putStrLn . displayLazy . renderPretty 0.4 40
+-- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty 0.4 40
 -- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), dullred "out"]))
 -- >>> pprint (plain doc)
 -- some text
@@ -52,8 +52,8 @@ import Data.Text.PrettyPrint.Doc
 --      to
 --      <em>nicely <strong>lay</strong></em>
 --      <span style="color: rgb(205, 0, 0)">out</span>
-displayLazy :: SimpleDoc -> LT.Text
-displayLazy doc
+renderLazy :: SimpleDoc -> LT.Text
+renderLazy doc
   = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) []
     in if null remainingStyles
         then LTB.toLazyText resultBuilder
@@ -84,9 +84,9 @@ build = \case
         tell (htmlTagFor s Closing)
         build x
 
--- | Strict 'Text' version of 'displayLazy'.
-displayStrict :: SimpleDoc -> Text
-displayStrict = LT.toStrict . displayLazy
+-- | Strict 'Text' version of 'renderLazy'.
+renderStrict :: SimpleDoc -> Text
+renderStrict = LT.toStrict . renderLazy
 
 -- | Opening or closing HTML tag part?
 data OpenClose = Opening | Closing

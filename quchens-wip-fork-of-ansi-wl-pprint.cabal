@@ -20,10 +20,10 @@ source-repository head
 
 library
     exposed-modules: Data.Text.PrettyPrint.Doc
-                   , Data.Text.PrettyPrint.Doc.Display.CommonMark
-                   , Data.Text.PrettyPrint.Doc.Display.Html
-                   , Data.Text.PrettyPrint.Doc.Display.Terminal
-                   , Data.Text.PrettyPrint.Doc.Display.Text
+                   , Data.Text.PrettyPrint.Doc.Render.CommonMark
+                   , Data.Text.PrettyPrint.Doc.Render.Html
+                   , Data.Text.PrettyPrint.Doc.Render.Terminal
+                   , Data.Text.PrettyPrint.Doc.Render.Text
     ghc-options: -Wall -Wcompat
     hs-source-dirs: src
 

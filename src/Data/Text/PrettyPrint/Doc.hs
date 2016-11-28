@@ -6,7 +6,7 @@
 -- Module      :  Text.PrettyPrint.ANSI.Leijen
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
---                David Luposchainsky (c) 2016, http://github.io/quchen
+--                David Luposchainsky (c) 2016, http://github.com/quchen
 -- License     :  BSD-style (see the file LICENSE.md)
 --
 -- Maintainer  :  David Luposchainsky <dluposchainsky at google>
@@ -57,9 +57,9 @@ module Data.Text.PrettyPrint.Doc (
     -- ** Others
     punctuate,
 
-    -- * Reactive/conditional rendering
+    -- * Reactive/conditional layouting
     --
-    -- | Render documents differently based on the current conditions.
+    -- | Layout documents differently based on the current conditions.
     column, nesting, width, pageWidth,
 
     -- * Filler functions
@@ -100,13 +100,13 @@ module Data.Text.PrettyPrint.Doc (
     -- * Pretty class
     Pretty(..),
 
-    -- * Rendering
+    -- * Layout
     --
-    -- | Rendering produces a straightforward 'SimpleDoc' based on parameters
+    -- | Layouting produces a straightforward 'SimpleDoc' based on parameters
     -- such as page width and ribbon size, by evaluating how a 'Doc' fits these
     -- constraints the best.
     SimpleDoc(..),
-    renderPretty, renderCompact, renderSmart,
+    layoutPretty, layoutCompact, layoutSmart,
 
     -- * Notes
 
@@ -130,19 +130,17 @@ import qualified Data.Text      as T
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import Data.Text.PrettyPrint.Doc.Display.Terminal
-
-
+-- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
 
 
 
 -- | The abstract data type @Doc@ represents pretty documents.
 --
 -- More specifically, a value of type @Doc@ represents a non-empty set of
--- possible renderings of a document. The rendering functions select one of
+-- possible layoutings of a document. The layouting functions select one of
 -- these possibilities.
 --
--- The simplest renderer is via the 'Show' class. @('show' doc)@ pretty prints
+-- The simplest layouter is via the 'Show' class. @('show' doc)@ pretty prints
 -- document @doc@ with a page width of 80 characters and a ribbon width of 32
 -- characters.
 --
@@ -155,7 +153,7 @@ data Doc =
     | Char Char -- ^ invariant: char is not '\n'
     | Text Text -- ^ invariant: text doesn't contain '\n'
     | Line -- ^ Line break
-    | FlatAlt Doc Doc -- ^ Render the first doc, but when flattened (via group), render the second.
+    | FlatAlt Doc Doc -- ^ Layout the first doc, but when flattened (via group), layout the second.
     | Cat Doc Doc -- ^ Concatenation of two documents
     | Nest !Int Doc -- ^ Document indented by a number of columns
     | Union Doc Doc -- ^ invariant: first lines of first doc longer than the first lines of the second doc
@@ -163,7 +161,7 @@ data Doc =
     | PageWidth (Maybe Int -> Doc) -- ^ React on the document's width, see 'pageWidth'
     | Nesting (Int -> Doc) -- ^ React on the current nesting level, see 'nesting'
     | StylePush Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
-    | StylePop -- ^ Remove one previously pushed style. Used only during rendering.
+    | StylePop -- ^ Remove one previously pushed style. Used only during layouting.
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -267,7 +265,7 @@ instance Pretty a => Pretty (Maybe a) where
 
 
 -- | A general style to be applied to some text. How these turn out in the final
--- text depends on the renderer, for example a terminal backend might create
+-- text depends on the layouter, for example a terminal backend might create
 -- ANSI escape codes for each color.
 data Style =
       SItalicized
@@ -284,10 +282,10 @@ data SIntensity = SVivid | SDull
 -- | Foreground (text) or background (paper) color
 data SLayer = SForeground | SBackground
 
--- | The data type @SimpleDoc@ represents rendered documents and is used by the
+-- | The data type @SimpleDoc@ represents layouted documents and is used by the
 -- display functions.
 --
--- A simplified view is that @'Doc' = ['SimpleDoc']@, and the rendering
+-- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layouting
 -- functions pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all
 -- complexity contained in 'Doc' resolved, making it very easy to convert it to
 -- other formats, such as plain text or terminal output.
@@ -343,7 +341,7 @@ unsafeText t = case T.compareLength t 1 of
     EQ -> Char (T.head t)
     GT -> Text t
 
--- | @('nest' i x)@ renders document @x@ with the current indentation level
+-- | @('nest' i x)@ layouts document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
 --
 -- >>> putDoc (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
@@ -414,7 +412,7 @@ softline = group line
 softline' :: Doc
 softline' = group line'
 
--- | A @'hardline'@ is always rendered as a line break, even when 'group'ed.
+-- | A @'hardline'@ is always layouted as a line break, even when 'group'ed.
 --
 -- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
 -- >>> putDoc doc
@@ -428,7 +426,7 @@ hardline = Line
 
 -- | @('group' x)@ undoes all line breaks in document @x@. The result is added
 -- to the current line if this still fits into the page. Otherwise, the document
--- @x@ is rendered without any changes.
+-- @x@ is layouted without any changes.
 --
 -- See 'vcat' and 'line' for examples.
 group :: Doc -> Doc
@@ -454,7 +452,7 @@ flatten = \case
 
 
 
--- | @('align' x)@ renders document @x@ with the nesting level set to the
+-- | @('align' x)@ layouts document @x@ with the nesting level set to the
 -- current column. It is used for example to implement 'hang'.
 --
 -- As an example, we will put a document right above another one, regardless of
@@ -469,7 +467,7 @@ flatten = \case
 align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
--- | @('hang' i x)@ renders document @x@ with a nesting level set to the
+-- | @('hang' i x)@ layouts document @x@ with a nesting level set to the
 -- /current column/ plus @i@. This differs from 'nest', which is based on the
 -- /current nesting level/ plus @i@. When you're not sure, try the more
 -- efficient 'nest' first.
@@ -508,7 +506,7 @@ indent i d = hang i (spaces i <> d)
 
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
 -- @sep@, and encloses the resulting document by @l@ and @r@. The documents are
--- rendered horizontally if that fits the page, otherwise they are aligned
+-- layouted horizontally if that fits the page, otherwise they are aligned
 -- vertically. All separators are put in front of the elements.
 --
 -- >>> let doc = encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
@@ -577,8 +575,6 @@ above' x y = x <> line' <> y
 
 
 
-
-
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
@@ -633,9 +629,9 @@ vsep = concatWith above
 fillSep :: [Doc] -> Doc
 fillSep = concatWith (\x y -> x <> softline <> y)
 
--- | @'sep' xs@ tries rendering the documents @xs@ separated with 'space's, and
+-- | @'sep' xs@ tries layouting the documents @xs@ separated with 'space's, and
 -- if this does not fit the page, separates them with newlines. This is what
--- differentiates it from 'vsep', which always renders its contents beneath each
+-- differentiates it from 'vsep', which always layouts its contents beneath each
 -- other.
 --
 -- >>> let doc = "prefix" <+> sep ["text", "to", "lay", "out"]
@@ -702,9 +698,9 @@ vcat = concatWith above'
 fillCat :: [Doc] -> Doc
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
--- | @('cat' xs)@ tries rendering the documents @xs@ separated with nothing, and
+-- | @('cat' xs)@ tries layouting the documents @xs@ separated with nothing, and
 -- if this does not fit the page, separates them with newlines. This is what
--- differentiates it from 'vcat', which always renders its contents beneath each
+-- differentiates it from 'vcat', which always layouts its contents beneath each
 -- other.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
@@ -744,7 +740,7 @@ punctuate p (d:ds) = (d <> p) : punctuate p ds
 
 
 
--- | Render a document depending on which column it starts being rendered.
+-- | layout a document depending on which column it starts being layouted.
 -- 'align' is implemented in terms of 'column'.
 --
 -- >>> let doc = "prefix" <+> column (\l -> brackets ("Column:" <+> pretty l))
@@ -755,7 +751,7 @@ punctuate p (d:ds) = (d <> p) : punctuate p ds
 column :: (Int -> Doc) -> Doc
 column = Column
 
--- | Render a document depending on the 'nest'ing level of the current line.
+-- | layout a document depending on the 'nest'ing level of the current line.
 -- 'align' is implemented in terms of 'nesting'.
 --
 -- >>> let doc = "prefix" <+> nesting (\l -> brackets ("Nested:" <+> pretty l))
@@ -766,7 +762,7 @@ column = Column
 nesting :: (Int -> Doc) -> Doc
 nesting = Nesting
 
--- | @('width' doc f)@ renders the document 'doc', and makes the column width of
+-- | @('width' doc f)@ layouts the document 'doc', and makes the column width of
 -- it available to a function.
 --
 -- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
@@ -782,7 +778,7 @@ width doc f
         doc <> column (\colEnd ->
             f (colEnd - colStart)))
 
--- | Render a document depending on the page width, if one has been specified.
+-- | layout a document depending on the page width, if one has been specified.
 --
 -- >>> let doc = "prefix" <+> pageWidth (\l -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
@@ -790,15 +786,15 @@ width doc f
 --     prefix [Width: 32]
 --         prefix [Width: 32]
 --
--- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the renderer.
--- Of the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
+-- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
+-- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
 pageWidth :: (Maybe Int -> Doc) -> Doc
 pageWidth = PageWidth
 
 
 
--- | @('fill' i x)@ renders document @x@. It then appends @space@s until the
+-- | @('fill' i x)@ layouts document @x@. It then appends @space@s until the
 -- width is equal to @i@. If the width of @x@ is already larger, nothing is
 -- appended. This function is quite useful in practice to output a list of
 -- bindings. The following example demonstrates this.
@@ -815,7 +811,7 @@ fill f doc = width doc (\w ->
         then mempty
         else spaces (f - w))
 
--- | @('fillBreak' i x)@ first renders document @x@. It then appends @space@s
+-- | @('fillBreak' i x)@ first layouts document @x@. It then appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
 -- @i@, the nesting level is increased by @i@ and a @line@ is appended. When we
 -- redefine @ptype@ in the example given in 'fill' to use @'fillBreak'@, we get
@@ -1057,7 +1053,7 @@ underline = StylePush SUnderlined
 --
 -- it should not be used without caution, for each invocation traverses the
 -- entire contained document. The most common place to use 'plain' is just
--- before rendering.
+-- before layouting.
 plain :: Doc -> Doc
 plain = \case
     Fail          -> Fail
@@ -1080,16 +1076,16 @@ plain = \case
 data Docs = Nil | Cons !Int Doc Docs
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
--- 'hPutDoc'. @(renderPretty ribbonfrac width x)@ renders document @x@ with a
+-- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ layouts document @x@ with a
 -- page width of @width@ and a ribbon width of @(ribbonfrac * width)@
 -- characters. The ribbon width is the maximal amount of non-indentation
 -- characters on a line. The parameter @ribbonfrac@ should be between @0.0@ and
 -- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
 -- respectively.
-renderPretty :: Float -> Int -> Doc -> SimpleDoc
-renderPretty = renderFits fits1
+layoutPretty :: Float -> Int -> Doc -> SimpleDoc
+layoutPretty = layoutFits fits1
 
--- | A slightly smarter rendering algorithm with more lookahead. It provides
+-- | A slightly smarter layouting algorithm with more lookahead. It provides
 -- provide earlier breaking on deeply nested structures For example, consider
 -- this python-ish pseudocode:
 --
@@ -1097,7 +1093,7 @@ renderPretty = renderFits fits1
 --
 -- If we put a 'softline'' (+ 'nest'ing 2) after each open parenthesis, and
 -- align the elements of the list to match the opening brackets, this will
--- render with @renderPretty@ and a page width of 20 as:
+-- layout with @layoutPretty@ and a page width of 20 as:
 --
 -- @
 -- fun(fun(fun(fun(fun([
@@ -1107,10 +1103,10 @@ renderPretty = renderFits fits1
 --   )))))             |
 -- @
 --
--- Where the 20c. boundary has been marked with |. Because @renderPretty@ only
+-- Where the 20c. boundary has been marked with |. Because @layoutPretty@ only
 -- uses one-line lookahead, it sees that the first line fits, and is stuck
 -- putting the second and third lines after the 20-c mark. In contrast,
--- @renderSmart@ will continue to check that the potential document up to the
+-- @layoutSmart@ will continue to check that the potential document up to the
 -- end of the indentation level. Thus, it will format the document as:
 --
 -- @
@@ -1125,16 +1121,16 @@ renderPretty = renderFits fits1
 --   )))))             |
 -- @
 -- Which fits within the 20c. boundary.
-renderSmart :: Float -> Int -> Doc -> SimpleDoc
-renderSmart = renderFits fitsR
+layoutSmart :: Float -> Int -> Doc -> SimpleDoc
+layoutSmart = layoutFits fitsR
 
-renderFits
+layoutFits
     :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. fits1
     -> Float -- ^ Ribbon fraction, typically around @0.5@
     -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
-renderFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
+layoutFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
   where
     ribbonWidth = max 0 (min maxColumns (round (fromIntegral maxColumns * rfrac)))
 
@@ -1152,12 +1148,12 @@ renderFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         -- If the next chunk to convert is empty, we simply continue.
         Empty -> best lineIndent currentColumn ds
 
-        -- To render a character, insert it and increase the column count by
+        -- To layout a character, insert it and increase the column count by
         -- one.
         Char c -> let !col' = currentColumn+1
                   in SChar c (best lineIndent col' ds)
 
-        -- To render text, insert it and increase the column count by the length
+        -- To layout text, insert it and increase the column count by the length
         -- of the inserted text. Note that it is an invariant of 'Text' to not
         -- contain any newlines, so we need not worry about wrapping and
         -- resetting the column count.
@@ -1168,39 +1164,39 @@ renderFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         -- indentation level.
         Line -> SLine i (best i i ds)
 
-        -- An unflattened pair of alternatives is simply rendered as the first
+        -- An unflattened pair of alternatives is simply layouted as the first
         -- alternative.
         FlatAlt x _ -> best lineIndent currentColumn (Cons i x ds)
 
-        -- The concatenation of two documents is expanded to render one after
+        -- The concatenation of two documents is expanded to layout one after
         -- the other (duh).
         Cat x y -> best lineIndent currentColumn (Cons i x (Cons i y ds))
 
-        -- A nested document is rendered by increasing the indentation index,
-        -- and then rendering the contained document.
+        -- A nested document is layouted by increasing the indentation index,
+        -- and then layouting the contained document.
         Nest j x -> let !i' = i+j
                     in best lineIndent currentColumn (Cons i' x ds)
 
-        -- The union of two documents tries rendering the first, and if this
+        -- The union of two documents tries layouting the first, and if this
         -- does not fit the layout constraints, falls back to the second.
         Union x y -> selectNicer lineIndent
                                  currentColumn
                                  (best lineIndent currentColumn (Cons i x ds))
                                  (best lineIndent currentColumn (Cons i y ds))
 
-        -- A column-aware document is rendered by providing the contained
+        -- A column-aware document is layouted by providing the contained
         -- function with the current column.
         Column f -> best lineIndent currentColumn (Cons i (f currentColumn) ds)
 
-        -- A page width aware document is rendered by providing the contained
+        -- A page width aware document is layouted by providing the contained
         -- function with the page width.
         PageWidth f -> best lineIndent currentColumn (Cons i (f (Just maxColumns)) ds)
 
-        -- A nesting-aware document is rendered by providing the contained
+        -- A nesting-aware document is layouted by providing the contained
         -- function with the current indentation level.
         Nesting f -> best lineIndent currentColumn (Cons i (f i) ds)
 
-        -- A styled document is rendered by rendering the contained document
+        -- A styled document is layouted by layouting the contained document
         -- with style information added, and appending a 'StylePop' to revert it
         -- once its scope is left.
         StylePush s x -> SStylePush s (best lineIndent currentColumn (Cons i x (Cons i StylePop ds)))
@@ -1267,14 +1263,14 @@ fitsR p m _ (SLine i x)
 fitsR p m w (SStylePush _ x) = fitsR p m w x
 fitsR p m w (SStylePop x)    = fitsR p m w x
 
--- | @(renderCompact x)@ renders document @x@ without adding any indentation.
--- Since no \'pretty\' printing is involved, this renderer is very fast. The
+-- | @(layoutCompact x)@ layouts document @x@ without adding any indentation.
+-- Since no \'pretty\' printing is involved, this layouter is very fast. The
 -- resulting output contains fewer characters than a pretty printed version and
 -- can be used for output that is read by other programs.
 --
--- This rendering function does not add any colorisation information.
-renderCompact :: Doc -> SimpleDoc
-renderCompact doc = scan 0 [doc]
+-- This layouting function does not add any colorisation information.
+layoutCompact :: Doc -> SimpleDoc
+layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
     scan k (d:ds) = case d of
@@ -1294,11 +1290,11 @@ renderCompact doc = scan 0 [doc]
         StylePop      -> scan k ds
 
 instance Show Doc where
-    showsPrec _ doc = displayString (renderPretty 0.4 80 doc)
+    showsPrec _ doc = displayString (layoutPretty 0.4 80 doc)
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SFail          -> error "@SFail@ can not appear uncaught in a layouted @SimpleDoc@"
     SEmpty         -> id
     SChar c x      -> showChar c . displayString x
     SText t x      -> showString (T.unpack t) . displayString x

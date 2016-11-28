@@ -1,10 +1,10 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Display 'SimpleDoc' as 'Text'.
-module Data.Text.PrettyPrint.Doc.Display.Text (
-    displayLazy,
-    displayStrict,
+-- | Render 'SimpleDoc' as 'Text'.
+module Data.Text.PrettyPrint.Doc.Render.Text (
+    renderLazy,
+    renderStrict,
 ) where
 
 
@@ -27,14 +27,14 @@ import Data.Text.PrettyPrint.Doc
 
 
 
--- | @('displayLazy' sdoc)@ takes the output @sdoc@ from a rendering function
+-- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text.
 --
 -- All styling information is discarded. If this is undesirable, maybe the
--- functions in "Data.Text.PrettyPrint.Doc.Display.Terminal" are closer to what
+-- functions in "Data.Text.PrettyPrint.Doc.Render.Terminal" are closer to what
 -- you are looking for.
-displayLazy :: SimpleDoc -> LT.Text
-displayLazy = LTB.toLazyText . build
+renderLazy :: SimpleDoc -> LT.Text
+renderLazy = LTB.toLazyText . build
   where
     build = \case
         SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
@@ -45,7 +45,7 @@ displayLazy = LTB.toLazyText . build
         SStylePush _ x -> build x
         SStylePop x    -> build x
 
--- | @('displayLazy' sdoc)@ takes the output @sdoc@ from a rendering and
+-- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-displayStrict :: SimpleDoc -> Text
-displayStrict = LT.toStrict . displayLazy
+renderStrict :: SimpleDoc -> Text
+renderStrict = LT.toStrict . renderLazy

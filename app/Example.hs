@@ -2,10 +2,13 @@
 
 module Main (main) where
 
+
+
 import Data.Text.PrettyPrint.Doc
-import Data.Text.PrettyPrint.Doc.Display.Terminal
+import Data.Text.PrettyPrint.Doc.Render.Terminal
 
 import System.IO
+
 
 
 main :: IO ()

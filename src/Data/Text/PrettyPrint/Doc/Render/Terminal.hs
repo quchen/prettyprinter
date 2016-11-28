@@ -1,13 +1,13 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Display 'SimpleDoc' in a terminal.
-module Data.Text.PrettyPrint.Doc.Display.Terminal (
+-- | Render 'SimpleDoc' in a terminal.
+module Data.Text.PrettyPrint.Doc.Render.Terminal (
     -- * Conversion to ANSI-infused 'Text'
-    displayLazy, displayStrict,
+    renderLazy, renderStrict,
 
-    -- * Display directly to the terminal
-    displayIO,
+    -- * Render directly to the terminal
+    renderIO,
 
     -- ** Convenience
     --
@@ -41,11 +41,11 @@ import Data.Text.PrettyPrint.Doc
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.Lazy.IO as TL
 -- >>> import qualified Data.Text.Lazy as TL
--- >>> import Data.Text.PrettyPrint.Doc.Display.Terminal
+-- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
 
 
 
--- | @('displayLazy' doc)@ takes the output @doc@ from a rendering function
+-- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
 -- like colorization.
 --
@@ -56,16 +56,16 @@ import Data.Text.PrettyPrint.Doc
 -- With a bit of trickery to make the ANSI codes printable, here is an example
 -- that would render coloured in an ANSI terminal:
 --
--- >>> let display = TL.putStrLn . TL.replace "\ESC" "\\ESC" . displayLazy . renderPretty 0.4 80
+-- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\ESC" . renderLazy . layoutPretty 0.4 80
 -- >>> let doc = "Wo" <> bold "ah" <+> align (vsep [red "coloured", green "text"])
--- >>> display (plain doc)
+-- >>> render (plain doc)
 -- Woah coloured
 --      text
--- >>> display doc
+-- >>> render doc
 -- Wo\ESC[0;1mah\ESC[0m \ESC[0;91mcoloured\ESC[0m
 --      \ESC[0;92mtext\ESC[0m
-displayLazy :: SimpleDoc -> LT.Text
-displayLazy doc
+renderLazy :: SimpleDoc -> LT.Text
+renderLazy doc
   = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) [emptyStyle]
     in case remainingStyles of
         [] -> error "There is no empty style left at the end of rendering\
@@ -153,20 +153,20 @@ stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
 
 
 
--- | @('displayStrict' sdoc)@ takes the output @sdoc@ from a rendering and
+-- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-displayStrict :: SimpleDoc -> Text
-displayStrict = LT.toStrict . displayLazy
+renderStrict :: SimpleDoc -> Text
+renderStrict = LT.toStrict . renderLazy
 
 
 
--- | @('displayIO' h sdoc)@ writes @sdoc@ to the file @h@.
-displayIO :: Handle -> SimpleDoc -> IO ()
-displayIO h sdoc = LT.hPutStrLn h (displayLazy sdoc)
+-- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+renderIO :: Handle -> SimpleDoc -> IO ()
+renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
 -- | @putDoc doc@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters (see
--- 'renderPretty' for documentation of those values.)
+-- 'layoutPretty' for documentation of those values.)
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -183,16 +183,16 @@ putDocW = hPutDocW stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
 -- handle, e.g. a file or a socket. Uses a line length of 80, and a ribbon width
--- of 32 characters (see 'renderPretty' for documentation of those values).
+-- of 32 characters (see 'layoutPretty' for documentation of those values).
 --
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'displayIO' h ('renderPretty' 0.4 80 doc)
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = displayIO h (renderPretty 0.4 80 doc)
+hPutDoc h doc = renderIO h (layoutPretty 0.4 80 doc)
 
 -- | 'hPutDocW', but with a page width parameter.
 hPutDocW :: Handle -> Int -> Doc -> IO ()
-hPutDocW h w doc = displayIO h (renderPretty 0.4 w doc)
+hPutDocW h w doc = renderIO h (layoutPretty 0.4 w doc)
