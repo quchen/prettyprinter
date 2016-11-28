@@ -2,7 +2,6 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
------------------------------------------------------------------------------
 -- |
 -- Module      :  Text.PrettyPrint.ANSI.Leijen
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
@@ -17,26 +16,8 @@
 -- This module defines a prettyprinter to format text in a flexible and
 -- convenient way.
 --
--- It is based on previous work by Daan Leijen and Max Bolingbroke, who
--- implemented and significantly extended the prettyprinter given by a paper by
--- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
--- convenience functions, styling, and new functionality. Their package,
--- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint>/ is widely
--- used in the Haskell ecosystem.
---
--- However, ansi-wl-pprint is showing its age, resulting in several
--- shortcomings:
---
---   - Definitions clashing with others that are now standard Haskell, such as
---     @\<$>@
---   - Hard to read operators, such as @\<//>@
---   - Some undocumented definitions, not many examples
---   - Based on 'String' instead of 'Text'
-
+-- __TODO__ example
 module Data.Text.PrettyPrint.Doc (
-    -- * The algebra of pretty-printing
-    -- $DocumentAlgebra
-
     -- * Documents
     Doc,
 
@@ -47,12 +28,12 @@ module Data.Text.PrettyPrint.Doc (
     --
     -- | The functions in this section cannot be described by Wadler's original
     -- functions. They align their output relative to the current output
-    -- position — in contrast to @nest@ which always aligns to the current
-    -- nesting level. This deprives these functions from being \`optimal\'. In
+    -- position - in contrast to @'nest'@ which always aligns to the current
+    -- nesting level. This deprives these functions from being \'optimal\'. In
     -- practice however they prove to be very useful. The functions in this
     -- section should be used with care, since they are more expensive than the
-    -- other functions. For example, @align@ shouldn't be used to pretty print
-    -- all top-level declarations of a language, but using @hang@ for let
+    -- other functions. For example, @'align'@ shouldn't be used to pretty print
+    -- all top-level declarations of a language, but using @'hang'@ for let
     -- expressions is fine.
     align, hang, indent, encloseSep, list, tupled,
 
@@ -60,29 +41,46 @@ module Data.Text.PrettyPrint.Doc (
     (<>), (<+>),
 
     -- * List functions
-    hsep, vsep, fillSep, sep, vcat, fillCat, cat, punctuate,
+    --
+    -- | The 'sep' and 'cat' functions differ in one detail: when 'group'ed, the
+    -- 'sep's replace newlines wich 'space's, while the 'cat's simply remove
+    -- them.
+
+    -- ** 'sep' family
+    --
+    -- | When 'group'ed, these will replace newlines with spaces.
+    hsep, vsep, fillSep, sep,
+    -- ** 'cat' family
+    --
+    -- | When 'group'ed, these will remove newlines.
+    hcat, vcat, fillCat, cat,
+    -- ** Others
+    punctuate,
 
     -- * Reactive/conditional rendering
-    column, columns, nesting, width,
+    --
+    -- | Render documents differently based on the current conditions.
+    column, nesting, width, pageWidth,
 
     -- * Filler functions
+    --
+    -- | Fill up empty space to align documents after a certain gap.
     fill, fillBreak,
 
     -- * Bracketing functions
+    --
+    -- | Enclose documents in common ways.
     enclose, squotes, dquotes, parens, angles, braces, brackets,
 
     -- * Named character functions
+    --
+    -- | Convenience definitions for common special characters.
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
     dquote, semi, colon, comma, space, dot, backslash, equals,
 
-    -- * ANSI formatting functions
-    --
-    -- | This terminal formatting functionality is, as far as possible, portable
-    -- across platforms with their varying terminals. However, note that to
-    -- display ANSI colors and formatting will only be displayed on Windows
-    -- consoles if the 'Doc' value is output using the 'putDoc' function or one
-    -- of its friends.  Rendering the 'Doc' to a 'String' and then outputing
-    -- /that/ will only work on Unix-style operating systems.
+    -- * Styling
+
+    Style(..), SColor(..), SIntensity(..), SLayer(..),
 
     -- ** Forecolor functions
     black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
@@ -93,41 +91,40 @@ module Data.Text.PrettyPrint.Doc (
     ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue,
     ondullmagenta, ondullcyan, ondullwhite,
 
-    -- ** Emboldening functions
-    bold, debold,
+    -- ** Font style functions
+    bold, italics, underline,
 
-    -- ** Underlining functions
-    underline, deunderline,
-
-    -- ** Formatting elimination functions
+    -- ** Remove formatting
     plain,
 
     -- * Pretty class
     Pretty(..),
 
-    -- * Rendering and displaying documents
-
-    -- ** Simple (i.e., rendered) documents
+    -- * Rendering
+    --
+    -- | Rendering produces a straightforward 'SimpleDoc' based on parameters
+    -- such as page width and ribbon size, by evaluating how a 'Doc' fits these
+    -- constraints the best.
     SimpleDoc(..),
     renderPretty, renderCompact, renderSmart,
 
+    -- * Notes
+
+    -- ** Historical
+    --
+    -- $history
+
+    -- ** Algebraic properties
+    --
+    -- $algebra
+
 ) where
 
-import           Data.Maybe          (catMaybes)
 import           Data.Monoid
-import qualified Data.Semigroup      as Semi (Semigroup ((<>)))
-import           Data.String         (IsString (..))
-import           Data.Text           (Text)
-import qualified Data.Text           as T
-import           System.Console.ANSI
-    ( Color (..)
-    , ColorIntensity (..)
-    , ConsoleIntensity (..)
-    , ConsoleLayer (..)
-    , SGR (..)
-    , Underlining (..)
-    , setSGRCode
-    )
+import qualified Data.Semigroup as Semi (Semigroup ((<>)))
+import           Data.String    (IsString (..))
+import           Data.Text      (Text)
+import qualified Data.Text      as T
 
 
 
@@ -172,10 +169,10 @@ encloseSep
     -> Doc   -- ^ separator
     -> [Doc] -- ^ input documents
     -> Doc
-encloseSep left right sep ds = case ds of
-    []  -> left <> right
-    [d] -> left <> d <> right
-    _   -> align (cat (zipWith (<>) (left : repeat sep) ds) <> right)
+encloseSep l r s ds = case ds of
+    []  -> l <> r
+    [d] -> l <> d <> r
+    _   -> align (cat (zipWith (<>) (l : repeat s) ds) <> r)
 
 
 
@@ -198,20 +195,23 @@ punctuate _ [] = []
 punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
 
-
 -- | @'sep' xs@ tries rendering the documents @xs@ separated with 'space's, and
--- if this does not fit the page, separates them with newlines.
+-- if this does not fit the page, separates them with newlines. This is what
+-- differentiates it from 'vsep', which always renders its contents beneath each
+-- other.
 --
--- In other words, @'sep'@ is @'vsep'@ with @'group'@ baked in.
---
--- >>> let doc = "some" <+> sep ["text", "to", "lay", "out"]
+-- >>> let doc = "prefix" <+> sep ["text", "to", "lay", "out"]
 -- >>> putDocW 80 doc
--- some text to lay out
+-- prefix text to lay out
 -- >>> putDocW 20 doc
--- some text
+-- prefix text
 -- to
 -- lay
 -- out
+--
+-- @
+-- 'sep' = 'group' . 'vsep'
+-- @
 sep :: [Doc] -> Doc
 sep = group . vsep
 
@@ -248,8 +248,8 @@ hsep = concatWith (<+>)
 --
 -- Using 'vsep' alone yields
 --
--- >>> putDoc ("some" <+> vsep (["text", "to", "lay", "out"]))
--- some text
+-- >>> putDoc ("prefix" <+> vsep (["text", "to", "lay", "out"]))
+-- prefix text
 -- to
 -- lay
 -- out
@@ -261,19 +261,18 @@ hsep = concatWith (<+>)
 -- The 'align' function can be used to align the documents under their first
 -- element:
 --
--- >>> putDoc ("some" <+> align (vsep (["text", "to", "lay", "out"])))
--- some text
---      to
---      lay
---      out
+-- >>> putDoc ("prefix" <+> align (vsep (["text", "to", "lay", "out"])))
+-- prefix text
+--        to
+--        lay
+--        out
 vsep :: [Doc] -> Doc
 vsep = concatWith above
 
 -- | @('cat' xs)@ tries rendering the documents @xs@ separated with nothing, and
--- if this does not fit the page, separates them with newlines.
---
--- In other words, @'sep'@ is @'vsep'@ with @'group'@ baked in, just like
--- @'sep'@ is to @'vsep'@.
+-- if this does not fit the page, separates them with newlines. This is what
+-- differentiates it from 'vcat', which always renders its contents beneath each
+-- other.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
@@ -282,6 +281,10 @@ vsep = concatWith above
 -- Docs: lorem
 -- ipsum
 -- dolor
+--
+-- @
+-- 'cat' = 'group' . 'vcat'
+-- @
 cat :: [Doc] -> Doc
 cat = group . vcat
 
@@ -305,7 +308,10 @@ cat = group . vcat
 fillCat :: [Doc] -> Doc
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
--- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@.
+-- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@
+-- (i.e. without any spacing).
+--
+-- It is provided only for consistency, since it is identical to 'mconcat'.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDoc (hcat docs)
@@ -338,6 +344,10 @@ concatWith f ds = foldr1 f ds
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
+--
+-- @
+-- x '<+>' y = x '<>' 'space' '<>' y
+-- @
 (<+>) :: Doc -> Doc -> Doc
 x <+> y = x <> space <> y
 
@@ -358,6 +368,10 @@ above' x y = x <> line' <> y
 -- >>> putDocW 40 ("lorem ipsum" <> softline <> "dolor sit amet")
 -- lorem ipsum
 -- dolor sit amet
+--
+-- @
+-- 'softline' = 'group' 'line'
+-- @
 softline :: Doc
 softline = group line
 
@@ -372,6 +386,10 @@ softline = group line
 -- >>> putDocW 40 ("lorem ipsum" <> softline' <> "dolor sit amet")
 -- lorem ipsum
 -- dolor sit amet
+--
+-- @
+-- 'softline'' = 'group' 'line''
+-- @
 softline' :: Doc
 softline' = group line'
 
@@ -408,8 +426,12 @@ brackets = enclose lbracket rbracket
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.
 --
--- >>> putDoc (enclose "AAA" "ZZZ" "…")
--- AAA…ZZZ
+-- >>> putDoc (enclose "A" "Z" "…")
+-- A…Z
+--
+-- @
+-- 'enclose' l r x = l '<>' x '<>' r
+-- @
 enclose :: Doc -> Doc -> Doc -> Doc
 enclose l r x = l <> x <> r
 
@@ -488,24 +510,7 @@ backslash = char '\\'
 equals :: Doc
 equals = char '='
 
--- | @('text' t)@ concatenates all characters in @t@ using @line@ for newline
--- characters and @char@ for all other characters. The 'IsString' instance of
--- 'Doc' uses this function.
---
--- >>> putDoc "hello\nworld"
--- hello
--- world
-text :: Text -> Doc
-text t = case T.uncons t of
-    Nothing -> Empty
-    Just ('\n', rest) -> line <> text rest
-    _otherwise -> vsep (map unsafeText (T.splitOn "\n" t))
 
-
-
------------------------------------------------------------
--- overloading "pretty"
------------------------------------------------------------
 
 -- | The member @'prettyList'@ is only used to define the @instance
 -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
@@ -525,7 +530,6 @@ class Pretty a where
 -- [1,2,3]
 instance Pretty a => Pretty [a] where
     pretty = prettyList
-
 
 -- | Identity transformation.
 --
@@ -635,46 +639,42 @@ fillBreak f x = width x (\w ->
         then nest f line'
         else spaces (f - w))
 
--- | @('width' doc f)@ renders the document 'doc', and makes the width of it
--- available to a function.
---
--- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
--- >>> putDoc (align (vsep (map annotate ["123", "123456", indent 3 "4567", vsep ["123", indent 3 "4567"]])))
--- [123] <- width: 5
--- [123456] <- width: 8
--- [   4567] <- width: 9
--- [123
---    4567] <- width: 8
-width :: Doc -> (Int -> Doc) -> Doc
-width doc f
-  = column (\colStart ->
-        doc <> column (\colEnd ->
-            f (colEnd - colStart)))
 
------------------------------------------------------------
--- semi primitive: Alignment and indentation
------------------------------------------------------------
 
--- | @('indent' i x)@ indents document @x@ with @i@ spaces.
+-- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
+-- current cursor position.
 --
--- >>> :{
--- putDocW 40 (indent 4 (fillSep (map text
---     (T.words "The indent function indents these words!"))))
--- :}
---     The indent
---     function indents
---     these words!
+-- >>> let doc = fillSep (map text (T.words "The indent function indents these words!"))
+-- >>> putDocW 40 ("prefix" <> indent 4 doc)
+-- prefix    The
+--           indent function
+--           indents these
+--           words!
+--
+-- @
+-- 'indent' i d = 'hang' i ({i spaces} <> d)
+-- @
 indent :: Int -> Doc -> Doc
 indent i d = hang i (spaces i <> d)
 
--- | @('hang' i x)@ renders document @x@ with a nesting level set to the current
--- column plus @i@.
+-- | @('hang' i x)@ renders document @x@ with a nesting level set to the
+-- /current column/ plus @i@. This differs from 'nest', which is based on the
+-- /current nesting level/ plus @i@. When you're not sure, try the more
+-- efficient 'nest' first.
 --
--- >>> let someWords = map text (T.words "The hang function indents these words!")
--- >>> putDocW 40 (hang 4 (fillSep someWords))
--- The hang
---     function indents
---     these words!
+-- >>> let doc = fillSep (map text (T.words "Indenting these words with hang or align"))
+-- >>> putDocW 40 ("prefix" <+> nest 4 doc)
+-- prefix Indenting
+--     these words with
+--     hang or align
+-- >>> putDocW 40 ("prefix" <+> hang 4 doc)
+-- prefix Indenting
+--            these words with
+--            hang or align
+--
+-- @
+-- 'hang' i doc = 'align' ('nest' i doc)
+-- @
 hang :: Int -> Doc -> Doc
 hang i d = align (nest i d)
 
@@ -684,6 +684,9 @@ hang i d = align (nest i d)
 -- As an example, we will put a document right above another one, regardless of
 -- the current nesting level:
 --
+-- >>> putDoc ("lorem" <+> (vsep ["ipsum", "dolor"]))
+-- lorem ipsum
+-- dolor
 -- >>> putDoc ("lorem" <+> (align (vsep ["ipsum", "dolor"])))
 -- lorem ipsum
 --       dolor
@@ -691,10 +694,6 @@ align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 
-
------------------------------------------------------------
--- Primitives
------------------------------------------------------------
 
 -- | The abstract data type @Doc@ represents pretty documents.
 --
@@ -711,7 +710,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- world
 data Doc =
       Fail -- ^ Occurs when flattening a line. It is a bug if this is possible.
-    | Empty -- ^ The empty document; unit of 'Cat' (observationally)
+    | Empty -- ^ The empty document; unit of Cat (observationally)
     | Char Char -- ^ invariant: char is not '\n'
     | Text Text -- ^ invariant: text doesn't contain '\n'
     | Line -- ^ Line break
@@ -719,37 +718,49 @@ data Doc =
     | Cat Doc Doc -- ^ Concatenation of two documents
     | Nest !Int Doc -- ^ Document indented by a number of columns
     | Union Doc Doc -- ^ invariant: first lines of first doc longer than the first lines of the second doc
-    | Column  (Int -> Doc)
-    | Columns (Maybe Int -> Doc)
-    | Nesting (Int -> Doc)
-    | Color ConsoleLayer ColorIntensity
-            Color Doc -- ^ Introduces coloring /around/ the embedded document
-    | Intensify ConsoleIntensity Doc
-    | Italicize Bool Doc
-    | Underline Underlining Doc
-    | RestoreFormat (Maybe (ColorIntensity, Color))  -- Only used during the rendered phase, to signal a SGR should be issued to restore the terminal formatting.
-                    (Maybe (ColorIntensity, Color))  -- These are the colors to revert the current forecolor/backcolor to (i.e. those from before the start of the Color block).
-                    (Maybe ConsoleIntensity)         -- Intensity to revert to.
-                    (Maybe Bool)                     -- Italicization to revert to.
-                    (Maybe Underlining)              -- Underlining to revert to.
+    | Column (Int -> Doc) -- ^ React on the current cursor position, see 'column'
+    | PageWidth (Maybe Int -> Doc) -- ^ React on the document's width, see 'pageWidth'
+    | Nesting (Int -> Doc) -- ^ React on the current nesting level, see 'nesting'
+    | StylePush Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
+    | StylePop -- ^ Remove one previously pushed style. Used only during rendering.
+
+data Style =
+      SItalicized
+    | SBold
+    | SUnderlined
+    | SColor SLayer SIntensity SColor
+
+data SColor = SBlack | SRed | SGreen | SYellow | SBlue | SMagenta | SCyan | SWhite
+data SIntensity = SVivid | SDull
+data SLayer = SForeground | SBackground
 
 -- | The data type @SimpleDoc@ represents rendered documents and is used by the
 -- display functions.
 --
--- Whereas values of the data type 'Doc' represent non-empty sets of possible
--- renderings of a document, values of the data type @SimpleDoc@ represent
--- single renderings of a document.
+-- A simplified view is that @'Doc' = ['SimpleDoc']@, and the rendering
+-- functions pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all
+-- complexity contained in 'Doc' resolved, making it very easy to convert it to
+-- other formats, such as plain text or terminal output.
 --
--- The library provides two default display functions 'displayLazyText' and
--- 'displayIO'. You can provide your own display function by writing a function
--- from a @SimpleDoc@ to your own output format.
+-- To write your own Doc to X converter, it is therefore sufficient to convert
+-- from 'SimpleDoc'.
 data SimpleDoc =
       SFail
     | SEmpty
     | SChar Char SimpleDoc
     | SText Text SimpleDoc
-    | SLine !Int SimpleDoc -- ^ @Int@ = indentation level for the line
-    | SSGR [SGR] SimpleDoc
+
+    -- | @Int@ = indentation level for the line
+    | SLine !Int SimpleDoc
+
+    -- | Apply a style to the remaining document. The display function should do
+    -- this until it hits a 'SStylePop' entry.
+    | SStylePush Style SimpleDoc
+
+    -- | Undo one previously set 'SStylePush'.
+    | SStylePop SimpleDoc
+
+
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -760,28 +771,47 @@ instance Monoid Doc where
 instance Semi.Semigroup Doc where
     (<>) = Cat
 
--- MCB: also added when "pretty" got the corresponding instances:
+-- | >>> putDoc "hello\nworld"
+-- hello
+-- world
 instance IsString Doc where
     fromString = text . T.pack
 
--- | @('char' c)@ contains the literal character @c@. If the character is a
--- a newline (@'\n'@), consider using 'line' instead.
+-- | @('char' c)@ contains the literal character @c@.
+--
+-- Instead of @('char' '\n')@, consider using @'line'@ as a more readable
+-- alternative.
+--
+-- >>> putDoc (char 'f' <> char 'o' <> char 'o')
+-- foo
 char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @('unsafeText' s)@ contains the literal string @s@. The string must not
--- contain any newline (@'\n'@) characters, since this is an invariant of the
--- 'Doc' type. If you're not sure, use the safer 'text'.
-unsafeText :: Text -> Doc
-unsafeText  t
-  | T.null t = Empty
-  | otherwise = Text t
+-- | @('text' t)@ concatenates all lines in @t@ using @'line'@. The 'IsString'
+-- instance of 'Doc' uses this function.
+--
+-- >>> putDoc (text "hello\nworld")
+-- hello
+-- world
+text :: Text -> Doc
+text = vsep . map unsafeText . T.splitOn "\n"
 
--- | The @line@ document advances to the next line and indents to the current
+-- | @(unsafeText s)@ contains the literal string @s@.
+--
+-- The string must not contain any newline characters, since this is an
+-- invariant of the 'Text' constructor. If you're not sure, use the safer
+-- 'text'.
+unsafeText :: Text -> Doc
+unsafeText t = case T.compareLength t 1 of
+    LT -> Empty
+    EQ -> Char (T.head t)
+    GT -> Text t
+
+-- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
 --
--- @line@ behaves like @'space'@ if the line break is undone by 'group'.
+-- @'line'@ behaves like @'space'@ if the line break is undone by 'group'.
 --
 -- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
 -- >>> putDoc doc
@@ -792,8 +822,8 @@ unsafeText  t
 line :: Doc
 line = FlatAlt Line space
 
--- | @'line''@ behaves like @'line'@, but behaves like @'mempty'@ if the line
--- break is undone by 'group' (instead of @'space'@).
+-- | @'line''@ is like @'line'@, but behaves like @'mempty'@ if the line break
+-- is undone by 'group' (instead of @'space'@).
 --
 -- >>> let doc = "lorem ipsum" <> line' <> "dolor sit amet"
 -- >>> putDoc doc
@@ -850,23 +880,39 @@ column = Column
 nesting :: (Int -> Doc) -> Doc
 nesting = Nesting
 
--- | Render a document depending on the page width.
+-- | Render a document depending on the page width, if one has been specified.
 --
--- >>> let doc = "prefix" <+> columns (\l -> brackets ("Width:" <+> pretty l))
--- >>> putDocW 64 (vsep [indent n doc | n <- [0,4,8]])
--- prefix [Width: 64]
---     prefix [Width: 64]
---         prefix [Width: 64]
+-- >>> let doc = "prefix" <+> pageWidth (\l -> brackets ("Width:" <+> pretty l))
+-- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
+-- prefix [Width: 32]
+--     prefix [Width: 32]
+--         prefix [Width: 32]
 --
--- Whether the page width is @'Just' n@ or @Nothing@ depends on the renderer. Of
--- the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
+-- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the renderer.
+-- Of the default renderers, @'renderCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
-columns :: (Maybe Int -> Doc) -> Doc
-columns = Columns
+pageWidth :: (Maybe Int -> Doc) -> Doc
+pageWidth = PageWidth
 
--- | @('group' x)@ undoes all line breaks in document @x@. The resulting line is
--- added to the current line if that fits the page. Otherwise, the document @x@
--- is rendered without any changes.
+-- | @('width' doc f)@ renders the document 'doc', and makes the column width of
+-- it available to a function.
+--
+-- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
+-- >>> putDoc (align (vsep (map annotate ["123", "123456", indent 3 "4567", vsep ["123", indent 3 "4567"]])))
+-- [123] <- width: 5
+-- [123456] <- width: 8
+-- [   4567] <- width: 9
+-- [123
+--    4567] <- width: 8
+width :: Doc -> (Int -> Doc) -> Doc
+width doc f
+  = column (\colStart ->
+        doc <> column (\colEnd ->
+            f (colEnd - colStart)))
+
+-- | @('group' x)@ undoes all line breaks in document @x@. The result is added
+-- to the current line if this still fits into the page. Otherwise, the document
+-- @x@ is rendered without any changes.
 --
 -- See 'vcat' and 'line' for examples.
 group :: Doc -> Doc
@@ -880,206 +926,122 @@ flatten = \case
     Line          -> Fail
     Union x _     -> flatten x
     Column f      -> Column (flatten . f)
-    Columns f     -> Columns (flatten . f)
+    PageWidth f   -> PageWidth (flatten . f)
     Nesting f     -> Nesting (flatten . f)
-    Color l i c x -> Color l i c (flatten x)
-    Intensify i x -> Intensify i (flatten x)
-    Italicize b x -> Italicize b (flatten x)
-    Underline u x -> Underline u (flatten x)
-    other         -> other
+    StylePush s x -> StylePush s (flatten x)
 
------------------------------------------------------------
--- Colors
------------------------------------------------------------
+    x@Fail       -> x
+    x@Empty      -> x
+    x@Char{}     -> x
+    x@Text{}     -> x
+    x@StylePop{} -> x
 
--- | Displays a document with the black forecolor
 black :: Doc -> Doc
--- | Displays a document with the red forecolor
+black = StylePush (SColor SForeground SVivid SBlack)
 red :: Doc -> Doc
--- | Displays a document with the green forecolor
+red = StylePush (SColor SForeground SVivid SRed)
 green :: Doc -> Doc
--- | Displays a document with the yellow forecolor
+green = StylePush (SColor SForeground SVivid SGreen)
 yellow :: Doc -> Doc
--- | Displays a document with the blue forecolor
+yellow = StylePush (SColor SForeground SVivid SYellow)
 blue :: Doc -> Doc
--- | Displays a document with the magenta forecolor
+blue = StylePush (SColor SForeground SVivid SBlue)
 magenta :: Doc -> Doc
--- | Displays a document with the cyan forecolor
+magenta = StylePush (SColor SForeground SVivid SMagenta)
 cyan :: Doc -> Doc
--- | Displays a document with the white forecolor
+cyan = StylePush (SColor SForeground SVivid SCyan)
 white :: Doc -> Doc
--- | Displays a document with the dull black forecolor
+white = StylePush (SColor SForeground SVivid SWhite)
 dullblack :: Doc -> Doc
--- | Displays a document with the dull red forecolor
+dullblack = StylePush (SColor SForeground SDull SBlack)
 dullred :: Doc -> Doc
--- | Displays a document with the dull green forecolor
+dullred = StylePush (SColor SForeground SDull SRed)
 dullgreen :: Doc -> Doc
--- | Displays a document with the dull yellow forecolor
+dullgreen = StylePush (SColor SForeground SDull SGreen)
 dullyellow :: Doc -> Doc
--- | Displays a document with the dull blue forecolor
+dullyellow = StylePush (SColor SForeground SDull SYellow)
 dullblue :: Doc -> Doc
--- | Displays a document with the dull magenta forecolor
+dullblue = StylePush (SColor SForeground SDull SBlue)
 dullmagenta :: Doc -> Doc
--- | Displays a document with the dull cyan forecolor
+dullmagenta = StylePush (SColor SForeground SDull SMagenta)
 dullcyan :: Doc -> Doc
--- | Displays a document with the dull white forecolor
+dullcyan = StylePush (SColor SForeground SDull SCyan)
 dullwhite :: Doc -> Doc
-(black, dullblack) = colorFunctions Black
-(red, dullred) = colorFunctions Red
-(green, dullgreen) = colorFunctions Green
-(yellow, dullyellow) = colorFunctions Yellow
-(blue, dullblue) = colorFunctions Blue
-(magenta, dullmagenta) = colorFunctions Magenta
-(cyan, dullcyan) = colorFunctions Cyan
-(white, dullwhite) = colorFunctions White
+dullwhite = StylePush (SColor SForeground SDull SWhite)
 
--- | Displays a document with a forecolor given in the first parameter
-color :: Color -> Doc -> Doc
--- | Displays a document with a dull forecolor given in the first parameter
-dullcolor :: Color -> Doc -> Doc
-color = Color Foreground Vivid
-dullcolor = Color Foreground Dull
-
-colorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
-colorFunctions what = (color what, dullcolor what)
-
--- | Displays a document with the black backcolor
 onblack :: Doc -> Doc
--- | Displays a document with the red backcolor
+onblack = StylePush (SColor SBackground SVivid SBlack)
 onred :: Doc -> Doc
--- | Displays a document with the green backcolor
+onred = StylePush (SColor SBackground SVivid SRed)
 ongreen :: Doc -> Doc
--- | Displays a document with the yellow backcolor
+ongreen = StylePush (SColor SBackground SVivid SGreen)
 onyellow :: Doc -> Doc
--- | Displays a document with the blue backcolor
+onyellow = StylePush (SColor SBackground SVivid SYellow)
 onblue :: Doc -> Doc
--- | Displays a document with the magenta backcolor
+onblue = StylePush (SColor SBackground SVivid SBlue)
 onmagenta :: Doc -> Doc
--- | Displays a document with the cyan backcolor
+onmagenta = StylePush (SColor SBackground SVivid SMagenta)
 oncyan :: Doc -> Doc
--- | Displays a document with the white backcolor
+oncyan = StylePush (SColor SBackground SVivid SCyan)
 onwhite :: Doc -> Doc
--- | Displays a document with the dull black backcolor
+onwhite = StylePush (SColor SBackground SVivid SWhite)
 ondullblack :: Doc -> Doc
--- | Displays a document with the dull red backcolor
+ondullblack = StylePush (SColor SBackground SDull SBlack)
 ondullred :: Doc -> Doc
--- | Displays a document with the dull green backcolor
+ondullred = StylePush (SColor SBackground SDull SRed)
 ondullgreen :: Doc -> Doc
--- | Displays a document with the dull yellow backcolor
+ondullgreen = StylePush (SColor SBackground SDull SGreen)
 ondullyellow :: Doc -> Doc
--- | Displays a document with the dull blue backcolor
+ondullyellow = StylePush (SColor SBackground SDull SYellow)
 ondullblue :: Doc -> Doc
--- | Displays a document with the dull magenta backcolor
+ondullblue = StylePush (SColor SBackground SDull SBlue)
 ondullmagenta :: Doc -> Doc
--- | Displays a document with the dull cyan backcolor
+ondullmagenta = StylePush (SColor SBackground SDull SMagenta)
 ondullcyan :: Doc -> Doc
--- | Displays a document with the dull white backcolor
+ondullcyan = StylePush (SColor SBackground SDull SCyan)
 ondullwhite :: Doc -> Doc
-(onblack, ondullblack) = oncolorFunctions Black
-(onred, ondullred) = oncolorFunctions Red
-(ongreen, ondullgreen) = oncolorFunctions Green
-(onyellow, ondullyellow) = oncolorFunctions Yellow
-(onblue, ondullblue) = oncolorFunctions Blue
-(onmagenta, ondullmagenta) = oncolorFunctions Magenta
-(oncyan, ondullcyan) = oncolorFunctions Cyan
-(onwhite, ondullwhite) = oncolorFunctions White
+ondullwhite = StylePush (SColor SBackground SDull SWhite)
 
--- | Displays a document with a backcolor given in the first parameter
-oncolor :: Color -> Doc -> Doc
--- | Displays a document with a dull backcolor given in the first parameter
-ondullcolor :: Color -> Doc -> Doc
-oncolor = Color Background Vivid
-ondullcolor = Color Background Dull
-
-oncolorFunctions :: Color -> (Doc -> Doc, Doc -> Doc)
-oncolorFunctions what = (oncolor what, ondullcolor what)
-
------------------------------------------------------------
--- Console Intensity
------------------------------------------------------------
-
--- | Displays a document in a heavier font weight
 bold :: Doc -> Doc
-bold = Intensify BoldIntensity
+bold = StylePush SBold
 
--- | Displays a document in the normal font weight
-debold :: Doc -> Doc
-debold = Intensify NormalIntensity
+italics :: Doc -> Doc
+italics = StylePush SItalicized
 
--- NB: I don't support FaintIntensity here because it is not widely supported by
--- terminals.
-
------------------------------------------------------------
--- Italicization
------------------------------------------------------------
-
-{-
-
-I'm in two minds about providing these functions, since italicization is so
-rarely implemented. It is especially bad because "italicization" may cause the
-meaning of colors to flip, which will look a bit weird, to say the least...
-
--- | Displays a document in italics. This is not widely supported, and it's use
--- is not recommended
-italicize :: Doc -> Doc
-italicize = Italicize True
-
--- | Displays a document with no italics
-deitalicize :: Doc -> Doc
-deitalicize = Italicize False
-
--}
-
------------------------------------------------------------
--- Underlining
------------------------------------------------------------
-
--- | Displays a document with underlining
 underline :: Doc -> Doc
-underline = Underline SingleUnderline
+underline = StylePush SUnderlined
 
--- | Displays a document with no underlining
-deunderline :: Doc -> Doc
-deunderline = Underline NoUnderline
-
--- NB: I don't support DoubleUnderline here because it is not widely supported by terminals.
-
------------------------------------------------------------
--- Removing formatting
------------------------------------------------------------
-
--- | Removes all colorisation, emboldening and underlining from a document
+-- | Remove all styling information.
+--
+-- Although 'plain' is idempotent,
+--
+-- @
+-- 'plain' . 'plain' = 'plain'
+-- @
+--
+-- it should not be used without caution, for each invocation traverses the
+-- entire contained document. The most common place to use 'plain' is just
+-- before rendering.
 plain :: Doc -> Doc
 plain = \case
-    Fail            -> Fail
-    e@Empty         -> e
-    c@(Char _)      -> c
-    t@(Text _)      -> t
-    l@Line          -> l
-    FlatAlt x y     -> FlatAlt (plain x) (plain y)
-    Cat x y         -> Cat (plain x) (plain y)
-    Nest i x        -> Nest i (plain x)
-    Union x y       -> Union (plain x) (plain y)
-    Column f        -> Column (plain . f)
-    Columns f       -> Columns (plain . f)
-    Nesting f       -> Nesting (plain . f)
-    Color _ _ _ x   -> plain x
-    Intensify _ x   -> plain x
-    Italicize _ x   -> plain x
-    Underline _ x   -> plain x
-    RestoreFormat{} -> Empty
+    Fail          -> Fail
+    FlatAlt x y   -> FlatAlt (plain x) (plain y)
+    Cat x y       -> Cat (plain x) (plain y)
+    Nest i x      -> Nest i (plain x)
+    Union x y     -> Union (plain x) (plain y)
+    Column f      -> Column (plain . f)
+    PageWidth f   -> PageWidth (plain . f)
+    Nesting f     -> Nesting (plain . f)
+    StylePush _ x -> plain x
 
------------------------------------------------------------
--- Renderers
------------------------------------------------------------
-
------------------------------------------------------------
--- renderPretty: the default pretty printing algorithm
------------------------------------------------------------
+    x@Empty      -> x
+    x@Char{}     -> x
+    x@Text{}     -> x
+    x@Line       -> x
+    x@StylePop{} -> x
 
 -- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
-data Docs = Nil
-          | Cons !Int Doc Docs
+data Docs = Nil | Cons !Int Doc Docs
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(renderPretty ribbonfrac width x)@ renders document @x@ with a
@@ -1097,9 +1059,9 @@ renderPretty = renderFits fits1
 --
 -- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
 --
--- If we put a softline' (+ nesting 2) after each open parenthesis, and align
--- the elements of the list to match the opening brackets, this will render with
--- @renderPretty@ and a page width of 20 as:
+-- If we put a 'softline'' (+ 'nest'ing 2) after each open parenthesis, and
+-- align the elements of the list to match the opening brackets, this will
+-- render with @renderPretty@ and a page width of 20 as:
 --
 -- @
 -- fun(fun(fun(fun(fun([
@@ -1131,99 +1093,120 @@ renderSmart :: Float -> Int -> Doc -> SimpleDoc
 renderSmart = renderFits fitsR
 
 renderFits
-    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. 'fits1'
-    -> Float -- ^ Ribbon fraction
+    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. fits1
+    -> Float -- ^ Ribbon fraction, typically around @0.5@
     -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
-renderFits fits rfrac w x
-    -- I used to do a @SSGR [Reset]@ here, but if you do that it will result in
-    -- any rendered @Doc@ containing at least some ANSI control codes. This may
-    -- be undesirable if you want to render to non-ANSI devices by simply not
-    -- making use of the ANSI color functions I provide.
-    --
-    -- What I "really" want to do here is do an initial Reset iff there is some
-    -- ANSI color within the Doc, but that's a bit fiddly. I'll fix it if
-    -- someone complains!
-  = best 0 0 Nothing Nothing Nothing Nothing Nothing (Cons 0 x Nil)
+renderFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
   where
-    -- r :: the ribbon width in characters
-    r = max 0 (min w (round (fromIntegral w * rfrac)))
+    ribbonWidth = max 0 (min maxColumns (round (fromIntegral maxColumns * rfrac)))
 
-    -- i: current column in the output
-    -- n: indentation of current line
-    -- k: current column
-    --   Therefore:
-    --     - k >= n
-    --     - k - n = count of inserted characters in current line
-    best _ _ _ _ _ _ _ Nil = SEmpty
-    best n k mb_fc mb_bc mb_in mb_it mb_un (Cons i d ds) = case d of
-      Fail          -> SFail
-      Empty         -> best_typical n k ds
-      Char c        -> let !k' = k+1          in SChar c (best_typical n k' ds)
-      Text t        -> let !k' = k+T.length t in SText t (best_typical n k' ds)
-      Line          -> SLine i (best_typical i i ds)
-      FlatAlt x _   -> best_typical n k (Cons i x ds)
-      Cat x y       -> best_typical n k (Cons i x (Cons i y ds))
-      Nest j x      -> let !i' = i+j in best_typical n k (Cons i' x ds)
-      Union x y     -> nicest n k (best_typical n k (Cons i x ds))
-                                  (best_typical n k (Cons i y ds))
-      Column f      -> best_typical n k (Cons i (f k) ds)
-      Columns f     -> best_typical n k (Cons i (f (Just w)) ds)
-      Nesting f     -> best_typical n k (Cons i (f i) ds)
-      Color l t c x -> SSGR [SetColor l t c] (best n k mb_fc' mb_bc' mb_in mb_it mb_un (Cons i x ds_restore))
-        where
-          mb_fc' = case l of { Background -> mb_fc; Foreground -> Just (t, c) }
-          mb_bc' = case l of { Background -> Just (t, c); Foreground -> mb_bc }
-      Intensify t x -> SSGR [SetConsoleIntensity t] (best n k mb_fc mb_bc (Just t) mb_it mb_un (Cons i x ds_restore))
-      Italicize t x -> SSGR [SetItalicized t] (best n k mb_fc mb_bc mb_in (Just t) mb_un (Cons i x ds_restore))
-      Underline u x -> SSGR [SetUnderlining u] (best n k mb_fc mb_bc mb_in mb_it (Just u) (Cons i x ds_restore))
-      RestoreFormat mb_fc' mb_bc' mb_in' mb_it' mb_un' -> SSGR sgrs (best n k mb_fc' mb_bc' mb_in' mb_it' mb_un' ds)
-        where
-          -- We need to be able to restore the entire SGR state, hence we
-          -- carry around what we believe that state should be in all the
-          -- arguments to this function. Note that in some cases we could
-          -- avoid the Reset of the entire state, but not in general.
-          sgrs = Reset : catMaybes [
-              fmap (uncurry (SetColor Foreground)) mb_fc',
-              fmap (uncurry (SetColor Background)) mb_bc',
-              fmap SetConsoleIntensity mb_in',
-              fmap SetItalicized mb_it',
-              fmap SetUnderlining mb_un'
-            ]
+    -- * current column >= current line's indentation
+    -- * current column - current indentaion = number of chars inserted in line
+    best
+        :: Int -- ^ Current line's indentation
+        -> Int -- ^ Current column
+        -> Docs -- ^ Documents remaining to be handled (in order)
+        -> SimpleDoc
+    best _ _ Nil = SEmpty
+    best lineIndent currentColumn (Cons i d ds) = case d of
+        Fail -> SFail
+
+        -- If the next chunk to convert is empty, we simply continue.
+        Empty -> best lineIndent currentColumn ds
+
+        -- To render a character, insert it and increase the column count by
+        -- one.
+        Char c -> let !col' = currentColumn+1
+                  in SChar c (best lineIndent col' ds)
+
+        -- To render text, insert it and increase the column count by the length
+        -- of the inserted text. Note that it is an invariant of 'Text' to not
+        -- contain any newlines, so we need not worry about wrapping and
+        -- resetting the column count.
+        Text t -> let !col' = currentColumn+T.length t
+                  in SText t (best lineIndent col' ds)
+
+        -- Insert a line break, and reset the current column to the current
+        -- indentation level.
+        Line -> SLine i (best i i ds)
+
+        -- An unflattened pair of alternatives is simply rendered as the first
+        -- alternative.
+        FlatAlt x _ -> best lineIndent currentColumn (Cons i x ds)
+
+        -- The concatenation of two documents is expanded to render one after
+        -- the other (duh).
+        Cat x y -> best lineIndent currentColumn (Cons i x (Cons i y ds))
+
+        -- A nested document is rendered by increasing the indentation index,
+        -- and then rendering the contained document.
+        Nest j x -> let !i' = i+j
+                    in best lineIndent currentColumn (Cons i' x ds)
+
+        -- The union of two documents tries rendering the first, and if this
+        -- does not fit the layout constraints, falls back to the second.
+        Union x y -> selectNicer lineIndent
+                                 currentColumn
+                                 (best lineIndent currentColumn (Cons i x ds))
+                                 (best lineIndent currentColumn (Cons i y ds))
+
+        -- A column-aware document is rendered by providing the contained
+        -- function with the current column.
+        Column f -> best lineIndent currentColumn (Cons i (f currentColumn) ds)
+
+        -- A page width aware document is rendered by providing the contained
+        -- function with the page width.
+        PageWidth f -> best lineIndent currentColumn (Cons i (f (Just maxColumns)) ds)
+
+        -- A nesting-aware document is rendered by providing the contained
+        -- function with the current indentation level.
+        Nesting f -> best lineIndent currentColumn (Cons i (f i) ds)
+
+        -- A styled document is rendered by rendering the contained document
+        -- with style information added, and appending a 'StylePop' to revert it
+        -- once its scope is left.
+        StylePush s x -> SStylePush s (best lineIndent currentColumn (Cons i x (Cons i StylePop ds)))
+
+        -- Popping a style ultimately instructs the displaying function to
+        -- revert to the style before the last 'StylePush'.
+        StylePop -> SStylePop (best lineIndent currentColumn ds)
+
+    selectNicer
+        :: Int       -- ^ Indentation of current line
+        -> Int       -- ^ Current column
+        -> SimpleDoc -- ^ Choice A. Invariant: first lines must be longer than B's.
+        -> SimpleDoc -- ^ Choice B.
+        -> SimpleDoc -- ^ The nicer one among A and B, depending on which one
+                     --   fits better.
+    selectNicer lineIndent currentColumn x y
+      | fits maxColumns minNestingLevel availableWidth x = x
+      | otherwise = y
       where
-        best_typical n' k' ds' = best n' k' mb_fc mb_bc mb_in mb_it mb_un ds'
-        ds_restore = Cons i (RestoreFormat mb_fc mb_bc mb_in mb_it mb_un) ds
+        minNestingLevel = min lineIndent currentColumn
+        availableWidth
+          = let columnsLeftInLine   = maxColumns - currentColumn
+                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+            in min columnsLeftInLine columnsLeftInRibbon
 
-        -- Invariant: first lines of A are longer than the first lines of B.
-        nicest
-            :: Int -- ^ indentation of current line
-            -> Int -- ^ current column
-            -> SimpleDoc -- ^ Choice A
-            -> SimpleDoc -- ^ Choice B
-            -> SimpleDoc
-        nicest n k x y
-          | fits w (min n k) width x = x
-          | otherwise = y
-          where
-            width = min (w - k) (r - k + n)
-
--- @fits1@ does 1 line lookahead.
+-- | @fits1@ does 1 line lookahead.
 fits1
     :: Int -- ^ Page width
-    -> Int -- ^ Minimum nesting level to fit in
+    -> int -- ^ Minimum nesting level to fit in. Unused by this algorithm.
     -> Int -- ^ Width in which to fit the first line
     -> SimpleDoc
     -> Bool
-fits1 _ _ w _ | w < 0   = False
-fits1 _ _ _ SFail       = False
-fits1 _ _ _ SEmpty      = True
-fits1 p m w (SChar _ x) = fits1 p m (w - 1) x
-fits1 p m w (SText t x) = fits1 p m (w - T.length t) x
-fits1 _ _ _ SLine{}     = True
-fits1 p m w (SSGR _ x)  = fits1 p m w x
+fits1 _ _ w _ | w < 0        = False
+fits1 _ _ _ SFail            = False
+fits1 _ _ _ SEmpty           = True
+fits1 p m w (SChar _ x)      = fits1 p m (w - 1) x
+fits1 p m w (SText t x)      = fits1 p m (w - T.length t) x
+fits1 _ _ _ SLine{}          = True
+fits1 p m w (SStylePush _ x) = fits1 p m w x
+fits1 p m w (SStylePop x)    = fits1 p m w x
 
--- @fitsR@ has a little more lookahead: assuming that nesting roughly
+-- | @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
 -- fits, but the entire syntactic structure being formatted at this level of
 -- indentation fits. If we were to remove the second case for @SLine@, we would
@@ -1237,20 +1220,16 @@ fitsR
     -> SimpleDoc
     -> Bool
 fitsR _ _ w _
-  | w < 0               = False
-fitsR _ _ _ SFail       = False
-fitsR _ _ _ SEmpty      = True
-fitsR p m w (SChar _ x) = fitsR p m (w - 1) x
-fitsR p m w (SText t x) = fitsR p m (w - T.length t) x
+  | w < 0                    = False
+fitsR _ _ _ SFail            = False
+fitsR _ _ _ SEmpty           = True
+fitsR p m w (SChar _ x)      = fitsR p m (w - 1) x
+fitsR p m w (SText t x)      = fitsR p m (w - T.length t) x
 fitsR p m _ (SLine i x)
-  | m < i               = fitsR p m (p - i) x
-  | otherwise           = True
-fitsR p m w (SSGR _ x)  = fitsR p m w x
-
------------------------------------------------------------
--- renderCompact: renders documents without indentation
---  fast and fewer characters output, good for machines
------------------------------------------------------------
+  | m < i                    = fitsR p m (p - i) x
+  | otherwise                = True
+fitsR p m w (SStylePush _ x) = fitsR p m w x
+fitsR p m w (SStylePop x)    = fitsR p m w x
 
 -- | @(renderCompact x)@ renders document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this renderer is very fast. The
@@ -1259,27 +1238,24 @@ fitsR p m w (SSGR _ x)  = fitsR p m w x
 --
 -- This rendering function does not add any colorisation information.
 renderCompact :: Doc -> SimpleDoc
-renderCompact x = scan 0 [x]
+renderCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
     scan k (d:ds) = case d of
-        Fail            -> SFail
-        Empty           -> scan k ds
-        Char c          -> let k' = k+1 in seq k' (SChar c (scan k' ds))
-        Text t          -> let k' = k+T.length t in seq k' (SText t (scan k' ds))
-        FlatAlt x _     -> scan k (x:ds)
-        Line            -> SLine 0 (scan 0 ds)
-        Cat x y         -> scan k (x:y:ds)
-        Nest _ x        -> scan k (x:ds)
-        Union _ y       -> scan k (y:ds)
-        Column f        -> scan k (f k:ds)
-        Columns f       -> scan k (f Nothing:ds)
-        Nesting f       -> scan k (f 0:ds)
-        Color _ _ _ x   -> scan k (x:ds)
-        Intensify _ x   -> scan k (x:ds)
-        Italicize _ x   -> scan k (x:ds)
-        Underline _ x   -> scan k (x:ds)
-        RestoreFormat{} -> scan k ds
+        Fail          -> SFail
+        Empty         -> scan k ds
+        Char c        -> let !k' = k+1 in SChar c (scan k' ds)
+        Text t        -> let !k' = k+T.length t in SText t (scan k' ds)
+        FlatAlt x _   -> scan k (x:ds)
+        Line          -> SLine 0 (scan 0 ds)
+        Cat x y       -> scan k (x:y:ds)
+        Nest _ x      -> scan k (x:ds)
+        Union _ y     -> scan k (y:ds)
+        Column f      -> scan k (f k:ds)
+        PageWidth f   -> scan k (f Nothing:ds)
+        Nesting f     -> scan k (f 0:ds)
+        StylePush _ x -> scan k (x:ds)
+        StylePop      -> scan k ds
 
 
 
@@ -1288,9 +1264,107 @@ instance Show Doc where
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail     -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty    -> id
-    SChar c x -> showChar c . displayString x
-    SText t x -> showString (T.unpack t) . displayString x
-    SLine i x -> showString ('\n':replicate i ' ') . displayString x
-    SSGR s x  -> showString (setSGRCode s) . displayString x
+    SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SEmpty         -> id
+    SChar c x      -> showChar c . displayString x
+    SText t x      -> showString (T.unpack t) . displayString x
+    SLine i x      -> showString ('\n':replicate i ' ') . displayString x
+    SStylePush _ x -> displayString x
+    SStylePop x    -> displayString x
+
+
+
+-- $history
+--
+-- This module is based on previous work by Daan Leijen and Max Bolingbroke, who
+-- implemented and significantly extended the prettyprinter given by a paper by
+-- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
+-- convenience functions, styling, and new functionality. Their package,
+-- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint> is widely
+-- used in the Haskell ecosystem.
+--
+-- However, ansi-wl-pprint is showing its age, resulting in several
+-- shortcomings:
+--
+--   - Definitions clashing with others that are now standard Haskell, such as
+--     @\<$>@
+--   - Hard to read operators, such as @\<//>@
+--   - Some undocumented definitions, not many examples
+--   - Based on 'String' instead of 'Text'
+--
+-- This modified package addresses and modernizes these issues:
+--
+--   - No clashing definitions
+--   - All but the essential @'<>'@ and @'<+>'@ operators removed
+--   - Everything extensively documented, with references to other functions and
+--     runnable code examples
+--   - No 'String' to be found (convert to 'Text' first if you have one)
+
+
+
+-- $algebra
+--
+-- The functions in this library satisfy many algebraic laws.
+--
+-- The 'text' function is a homomorphism from text concatenation to document
+-- concatenation:
+--
+-- @
+-- 'text' (s '<>' t) = 'text' s '<>' 'text' t
+-- 'text' 'mempty' = 'mempty'
+-- @
+--
+-- The 'char' function behaves like one-element text:
+--
+-- @
+-- 'char' c = 'text' ('T.singleton' c)
+-- @
+--
+-- The 'nest' function is a homomorphism from addition to document composition.
+-- 'nest' also distributes through document concatenation and is absorbed by
+-- 'text' (without newlines) and 'align':
+--
+-- @
+-- 'nest' (i '+' j) x = 'nest' i ('nest' j x)
+-- 'nest' 0 x = x
+-- 'nest' i (x '<>' y) = 'nest' i x '<>' 'nest' i y
+-- 'nest' i 'mempty' = 'mempty'
+-- 'nest' i ('text' t) = 'text' t -- no newline in t
+-- 'nest' i ('align' x) = 'align' x
+-- @
+--
+-- The 'group' function is absorbed by 'mempty'. 'group' is commutative with
+-- 'nest' and 'align':
+--
+-- @
+-- 'group' 'mempty' = 'mempty'
+-- 'group' ('text' s '<>' x) = 'text' s '<>' 'group' x
+-- 'group' ('nest' i x) = 'nest' i ('group' x)
+-- 'group' ('align' x) = 'align' ('group' x)
+-- @
+--
+-- The 'align' function is absorbed by 'mempty' and 'text'. 'align' is
+-- idempotent:
+--
+-- @
+-- 'align' 'mempty' = 'mempty'
+-- 'align' ('text' s) = 'text' s
+-- 'align' ('align' x) = 'align' x
+-- @
+--
+-- From the laws of the primitive functions, we can derive many other laws for
+-- the derived functions. For example, the /spaced/ operator '<+>' is defined
+-- as:
+--
+-- @
+-- x '<+>' y = x '<>' 'space' '<>' y
+-- @
+--
+-- It follows that '<+>' is associative and that '<+>' and '<>' associate with
+-- each other:
+--
+-- @
+-- x '<+>' (y '<+>' z) = (x '<+>' y) '<+>' z
+-- x '<>' (y '<+>' z) = (x '<>' y) '<+>' z
+-- x '<+>' (y <> z) = (x '<+>' y) '<>' z
+-- @
