@@ -19,21 +19,19 @@ module Data.Text.PrettyPrint.Doc.Render.Terminal (
 
 
 import           Control.Monad
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.State
-import           Control.Monad.Trans.Writer
 import           Data.Functor
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import qualified Data.Text.Lazy             as LT
-import qualified Data.Text.Lazy.Builder     as LTB
-import qualified Data.Text.Lazy.IO          as LT
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.IO      as LT
 import           System.Console.ANSI
-import           System.IO                  (Handle, stdout)
+import           System.IO              (Handle, stdout)
 
 import Data.Text.PrettyPrint.Doc
+import Data.Text.PrettyPrint.Doc.Render.RenderM
 
 
 
@@ -56,17 +54,17 @@ import Data.Text.PrettyPrint.Doc
 -- With a bit of trickery to make the ANSI codes printable, here is an example
 -- that would render coloured in an ANSI terminal:
 --
--- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\ESC" . renderLazy . layoutPretty 0.4 80
--- >>> let doc = "Wo" <> bold "ah" <+> align (vsep [red "coloured", green "text"])
+-- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
+-- >>> let doc = red ("red" <+> blue ("blue" <+> bold "bold" <+> "blue") <+> "red")
 -- >>> render (plain doc)
--- Woah coloured
---      text
+-- red blue bold blue red
 -- >>> render doc
--- Wo\ESC[0;1mah\ESC[0m \ESC[0;91mcoloured\ESC[0m
---      \ESC[0;92mtext\ESC[0m
+-- \e[0;91mred \e[0;94mblue \e[0;94;1mbold\e[0;94m blue\e[0;91m red\e[0m
+--
+-- Run the above via @echo -e '...'@ in your terminal to see the colouring.
 renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc
-  = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) [emptyStyle]
+  = let (resultBuilder, remainingStyles) = execRenderM [emptyStyle] (build doc)
     in case remainingStyles of
         [] -> error "There is no empty style left at the end of rendering\
                     \ (but there should be). Please report this as a bug."
@@ -75,37 +73,32 @@ renderLazy doc
                      \end of rendering (there should be only 1). Please report\
                      \ this as a bug.")
 
-build :: SimpleDoc -> WriterT LTB.Builder (State [CombinedStyle]) ()
+build :: SimpleDoc -> RenderM LTB.Builder CombinedStyle ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
-    SChar c x -> do tell (LTB.singleton c)
+    SChar c x -> do writeResult (LTB.singleton c)
                     build x
-    SText t x -> do tell (LTB.fromText t)
+    SText t x -> do writeResult (LTB.fromText t)
                     build x
-    SLine i x -> do tell (LTB.singleton '\n')
-                    tell (LTB.fromText (T.replicate i " "))
+    SLine i x -> do writeResult (LTB.singleton '\n')
+                    writeResult (LTB.fromText (T.replicate i " "))
                     build x
     SStylePush s x -> do
-        (currentStyle, _pastStyles) <- peekStyleStack
+        -- Get current style
+        currentStyle <- unsafePeekStyle
         let newStyle = currentStyle `addStyle` s
-        lift (modify (currentStyle:))
-        tell (styleToBuilder newStyle)
+        writeResult (styleToBuilder newStyle)
+        pushStyle newStyle
         build x
     SStylePop x -> do
-        (lastStyle, lastStyles) <- peekStyleStack
-        lift (put lastStyles)
-        tell (styleToBuilder lastStyle)
+        _currentStyle <- unsafePopStyle
+        newStyle <- unsafePeekStyle
+        writeResult (styleToBuilder newStyle)
         build x
 
 styleToBuilder :: CombinedStyle -> LTB.Builder
 styleToBuilder = LTB.fromString . setSGRCode . stylesToSgrs
-
-peekStyleStack :: Monoid w => WriterT w (State [style]) (style, [style])
-peekStyleStack = lift get >>= \case
-    [] -> error "Attempted to pop a style restoration off an empty\
-                \ stack. Please report this as a bug."
-    s:ss -> pure (s,ss)
 
 data CombinedStyle = CombinedStyle
     (Maybe (SIntensity, SColor)) -- Foreground

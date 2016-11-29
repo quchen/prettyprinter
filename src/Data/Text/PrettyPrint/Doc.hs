@@ -709,6 +709,9 @@ hsep = concatWith (<+>)
 --        to
 --        lay
 --        out
+--
+-- Since 'group'ing a 'vsep' is rather common, 'sep' is a built-in for doing
+-- that.
 vsep :: [Doc] -> Doc
 vsep = concatWith above
 
@@ -759,7 +762,7 @@ sep = group . vsep
 
 
 
--- | @(hcat xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@
+-- | @('hcat' xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@
 -- (i.e. without any spacing).
 --
 -- It is provided only for consistency, since it is identical to 'mconcat'.
@@ -782,10 +785,8 @@ hcat = concatWith (<>)
 -- ipsum
 -- dolor
 --
--- 'group'ing deletes the newlines,
---
--- >>> putDoc (group (vcat docs))
--- loremipsumdolor
+-- Since 'group'ing a 'vcat' is rather common, 'cat' is a built-in shortcut for
+-- it.
 vcat :: [Doc] -> Doc
 vcat = concatWith above'
 

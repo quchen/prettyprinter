@@ -14,16 +14,14 @@ module Data.Text.PrettyPrint.Doc.Render.Html (
 
 
 
-import           Control.Monad.Trans.Class
-import           Control.Monad.Trans.State
-import           Control.Monad.Trans.Writer
 import           Data.Monoid
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import qualified Data.Text.Lazy             as LT
-import qualified Data.Text.Lazy.Builder     as LTB
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy.Builder as LTB
 
 import Data.Text.PrettyPrint.Doc
+import Data.Text.PrettyPrint.Doc.Render.RenderM
 
 
 
@@ -54,34 +52,31 @@ import Data.Text.PrettyPrint.Doc
 --      <span style="color: rgb(205, 0, 0)">out</span>
 renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc
-  = let (resultBuilder, remainingStyles) = runState (execWriterT (build doc)) []
+  = let (resultBuilder, remainingStyles) = execRenderM [] (build doc)
     in if null remainingStyles
         then LTB.toLazyText resultBuilder
         else error ("There are "
                     <> show (length remainingStyles)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: SimpleDoc -> WriterT LTB.Builder (State [Style]) ()
+build :: SimpleDoc -> RenderM LTB.Builder Style ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
-    SChar c x -> do tell (LTB.singleton c)
+    SChar c x -> do writeResult (LTB.singleton c)
                     build x
-    SText t x -> do tell (LTB.fromText t)
+    SText t x -> do writeResult (LTB.fromText t)
                     build x
-    SLine i x -> do tell (LTB.singleton '\n' )
-                    tell (LTB.fromText (T.replicate i " "))
+    SLine i x -> do writeResult (LTB.singleton '\n' )
+                    writeResult (LTB.fromText (T.replicate i " "))
                     build x
     SStylePush s x -> do
-        lift (modify (s:))
-        tell (htmlTagFor s Opening)
+        pushStyle s
+        writeResult (htmlTagFor s Opening)
         build x
     SStylePop x -> do
-        s <- lift get >>= \case
-            [] -> error "Attempted to pop a style off an empty stack.\
-                        \ Please report this as a bug."
-            s':ss -> lift (put ss) *> pure s'
-        tell (htmlTagFor s Closing)
+        s <- unsafePopStyle
+        writeResult (htmlTagFor s Closing)
         build x
 
 -- | Strict 'Text' version of 'renderLazy'.
