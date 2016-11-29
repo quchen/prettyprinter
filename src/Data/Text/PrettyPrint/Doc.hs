@@ -9,20 +9,80 @@
 --                David Luposchainsky (c) 2016, http://github.com/quchen
 -- License     :  BSD-style (see the file LICENSE.md)
 --
--- Maintainer  :  David Luposchainsky <dluposchainsky at google>
+-- Maintainer  :  David Luposchainsky <dluposchainsky (λ) google>
 -- Stability   :  experimental
 -- Portability :  portable
 --
--- This module defines a prettyprinter to format text in a flexible and
--- convenient way.
+-- = Overview
 --
--- __TODO__ example
+-- This module defines a prettyprinter to format text in a flexible and
+-- convenient way. The idea is to combine a 'Doc'ument out of many small
+-- components, then using a layouter to convert it to an easily renderable
+-- 'SimpleDoc', which can then for example be converted to plain 'Text'.
+--
+-- There are two key concepts to layouting: the available width, and 'group'ing.
+--
+-- == Available width
+--
+-- The page has a certain maximum width, which the layouter tries to not exceed,
+-- by inserting line breaks where possible. The functions given in this module
+-- make it fairly straightforward to specify where, and under what
+-- circumstances, such a line break may be inserted by the layouter, for example
+-- via the 'sep' function.
+--
+-- There is also the concept of /ribbon width/. The ribbon is the part of a line
+-- that is printed, i.e. the line length without the leading indentation. The
+-- layouters take a ribbon fraction argument, which specifies how much of a line
+-- should be filled before trying to break it up. A ribbon width of 0.5 in a
+-- document of width 80 will result in the layouter to try to not exceed @0.5*80 =
+-- 40@ (ignoring current indentation depth).
+--
+-- == Grouping
+--
+-- A document can be 'group'ed, which tells the layouter that it should attempt
+-- to collapse it to a single line. If the result does not fit within the
+-- constraints (given by page and ribbon widths), the document is rendered
+-- unaltered. This allows fallback definitions, so that we get nice results even
+-- when the original document would exceed the layout constraints.
+--
+-- == Starting out
+--
+-- As a reading list for starters, some of the most commonly used functions in
+-- this module include '<>', 'hsep', '<+>', 'vsep', 'align', 'hang'. These cover
+-- many use cases already, and many other functions are variations or
+-- combinations of these.
+--
+-- = Example
+--
+-- The layout of the document can adapt to the available space. For example, we
+-- can define a prettyprinter for simple type declaration that aligns over
+-- multiple lines nicely if space does not permit it to fit in a single line.
+-- Let's look at some code for doing this:
+--
+-- >>> let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
+-- >>> let prettyDecl n tys = pretty n <+> prettyType tys
+-- >>> let doc = prettyDecl "example" ["Int", "Bool", "Char", "IO ()"]
+--
+-- If the page is wide enough (80 characters in this case), the definitions are
+-- space-separated,
+--
+-- >>> putDocW 80 doc
+-- example :: Int -> Bool -> Char -> IO ()
+--
+-- If we narrow the page width to only 20 characters, the /same document/
+-- renders vertically aligned:
+--
+-- >>> putDocW 20 doc
+-- example :: Int
+--         -> Bool
+--         -> Char
+--         -> IO ()
 module Data.Text.PrettyPrint.Doc (
     -- * Documents
     Doc,
 
     -- * Basic functions
-    char, text, nest, line, line', softline, softline', hardline, group,
+    char, text, string, nest, line, line', softline, softline', hardline, group,
 
     -- * Alignment functions
     --
@@ -76,7 +136,7 @@ module Data.Text.PrettyPrint.Doc (
     --
     -- | Convenience definitions for common special characters.
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
-    dquote, semi, colon, comma, space, dot, backslash, equals,
+    dquote, semi, colon, comma, space, space', dot, slash, backslash, equals,
 
     -- * Styling
 
@@ -131,6 +191,8 @@ import qualified Data.Text      as T
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
+-- >>> import qualified Data.Text.IO as T
+-- >>> import qualified Data.Text.PrettyPrint.Doc.Render.Text as RenderText
 
 
 
@@ -176,7 +238,7 @@ instance Semi.Semigroup Doc where
 -- hello
 -- world
 instance IsString Doc where
-    fromString = text . T.pack
+    fromString = string
 
 -- | The member @'prettyList'@ is only used to define the @instance
 -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
@@ -234,13 +296,13 @@ instance Pretty Int where
 instance Pretty Integer where
     pretty = unsafeText . T.pack . show
 
--- | >>> putDoc (pretty (123e4 :: Float))
--- 1230000.0
+-- | >>> putDoc (pretty (pi :: Float))
+-- 3.1415927
 instance Pretty Float where
     pretty = unsafeText . T.pack . show
 
--- | >>> putDoc (pretty (123e4 :: Double))
--- 1230000.0
+-- | >>> putDoc (pretty (exp 1 :: Double))
+-- 2.718281828459045
 instance Pretty Double where
     pretty = unsafeText . T.pack . show
 
@@ -321,8 +383,7 @@ char :: Char -> Doc
 char '\n' = line
 char c = Char c
 
--- | @('text' t)@ concatenates all lines in @t@ using @'line'@. The 'IsString'
--- instance of 'Doc' uses this function.
+-- | @('text' t)@ converts @t@ to 'Doc', replacing all newlines with @'line'@.
 --
 -- >>> putDoc (text "hello\nworld")
 -- hello
@@ -341,6 +402,17 @@ unsafeText t = case T.compareLength t 1 of
     EQ -> Char (T.head t)
     GT -> Text t
 
+-- | @('string' s)@ converts @s@ to a 'Doc'. It is provided for compatibility
+-- reasons only. Use 'text' instead, if possible.
+--
+-- The @'IsString' 'Doc'@ instance uses this function.
+--
+-- @
+-- 'string' = 'text' . 'T.pack'
+-- @
+string :: String -> Doc
+string = text . T.pack
+
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
 --
@@ -356,12 +428,13 @@ nest = Nest
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
 --
--- @'line'@ behaves like @'space'@ if the line break is undone by 'group'.
---
 -- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
 -- >>> putDoc doc
 -- lorem ipsum
 -- dolor sit amet
+--
+-- @'line'@ behaves like @'space'@ if the line break is undone by 'group':
+--
 -- >>> putDoc (group doc)
 -- lorem ipsum dolor sit amet
 line :: Doc
@@ -382,9 +455,15 @@ line' = FlatAlt Line mempty
 -- | @softline@ behaves like @'space'@ if the resulting output fits the page,
 -- otherwise like @'line'@.
 --
--- >>> putDocW 80 ("lorem ipsum" <> softline <> "dolor sit amet")
+-- Here, we have enough space to put everything in one line:
+--
+-- >>> let doc = "lorem ipsum" <> softline <> "dolor sit amet"
+-- >>> putDocW 80 doc
 -- lorem ipsum dolor sit amet
--- >>> putDocW 40 ("lorem ipsum" <> softline <> "dolor sit amet")
+--
+-- If we narrow the page to width 10, the layouter produces a line break:
+--
+-- >>> putDocW 10 doc
 -- lorem ipsum
 -- dolor sit amet
 --
@@ -395,14 +474,18 @@ softline :: Doc
 softline = group line
 
 -- | @'softline''@ is like @'softline'@, but behaves like @'mempty'@ if the
--- resulting output does not fit on the page (instead of @'space'@).
+-- resulting output does not fit on the page (instead of @'space'@). In other
+-- words, @'line'@ is to @'line''@ how @'softline'@ is to @'softline''@.
 --
--- In other words, @'line'@ is to @'line''@ how @'softline'@ is to
--- @'softline''@.
+-- With enough space, we get direct concatenation:
 --
--- >>> putDocW 80 ("lorem ipsum" <> softline' <> "dolor sit amet")
+-- >>> let doc = "lorem ipsum" <> softline' <> "dolor sit amet"
+-- >>> putDocW 80 doc
 -- lorem ipsumdolor sit amet
--- >>> putDocW 40 ("lorem ipsum" <> softline' <> "dolor sit amet")
+--
+-- If we narrow the page to width 10, the layouter produces a line break:
+--
+-- >>> putDocW 10 doc
 -- lorem ipsum
 -- dolor sit amet
 --
@@ -412,12 +495,14 @@ softline = group line
 softline' :: Doc
 softline' = group line'
 
--- | A @'hardline'@ is always layouted as a line break, even when 'group'ed.
+-- | A @'hardline'@ is /always/ layouted as a line break, even when 'group'ed or
+-- when there is plenty of space.
 --
 -- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
--- >>> putDoc doc
+-- >>> putDocW 1000 doc
 -- lorem ipsum
 -- dolor sit amet
+--
 -- >>> putDoc (group doc)
 -- lorem ipsum
 -- dolor sit amet
@@ -428,7 +513,7 @@ hardline = Line
 -- to the current line if this still fits into the page. Otherwise, the document
 -- @x@ is layouted without any changes.
 --
--- See 'vcat' and 'line' for examples.
+-- See 'vcat', 'line' or 'space'' for examples.
 group :: Doc -> Doc
 group x = Union (flatten x) x
 
@@ -456,31 +541,39 @@ flatten = \case
 -- current column. It is used for example to implement 'hang'.
 --
 -- As an example, we will put a document right above another one, regardless of
--- the current nesting level:
+-- the current nesting level. Without 'align'ment, the second line is put simply
+-- below everything we've had so far,
 --
--- >>> putDoc ("lorem" <+> (vsep ["ipsum", "dolor"]))
+-- >>> putDoc ("lorem" <+> vsep ["ipsum", "dolor"])
 -- lorem ipsum
 -- dolor
--- >>> putDoc ("lorem" <+> (align (vsep ["ipsum", "dolor"])))
+--
+-- If we add an 'align' to the mix, the @'vsep'@'s contents all start in the
+-- same column,
+--
+-- >>> putDoc ("lorem" <+> align (vsep ["ipsum", "dolor"]))
 -- lorem ipsum
 --       dolor
 align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 -- | @('hang' i x)@ layouts document @x@ with a nesting level set to the
--- /current column/ plus @i@. This differs from 'nest', which is based on the
--- /current nesting level/ plus @i@. When you're not sure, try the more
--- efficient 'nest' first.
+-- /current column/ plus @i@.
 --
--- >>> let doc = fillSep (map text (T.words "Indenting these words with hang or align"))
--- >>> putDocW 40 ("prefix" <+> nest 4 doc)
--- prefix Indenting
---     these words with
---     hang or align
--- >>> putDocW 40 ("prefix" <+> hang 4 doc)
--- prefix Indenting
---            these words with
---            hang or align
+-- >>> let doc = fillSep (map text (T.words "Indenting these words with hang"))
+-- >>> putDocW 24 ("prefix" <+> hang 4 doc)
+-- prefix Indenting these
+--            words with
+--            hang
+--
+-- This differs from 'nest', which is based on the /current nesting level/ plus
+-- @i@. When you're not sure, try the more efficient 'nest' first. In our
+-- example, this would yield
+--
+-- >>> let doc = fillSep (map text (T.words "Indenting these words with nest"))
+-- >>> putDocW 24 ("prefix" <+> nest 4 doc)
+-- prefix Indenting these
+--     words with nest
 --
 -- @
 -- 'hang' i doc = 'align' ('nest' i doc)
@@ -492,9 +585,9 @@ hang i d = align (nest i d)
 -- current cursor position.
 --
 -- >>> let doc = fillSep (map text (T.words "The indent function indents these words!"))
--- >>> putDocW 40 ("prefix" <> indent 4 doc)
--- prefix    The
---           indent function
+-- >>> putDocW 24 ("prefix" <> indent 4 doc)
+-- prefix    The indent
+--           function
 --           indents these
 --           words!
 --
@@ -505,18 +598,25 @@ indent :: Int -> Doc -> Doc
 indent i d = hang i (spaces i <> d)
 
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
--- @sep@, and encloses the resulting document by @l@ and @r@. The documents are
--- layouted horizontally if that fits the page, otherwise they are aligned
--- vertically. All separators are put in front of the elements.
+-- @sep@, and encloses the resulting document by @l@ and @r@.
 --
--- >>> let doc = encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
--- >>> putDocW 80 ("list" <+> doc)
+-- The documents are layouted horizontally if that fits the page,
+--
+-- >>> let doc = "list" <+> encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
+-- >>> putDocW 80 doc
 -- list [1,20,300,4000]
--- >>> putDocW 40 ("list" <+> doc)
+--
+-- If there is not enough space, then the input is split into lines entry-wise
+-- therwise they are aligned vertically, with separators put in the front:
+--
+-- >>> putDocW 10 doc
 -- list [1
 --      ,20
 --      ,300
 --      ,4000]
+--
+-- For putting separators at the end of entries instead, have a look at
+-- 'punctuate'.
 encloseSep
     :: Doc   -- ^ left delimiter
     -> Doc   -- ^ right delimiter
@@ -546,7 +646,8 @@ tupled = encloseSep lparen rparen comma
 
 
 
--- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @space@ in between.
+-- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @'space'@ in
+-- between.
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -575,7 +676,8 @@ above' x y = x <> line' <> y
 
 
 
--- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@.
+-- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
+-- i.e. it puts a space between all entries.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
 -- >>> putDoc (hsep docs)
@@ -585,24 +687,24 @@ hsep = concatWith (<+>)
 
 -- | @('vsep' xs)@ concatenates all documents @xs@ above each other. If a
 -- 'group' undoes the line breaks inserted by @vsep@, the documents are
--- separated with a space instead.
+-- separated with a 'space' instead.
 --
 -- Using 'vsep' alone yields
 --
--- >>> putDoc ("prefix" <+> vsep (["text", "to", "lay", "out"]))
+-- >>> putDoc ("prefix" <+> vsep ["text", "to", "lay", "out"])
 -- prefix text
 -- to
 -- lay
 -- out
 --
--- 'group'ing a 'vsep' separates the documents with a space if it fits the page
--- (and does nothing otherwise). See the @'sep'@ convenience function for this
--- use case.
+-- 'group'ing a 'vsep' separates the documents with a 'space' if it fits the
+-- page (and does nothing otherwise). See the @'sep'@ convenience function for
+-- this use case.
 --
 -- The 'align' function can be used to align the documents under their first
 -- element:
 --
--- >>> putDoc ("prefix" <+> align (vsep (["text", "to", "lay", "out"])))
+-- >>> putDoc ("prefix" <+> align (vsep ["text", "to", "lay", "out"]))
 -- prefix text
 --        to
 --        lay
@@ -612,31 +714,37 @@ vsep = concatWith above
 
 -- | @('fillSep' xs)@ concatenates the documents @xs@ horizontally with @'<+>'@
 -- as long as it fits the page, then inserts a @'line'@ and continues doing that
--- for all documents in @xs@.
+-- for all documents in @xs@. (@'line'@ means that if 'group'ed, the documents
+-- are separated with a 'space' instead of newlines. Use 'fillCat' if you do not
+-- want a 'space'.)
 --
--- (@'line'@ means that if 'group'ed, the documents are separated with a 'space'
--- instead of newlines.)
+-- Let's print some words to fill the line:
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
--- >>> putDocW 80 (fillSep docs)
--- lorem ipsum dolor sit amet
--- >>> putDocW 32 (fillSep docs)
--- lorem ipsum
--- dolor sit
--- amet
--- >>> putDocW 80 ("Docs:" <+> group (fillSep docs))
--- Docs: lorem ipsum dolor sit amet
+-- >>> let docs = take 20 (cycle ["lorem", "ipsum", "dolor", "sit", "amet"])
+-- >>> putDocW 80 ("Docs:" <+> fillSep docs)
+-- Docs: lorem ipsum dolor sit amet lorem ipsum dolor sit amet lorem ipsum dolor
+-- sit amet lorem ipsum dolor sit amet
+--
+-- The same document, printed at a width of only 40, yields
+--
+-- >>> putDocW 40 ("Docs:" <+> fillSep docs)
+-- Docs: lorem ipsum dolor sit amet lorem
+-- ipsum dolor sit amet lorem ipsum dolor
+-- sit amet lorem ipsum dolor sit amet
 fillSep :: [Doc] -> Doc
 fillSep = concatWith (\x y -> x <> softline <> y)
 
--- | @'sep' xs@ tries layouting the documents @xs@ separated with 'space's, and
--- if this does not fit the page, separates them with newlines. This is what
+-- | @('sep' xs)@ tries layouting the documents @xs@ separated with 'space's,
+-- and if this does not fit the page, separates them with newlines. This is what
 -- differentiates it from 'vsep', which always layouts its contents beneath each
 -- other.
 --
 -- >>> let doc = "prefix" <+> sep ["text", "to", "lay", "out"]
 -- >>> putDocW 80 doc
 -- prefix text to lay out
+--
+-- With a narrower layout, the entries are separated by newlines:
+--
 -- >>> putDocW 20 doc
 -- prefix text
 -- to
@@ -669,11 +777,14 @@ hcat = concatWith (<>)
 -- replaced by 'space's.
 --
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
--- >>> putDocW 80 (vcat docs)
+-- >>> putDoc (vcat docs)
 -- lorem
 -- ipsum
 -- dolor
--- >>> putDocW 40 (group (vcat docs))
+--
+-- 'group'ing deletes the newlines,
+--
+-- >>> putDoc (group (vcat docs))
 -- loremipsumdolor
 vcat :: [Doc] -> Doc
 vcat = concatWith above'
@@ -685,16 +796,25 @@ vcat = concatWith above'
 -- length.
 --
 -- (@'line''@ means that if 'group'ed, the documents are separated with nothing
--- instead of newlines.)
+-- instead of newlines. See 'fillSep' if you want a 'space' instead.)
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor")
--- >>> putDocW 80 ("Docs:" <+> fillCat docs)
--- Docs: loremipsumdolor
--- >>> putDocW 40 ("Docs:" <+> fillCat docs)
--- Docs: loremipsum
--- dolor
--- >>> putDocW 80 ("Docs:" <+> group (fillCat docs))
--- Docs: loremipsumdolor
+-- Observe the difference between 'fillSep' and 'fillCat'. 'fillSep'
+-- concatenates the entries 'space'd when 'group'ed,
+--
+-- >>> let docs = take 20 (cycle (["lorem", "ipsum", "dolor", "sit", "amet"]))
+-- >>> putDocW 40 ("Grouped:" <+> group (fillSep docs))
+-- Grouped: lorem ipsum dolor sit amet
+-- lorem ipsum dolor sit amet lorem ipsum
+-- dolor sit amet lorem ipsum dolor sit
+-- amet
+--
+-- On the other hand, 'fillCat' concatenates the entries directly when
+-- 'group'ed,
+--
+-- >>> putDocW 40 ("Grouped:" <+> group (fillCat docs))
+-- Grouped: loremipsumdolorsitametlorem
+-- ipsumdolorsitametloremipsumdolorsitamet
+-- loremipsumdolorsitamet
 fillCat :: [Doc] -> Doc
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
@@ -706,7 +826,10 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 -- >>> let docs = map text (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
 -- Docs: loremipsumdolor
--- >>> putDocW 40 ("Docs:" <+> cat docs)
+--
+-- When there is enough space, the documents are put above one another,
+--
+-- >>> putDocW 10 ("Docs:" <+> cat docs)
 -- Docs: lorem
 -- ipsum
 -- dolor
@@ -721,10 +844,14 @@ cat = group . vcat
 
 -- | @('punctuate' p xs)@ appends @p@ to all but the last document in @xs@.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
--- >>> putDocW 80 (cat (punctuate comma docs))
--- lorem,ipsum,dolor,sit,amet
--- >>> putDocW 20 (cat (punctuate comma docs))
+-- >>> let docs = punctuate comma (map text (T.words "lorem ipsum dolor sit amet"))
+-- >>> putDocW 80 (hsep docs)
+-- lorem, ipsum, dolor, sit, amet
+--
+-- The separators are put at the end of the entries, which we can see if we
+-- position the result vertically:
+--
+-- >>> putDocW 20 (vsep docs)
 -- lorem,
 -- ipsum,
 -- dolor,
@@ -740,19 +867,22 @@ punctuate p (d:ds) = (d <> p) : punctuate p ds
 
 
 
--- | layout a document depending on which column it starts being layouted.
--- 'align' is implemented in terms of 'column'.
+-- | Layout a document depending on which column it starts at. 'align' is
+-- implemented in terms of 'column'.
 --
--- >>> let doc = "prefix" <+> column (\l -> brackets ("Column:" <+> pretty l))
+-- >>> putDoc (column (\l -> "Columns are" <+> pretty l <> "-based."))
+-- Columns are 0-based.
+--
+-- >>> let doc = "prefix" <+> column (\l -> "| <- column" <+> pretty l)
 -- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
--- prefix [Column: 7]
---     prefix [Column: 11]
---         prefix [Column: 15]
+-- prefix | <- column 7
+--     prefix | <- column 11
+--         prefix | <- column 15
 column :: (Int -> Doc) -> Doc
 column = Column
 
--- | layout a document depending on the 'nest'ing level of the current line.
--- 'align' is implemented in terms of 'nesting'.
+-- | Layout a document depending on the current 'nest'ing level. 'align' is
+-- implemented in terms of 'nesting'.
 --
 -- >>> let doc = "prefix" <+> nesting (\l -> brackets ("Nested:" <+> pretty l))
 -- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
@@ -766,19 +896,19 @@ nesting = Nesting
 -- it available to a function.
 --
 -- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
--- >>> putDoc (align (vsep (map annotate ["123", "123456", indent 3 "4567", vsep ["123", indent 3 "4567"]])))
--- [123] <- width: 5
--- [123456] <- width: 8
--- [   4567] <- width: 9
--- [123
---    4567] <- width: 8
+-- >>> putDoc (align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]])))
+-- [---] <- width: 5
+-- [------] <- width: 8
+-- [   ---] <- width: 8
+-- [---
+--     ---] <- width: 8
 width :: Doc -> (Int -> Doc) -> Doc
 width doc f
   = column (\colStart ->
         doc <> column (\colEnd ->
             f (colEnd - colStart)))
 
--- | layout a document depending on the page width, if one has been specified.
+-- | Layout a document depending on the page width, if one has been specified.
 --
 -- >>> let doc = "prefix" <+> pageWidth (\l -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
@@ -796,8 +926,9 @@ pageWidth = PageWidth
 
 -- | @('fill' i x)@ layouts document @x@. It then appends @space@s until the
 -- width is equal to @i@. If the width of @x@ is already larger, nothing is
--- appended. This function is quite useful in practice to output a list of
--- bindings. The following example demonstrates this.
+-- appended.
+--
+-- This function is quite useful in practice to output a list of bindings:
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
 -- >>> let ptype (name, tp) = fill 5 (text name) <+> "::" <+> text tp
@@ -951,10 +1082,49 @@ comma = char ','
 space :: Doc
 space = char ' '
 
+-- | Like @'space'@, but empty when 'group'ed.
+--
+-- >>> putDoc ("a" <> space' <> "b")
+-- a b
+--
+-- >>> putDoc (group ("a" <> space' <> "b"))
+-- ab
+--
+-- We could for example use this to define an arguably prettier list output
+-- function:
+--
+-- >>> let l = map pretty [1,20,300,4000,50000]
+-- >>> let prettierList = group . encloseSep (lbracket <> space') (space' <> rbracket) (comma <> space)
+-- >>> putDocW 40 ("list =" <+> prettierList l)
+-- list = [1, 20, 300, 4000, 50000]
+-- >>> putDocW 20 ("list =" <+> prettierList l)
+-- list = [ 1
+--        , 20
+--        , 300
+--        , 4000
+--        , 50000 ]
+--
+-- Without 'space'', the multiline version does not render very well:
+--
+-- >>> let prettyList = group . encloseSep lbracket rbracket (comma <> space)
+-- >>> putDocW 20 ("list =" <+> prettyList l)
+-- list = [1
+--        , 20
+--        , 300
+--        , 4000
+--        , 50000]
+space' :: Doc
+space' = FlatAlt space mempty
+
 -- | >>> putDoc dot
 -- .
 dot :: Doc
 dot = char '.'
+
+-- | >>> putDoc slash
+-- /
+slash :: Doc
+slash = char '/'
 
 -- | >>> putDoc backslash
 -- \
@@ -1034,12 +1204,15 @@ ondullcyan = StylePush (SColor SBackground SDull SCyan)
 ondullwhite :: Doc -> Doc
 ondullwhite = StylePush (SColor SBackground SDull SWhite)
 
+-- | Render the enclosed document in __bold__.
 bold :: Doc -> Doc
 bold = StylePush SBold
 
+-- | Render the enclosed document in /italics/.
 italics :: Doc -> Doc
 italics = StylePush SItalicized
 
+-- | Render the enclosed document underlined.
 underline :: Doc -> Doc
 underline = StylePush SUnderlined
 
@@ -1086,14 +1259,14 @@ layoutPretty :: Float -> Int -> Doc -> SimpleDoc
 layoutPretty = layoutFits fits1
 
 -- | A slightly smarter layouting algorithm with more lookahead. It provides
--- provide earlier breaking on deeply nested structures For example, consider
--- this python-ish pseudocode:
+-- earlier breaking on deeply nested structures For example, consider this
+-- python-ish pseudocode:
 --
 -- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
 --
--- If we put a 'softline'' (+ 'nest'ing 2) after each open parenthesis, and
--- align the elements of the list to match the opening brackets, this will
--- layout with @layoutPretty@ and a page width of 20 as:
+-- If we put a 'softline'' (+ 'nest' 2) after each open parenthesis, and align
+-- the elements of the list to match the opening brackets, this will layout with
+-- @'layoutPretty'@ and a page width of 20 as:
 --
 -- @
 -- fun(fun(fun(fun(fun([
@@ -1103,11 +1276,12 @@ layoutPretty = layoutFits fits1
 --   )))))             |
 -- @
 --
--- Where the 20c. boundary has been marked with |. Because @layoutPretty@ only
--- uses one-line lookahead, it sees that the first line fits, and is stuck
--- putting the second and third lines after the 20-c mark. In contrast,
--- @layoutSmart@ will continue to check that the potential document up to the
--- end of the indentation level. Thus, it will format the document as:
+-- Where the 20 character boundary has been marked with @|@. Because
+-- @'layoutPretty'@ only uses only one line lookahead, it sees that the first
+-- line fits, and is stuck putting the second and third lines after the 20
+-- character mark. In contrast, @'layoutSmart'@ will continue to check the
+-- potential document up to the end of the indentation level. Thus, it will
+-- format the document as:
 --
 -- @
 -- fun(                |
@@ -1120,17 +1294,18 @@ layoutPretty = layoutFits fits1
 --             ]       |
 --   )))))             |
 -- @
--- Which fits within the 20c. boundary.
+--
+-- This fits within the 20 character boundary.
 layoutSmart :: Float -> Int -> Doc -> SimpleDoc
 layoutSmart = layoutFits fitsR
 
 layoutFits
-    :: (Int -> Int -> Int -> SimpleDoc -> Bool) -- ^ Fitting predicate, e.g. fits1
+    :: FittingPredicate
     -> Float -- ^ Ribbon fraction, typically around @0.5@
     -> Int   -- ^ Page width, often @80@
     -> Doc
     -> SimpleDoc
-layoutFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
+layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
   where
     ribbonWidth = max 0 (min maxColumns (round (fromIntegral maxColumns * rfrac)))
 
@@ -1222,21 +1397,27 @@ layoutFits fits rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
 
+-- | Decide whether a 'SimpleDoc' fits the constraints given, namely page width,
+-- minimum nesting level to fit in, and width in which to fit the first line.
+newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
+
 -- | @fits1@ does 1 line lookahead.
-fits1
-    :: Int -- ^ Page width
-    -> int -- ^ Minimum nesting level to fit in. Unused by this algorithm.
-    -> Int -- ^ Width in which to fit the first line
-    -> SimpleDoc
-    -> Bool
-fits1 _ _ w _ | w < 0        = False
-fits1 _ _ _ SFail            = False
-fits1 _ _ _ SEmpty           = True
-fits1 p m w (SChar _ x)      = fits1 p m (w - 1) x
-fits1 p m w (SText t x)      = fits1 p m (w - T.length t) x
-fits1 _ _ _ SLine{}          = True
-fits1 p m w (SStylePush _ x) = fits1 p m w x
-fits1 p m w (SStylePop x)    = fits1 p m w x
+fits1 :: FittingPredicate
+fits1 = FP go
+  where
+    go :: Int -- ^ Page width
+       -> int -- ^ Minimum nesting level to fit in. Unused by this algorithm.
+       -> Int -- ^ Width in which to fit the first line
+       -> SimpleDoc
+       -> Bool
+    go _ _ w _ | w < 0        = False
+    go _ _ _ SFail            = False
+    go _ _ _ SEmpty           = True
+    go p m w (SChar _ x)      = go p m (w - 1) x
+    go p m w (SText t x)      = go p m (w - T.length t) x
+    go _ _ _ SLine{}          = True
+    go p m w (SStylePush _ x) = go p m w x
+    go p m w (SStylePop x)    = go p m w x
 
 -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
@@ -1245,23 +1426,25 @@ fits1 p m w (SStylePop x)    = fits1 p m w x
 -- check that not only the current structure fits, but also the rest of the
 -- document, which would be slightly more intelligent but would have exponential
 -- runtime (and is prohibitively expensive in practice).
-fitsR
-    :: Int -- ^ Page width
-    -> Int -- ^ Minimum nesting level to fit in
-    -> Int -- ^ Width in which to fit the first line
-    -> SimpleDoc
-    -> Bool
-fitsR _ _ w _
-  | w < 0                    = False
-fitsR _ _ _ SFail            = False
-fitsR _ _ _ SEmpty           = True
-fitsR p m w (SChar _ x)      = fitsR p m (w - 1) x
-fitsR p m w (SText t x)      = fitsR p m (w - T.length t) x
-fitsR p m _ (SLine i x)
-  | m < i                    = fitsR p m (p - i) x
-  | otherwise                = True
-fitsR p m w (SStylePush _ x) = fitsR p m w x
-fitsR p m w (SStylePop x)    = fitsR p m w x
+fitsR :: FittingPredicate
+fitsR = FP go
+  where
+    go :: Int -- ^ Page width
+       -> Int -- ^ Minimum nesting level to fit in
+       -> Int -- ^ Width in which to fit the first line
+       -> SimpleDoc
+       -> Bool
+    go _ _ w _
+      | w < 0                    = False
+    go _ _ _ SFail            = False
+    go _ _ _ SEmpty           = True
+    go p m w (SChar _ x)      = go p m (w - 1) x
+    go p m w (SText t x)      = go p m (w - T.length t) x
+    go p m _ (SLine i x)
+      | m < i                    = go p m (p - i) x
+      | otherwise                = True
+    go p m w (SStylePush _ x) = go p m w x
+    go p m w (SStylePop x)    = go p m w x
 
 -- | @(layoutCompact x)@ layouts document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this layouter is very fast. The
@@ -1313,14 +1496,13 @@ displayString = \case
 -- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint> is widely
 -- used in the Haskell ecosystem.
 --
--- However, ansi-wl-pprint is showing its age, resulting in several
--- shortcomings:
+-- However, ansi-wl-pprint is showing its age, resulting in a couple of issues:
 --
 --   - Definitions clashing with others that are now standard Haskell, such as
 --     @\<$>@
 --   - Hard to read operators, such as @\<//>@
 --   - Some undocumented definitions, not many examples
---   - Based on 'String' instead of 'Text'
+--   - Based on 'String'
 --
 -- This modified package addresses and modernizes these issues:
 --
@@ -1328,7 +1510,7 @@ displayString = \case
 --   - All but the essential @'<>'@ and @'<+>'@ operators removed
 --   - Everything extensively documented, with references to other functions and
 --     runnable code examples
---   - No 'String' to be found (convert to 'Text' first if you have one)
+--   - 'Text' instead of 'String'
 
 
 

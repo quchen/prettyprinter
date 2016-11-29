@@ -193,6 +193,6 @@ putDocW = hPutDocW stdout
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty 0.4 80 doc)
 
--- | 'hPutDocW', but with a page width parameter.
+-- | 'hPutDocW', but with with ribbon fraction/page width parameters.
 hPutDocW :: Handle -> Int -> Doc -> IO ()
-hPutDocW h w doc = renderIO h (layoutPretty 0.4 w doc)
+hPutDocW h w doc = renderIO h (layoutPretty 1.0 w doc)
