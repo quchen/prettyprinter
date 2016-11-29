@@ -2,14 +2,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Render 'SimpleDoc' as 'HTML' encoded as 'Text'.
---
--- Since the 'Doc' language talks about 'bold'ening and not emphasis for
--- example, we do not have a correct corresponding HTML tag to render this.
--- Therefoew, we choose semantic tags like @<strong>@ instead, which are similar
--- in their default renderings in most browsers.
 module Data.Text.PrettyPrint.Doc.Render.Html (
+    -- * Conversion to HTML-infused 'Text'
     renderLazy,
     renderStrict,
+
+    -- * Styling options
+    HtmlColors(..),
+    defaultHtmlColors,
+    solarizedLightColors,
+    solarizedDarkColors,
+
+    -- * Render directly to 'stdout'
+    renderIO,
+
+    -- ** Convenience functions
+    putDoc, hPutDoc,
 ) where
 
 
@@ -19,6 +27,8 @@ import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
 import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.IO      as LT
+import           System.IO              (Handle, stdout)
 
 import Data.Text.PrettyPrint.Doc
 import Data.Text.PrettyPrint.Doc.Render.RenderM
@@ -28,8 +38,6 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
--- >>> import qualified Data.Text.IO as T
--- >>> import qualified Data.Text.Lazy.IO as LT
 
 
 
@@ -38,88 +46,214 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- significant whitespace, which HTML rendering swallows. This can be avoided by
 -- putting the result in a @<pre>@ environment.
 --
--- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty 0.4 40
 -- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), dullred "out"]))
--- >>> pprint (plain doc)
+-- >>> putDoc (plain doc)
 -- some text
 --      to
 --      nicely lay
 --      out
--- >>> pprint doc
--- some <strong>text</strong>
+-- >>> putDoc doc
+-- some <span style="font-weight: bold;">text</span>
 --      to
---      <em>nicely <strong>lay</strong></em>
+--      <span style="font-style: italic;">nicely <span style="font-weight: bold;">lay</span></span>
 --      <span style="color: rgb(205, 0, 0)">out</span>
-renderLazy :: SimpleDoc -> LT.Text
-renderLazy doc
-  = let (resultBuilder, remainingStyles) = execRenderM [] (build doc)
+renderLazy :: HtmlColors -> SimpleDoc -> LT.Text
+renderLazy colors doc
+  = let (resultBuilder, remainingStyles) = execRenderM [] (build colors doc)
     in if null remainingStyles
         then LTB.toLazyText resultBuilder
         else error ("There are "
                     <> show (length remainingStyles)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: SimpleDoc -> RenderM LTB.Builder Style ()
-build = \case
-    SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
-    SEmpty -> pure ()
-    SChar c x -> do writeResult (LTB.singleton c)
-                    build x
-    SText t x -> do writeResult (LTB.fromText t)
-                    build x
-    SLine i x -> do writeResult (LTB.singleton '\n' )
-                    writeResult (LTB.fromText (T.replicate i " "))
-                    build x
-    SStylePush s x -> do
-        pushStyle s
-        writeResult (htmlTagFor s Opening)
-        build x
-    SStylePop x -> do
-        s <- unsafePopStyle
-        writeResult (htmlTagFor s Closing)
-        build x
+build :: HtmlColors -> SimpleDoc -> RenderM LTB.Builder Style ()
+build colors = go
+  where
+    go = \case
+        SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SEmpty -> pure ()
+        SChar c x -> do
+            writeResult (LTB.singleton c)
+            go x
+        SText t x -> do
+            writeResult (LTB.fromText t)
+            go x
+        SLine i x -> do
+            writeResult (LTB.singleton '\n' )
+            writeResult (LTB.fromText (T.replicate i " "))
+            go x
+        SStylePush style x -> do
+            pushStyle style
+            writeResult (htmlTagFor colors style Opening)
+            go x
+        SStylePop x -> do
+            style <- unsafePopStyle
+            writeResult (htmlTagFor colors style Closing)
+            go x
 
 -- | Strict 'Text' version of 'renderLazy'.
-renderStrict :: SimpleDoc -> Text
-renderStrict = LT.toStrict . renderLazy
+renderStrict :: HtmlColors -> SimpleDoc -> Text
+renderStrict colors = LT.toStrict . renderLazy colors
 
 -- | Opening or closing HTML tag part?
 data OpenClose = Opening | Closing
 
-htmlTagFor :: Style -> OpenClose -> LTB.Builder
-htmlTagFor = \case
-    SItalicized -> htmlTag "em" Nothing
-    SBold -> htmlTag "strong" Nothing
-    SUnderlined -> htmlTag "span" (Just "style=\"text-decoration: underline\"")
-    SColor SForeground dv c -> htmlTag "span" (Just ("style=\"color: " <> cssColor dv c <> "\""))
-    SColor SBackground dv c -> htmlTag "span" (Just ("style=\"background: " <> cssColor dv c <> "\""))
+htmlTagFor :: HtmlColors -> Style -> OpenClose -> LTB.Builder
+htmlTagFor colors = \case
+    SItalicized             -> htmlTag "span" (Just "style=\"font-style: italic;\"")
+    SBold                   -> htmlTag "span" (Just "style=\"font-weight: bold;\"")
+    SUnderlined             -> htmlTag "span" (Just "style=\"text-decoration: underline;\"")
+    SColor SForeground dv c -> htmlTag "span" (Just ("style=\"color: " <> cssColor colors dv c <> "\""))
+    SColor SBackground dv c -> htmlTag "span" (Just ("style=\"background-color: " <> cssColor colors dv c <> "\""))
 
-cssColor :: SIntensity -> SColor -> LTB.Builder
-cssColor SDull = \case
-    SBlack   -> "rgb(0, 0, 0)"
-    SRed     -> "rgb(205, 0, 0)"
-    SGreen   -> "rgb(0, 205, 0)"
-    SYellow  -> "rgb(205, 205, 0)"
-    SBlue    -> "rgb(0, 0, 238)"
-    SMagenta -> "rgb(205, 0, 205)"
-    SCyan    -> "rgb(0, 205, 205)"
-    SWhite   -> "rgb(229, 229, 229)"
-cssColor SVivid = \case
-    SBlack   -> "rgb(127, 127, 127)"
-    SRed     -> "rgb(255, 0, 0)"
-    SGreen   -> "rgb(0, 255, 0)"
-    SYellow  -> "rgb(255, 255, 0)"
-    SBlue    -> "rgb(92, 92, 255)"
-    SMagenta -> "rgb(255, 0, 255)"
-    SCyan    -> "rgb(0, 255, 255)"
-    SWhite   -> "rgb(255, 255, 255)"
+cssColor :: HtmlColors -> SIntensity -> SColor -> LTB.Builder
+cssColor colors SDull = \case
+    SBlack   -> _dullblack colors
+    SRed     -> _dullred colors
+    SGreen   -> _dullgreen colors
+    SYellow  -> _dullyellow colors
+    SBlue    -> _dullblue colors
+    SMagenta -> _dullmagenta colors
+    SCyan    -> _dullcyan colors
+    SWhite   -> _dullwhite colors
+cssColor colors SVivid = \case
+    SBlack   -> _black colors
+    SRed     -> _red colors
+    SGreen   -> _green colors
+    SYellow  -> _yellow colors
+    SBlue    -> _blue colors
+    SMagenta -> _magenta colors
+    SCyan    -> _cyan colors
+    SWhite   -> _white colors
 
 -- | Enclose a document in an HTML tag
 htmlTag
-    :: LTB.Builder -- ^ Tag name, e.g. @span@
-    -> Maybe LTB.Builder -- ^ Tag attributes, e.g. @style="text-decoration: underline"@
+    :: LTB.Builder
+        -- ^ Tag name, e.g. @span@; attributes,
+    -> Maybe LTB.Builder
+        -- ^ HTML attributes, e.g. @style="text-decoration: underline"@
     -> OpenClose
     -> LTB.Builder
 htmlTag tag attrs openClose = case openClose of
     Opening -> "<" <> tag <> maybe mempty (" " <>) attrs <> ">"
     Closing -> "</" <> tag <> ">"
+
+
+
+-- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+renderIO :: Handle -> HtmlColors -> SimpleDoc -> IO ()
+renderIO h colors sdoc = LT.hPutStrLn h (renderLazy colors sdoc)
+
+-- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a
+-- page width of 80 characters and a ribbon width of 32 characters.
+--
+-- >>> putDoc ("hello" <+> "world")
+-- hello world
+--
+-- @
+-- 'putDoc' = 'hPutDoc' 'stdout'
+-- @
+putDoc :: Doc -> IO ()
+putDoc = hPutDoc stdout
+
+-- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
+-- handle, e.g. a file or a socket. Uses a line length of 80, and a ribbon width
+-- of 32 characters.
+--
+-- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
+--
+-- @
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
+-- @
+hPutDoc :: Handle -> Doc -> IO ()
+hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty 0.4 80 doc)
+
+
+
+-- | CSS color values for each of the styles.
+data HtmlColors = HtmlColors
+    { _black       :: LTB.Builder
+    , _red         :: LTB.Builder
+    , _green       :: LTB.Builder
+    , _yellow      :: LTB.Builder
+    , _blue        :: LTB.Builder
+    , _magenta     :: LTB.Builder
+    , _cyan        :: LTB.Builder
+    , _white       :: LTB.Builder
+
+    , _dullblack   :: LTB.Builder
+    , _dullred     :: LTB.Builder
+    , _dullgreen   :: LTB.Builder
+    , _dullyellow  :: LTB.Builder
+    , _dullblue    :: LTB.Builder
+    , _dullmagenta :: LTB.Builder
+    , _dullcyan    :: LTB.Builder
+    , _dullwhite   :: LTB.Builder
+    }
+
+defaultHtmlColors :: HtmlColors
+defaultHtmlColors = HtmlColors
+    { _black       = "rgb(127, 127, 127)"
+    , _red         = "rgb(255, 0, 0)"
+    , _green       = "rgb(0, 255, 0)"
+    , _yellow      = "rgb(255, 255, 0)"
+    , _blue        = "rgb(92, 92, 255)"
+    , _magenta     = "rgb(255, 0, 255)"
+    , _cyan        = "rgb(0, 255, 255)"
+    , _white       = "rgb(255, 255, 255)"
+
+    , _dullblack   = "rgb(0, 0, 0)"
+    , _dullred     = "rgb(205, 0, 0)"
+    , _dullgreen   = "rgb(0, 205, 0)"
+    , _dullyellow  = "rgb(205, 205, 0)"
+    , _dullblue    = "rgb(0, 0, 238)"
+    , _dullmagenta = "rgb(205, 0, 205)"
+    , _dullcyan    = "rgb(0, 205, 205)"
+    , _dullwhite   = "rgb(229, 229, 229)"
+    }
+
+-- | <http://ethanschoonover.com/solarized Solarized light> color scheme,
+-- augmented with dull versions of the colours.
+solarizedLightColors :: HtmlColors
+solarizedLightColors = HtmlColors
+    { _black       = "#002731"
+    , _red         = "#d01b24"
+    , _green       = "#728905"
+    , _yellow      = "#a57705"
+    , _blue        = "#2075c7"
+    , _magenta     = "#c61b6e"
+    , _cyan        = "#259185"
+    , _white       = "#e9e2cb"
+
+    , _dullblack   = "#005064"
+    , _dullred     = "#e53941"
+    , _dullgreen   = "#9bba07"
+    , _dullyellow  = "#d79b07"
+    , _dullblue    = "#3b8edf"
+    , _dullmagenta = "#e33187"
+    , _dullcyan    = "#2fbaaa"
+    , _dullwhite   = "#f8f6ef"
+    }
+
+-- | <http://ethanschoonover.com/solarized Solarized dark> color scheme,
+-- augmented with dull versions of the colours.
+solarizedDarkColors :: HtmlColors
+solarizedDarkColors = HtmlColors
+    { _black       = "#005064"
+    , _red         = "#d01b24"
+    , _green       = "#728905"
+    , _yellow      = "#a57705"
+    , _blue        = "#2075c7"
+    , _magenta     = "#c61b6e"
+    , _cyan        = "#259185"
+    , _white       = "#e9e2cb"
+
+    , _dullblack   = "#002731"
+    , _dullred     = "#a3151c"
+    , _dullgreen   = "#495803"
+    , _dullyellow  = "#745304"
+    , _dullblue    = "#195b9b"
+    , _dullmagenta = "#991555"
+    , _dullcyan    = "#1b6860"
+    , _dullwhite   = "#dacea7"
+    }

@@ -6,14 +6,11 @@ module Data.Text.PrettyPrint.Doc.Render.Terminal (
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
 
-    -- * Render directly to the terminal
+    -- * Render directly to 'stdout'
     renderIO,
 
-    -- ** Convenience
-    --
-    -- | These functions use default parameters, and handle the most common use
-    -- cases.
-    putDoc, hPutDoc, putDocW, hPutDocW,
+    -- ** Convenience functions
+    putDoc, hPutDoc,
 ) where
 
 
@@ -37,8 +34,8 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import qualified Data.Text.Lazy.IO as TL
--- >>> import qualified Data.Text.Lazy as TL
+-- >>> import qualified Data.Text.Lazy.IO as LT
+-- >>> import qualified Data.Text.Lazy as LT
 -- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
 
 
@@ -54,7 +51,7 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- With a bit of trickery to make the ANSI codes printable, here is an example
 -- that would render coloured in an ANSI terminal:
 --
--- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
+-- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
 -- >>> let doc = red ("red" <+> blue ("blue" <+> bold "bold" <+> "blue") <+> "red")
 -- >>> render (plain doc)
 -- red blue bold blue red
@@ -77,15 +74,17 @@ build :: SimpleDoc -> RenderM LTB.Builder CombinedStyle ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
-    SChar c x -> do writeResult (LTB.singleton c)
-                    build x
-    SText t x -> do writeResult (LTB.fromText t)
-                    build x
-    SLine i x -> do writeResult (LTB.singleton '\n')
-                    writeResult (LTB.fromText (T.replicate i " "))
-                    build x
+    SChar c x -> do
+        writeResult (LTB.singleton c)
+        build x
+    SText t x -> do
+        writeResult (LTB.fromText t)
+        build x
+    SLine i x -> do
+        writeResult (LTB.singleton '\n')
+        writeResult (LTB.fromText (T.replicate i " "))
+        build x
     SStylePush s x -> do
-        -- Get current style
         currentStyle <- unsafePeekStyle
         let newStyle = currentStyle `addStyle` s
         writeResult (styleToBuilder newStyle)
@@ -157,9 +156,8 @@ renderStrict = LT.toStrict . renderLazy
 renderIO :: Handle -> SimpleDoc -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
--- | @putDoc doc@ prettyprints document @doc@ to standard output, with a page
--- width of 80 characters and a ribbon width of 32 characters (see
--- 'layoutPretty' for documentation of those values.)
+-- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
+-- width of 80 characters and a ribbon width of 32 characters.
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -170,13 +168,9 @@ renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 putDoc :: Doc -> IO ()
 putDoc = hPutDoc stdout
 
--- | 'putDoc', but with a page width parameter.
-putDocW :: Int -> Doc -> IO ()
-putDocW = hPutDocW stdout
-
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
 -- handle, e.g. a file or a socket. Uses a line length of 80, and a ribbon width
--- of 32 characters (see 'layoutPretty' for documentation of those values).
+-- of 32 characters.
 --
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
@@ -185,7 +179,3 @@ putDocW = hPutDocW stdout
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty 0.4 80 doc)
-
--- | 'hPutDocW', but with with ribbon fraction/page width parameters.
-hPutDocW :: Handle -> Int -> Doc -> IO ()
-hPutDocW h w doc = renderIO h (layoutPretty 1.0 w doc)

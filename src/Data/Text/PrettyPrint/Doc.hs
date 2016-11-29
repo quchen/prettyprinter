@@ -180,6 +180,8 @@ module Data.Text.PrettyPrint.Doc (
 
 ) where
 
+
+
 import           Data.Monoid
 import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 import           Data.String    (IsString (..))
@@ -190,9 +192,9 @@ import qualified Data.Text      as T
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
 -- >>> import qualified Data.Text.IO as T
--- >>> import qualified Data.Text.PrettyPrint.Doc.Render.Text as RenderText
+-- >>> import Data.Text.PrettyPrint.Doc.Render.Text
+-- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty 1.0 w doc)
 
 
 
@@ -665,17 +667,6 @@ concatWith :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
 concatWith _ [] = mempty
 concatWith f ds = foldr1 f ds
 
--- | @x `above` y@ concatenates @x@ and @y@ with a 'line' in between.
-above :: Doc -> Doc -> Doc
-above x y = x <> line <> y
-
--- | @x `above'` y@ concatenates document @x@ and @y@ with a @line'@ in
--- between.
-above' :: Doc -> Doc -> Doc
-above' x y = x <> line' <> y
-
-
-
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
 --
@@ -713,7 +704,7 @@ hsep = concatWith (<+>)
 -- Since 'group'ing a 'vsep' is rather common, 'sep' is a built-in for doing
 -- that.
 vsep :: [Doc] -> Doc
-vsep = concatWith above
+vsep = concatWith (\x y -> x <> line <> y)
 
 -- | @('fillSep' xs)@ concatenates the documents @xs@ horizontally with @'<+>'@
 -- as long as it fits the page, then inserts a @'line'@ and continues doing that
@@ -788,7 +779,8 @@ hcat = concatWith (<>)
 -- Since 'group'ing a 'vcat' is rather common, 'cat' is a built-in shortcut for
 -- it.
 vcat :: [Doc] -> Doc
-vcat = concatWith above'
+vcat = concatWith (\x y -> x <> line' <> y)
+
 
 -- | @('fillCat' xs)@ concatenates documents @xs@ horizontally with @'<>'@ as
 -- long as it fits the page, then inserts a @'line''@ and continues doing that
@@ -938,10 +930,7 @@ pageWidth = PageWidth
 --     nest  :: Int -> Doc -> Doc
 --     fillSep :: [Doc] -> Doc
 fill :: Int -> Doc -> Doc
-fill f doc = width doc (\w ->
-    if w >= f
-        then mempty
-        else spaces (f - w))
+fill f doc = width doc (\w -> spaces (f - w))
 
 -- | @('fillBreak' i x)@ first layouts document @x@. It then appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
@@ -1239,12 +1228,14 @@ plain = \case
     PageWidth f   -> PageWidth (plain . f)
     Nesting f     -> Nesting (plain . f)
     StylePush _ x -> plain x
+    StylePop      -> Empty
 
     x@Empty      -> x
     x@Char{}     -> x
     x@Text{}     -> x
     x@Line       -> x
-    x@StylePop{} -> x
+
+
 
 -- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
 data Docs = Nil | Cons !Int Doc Docs

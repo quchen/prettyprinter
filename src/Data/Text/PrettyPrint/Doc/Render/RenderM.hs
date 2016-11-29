@@ -20,7 +20,10 @@ import Data.Monoid
 
 
 
--- | WriterT StateT, but with a strict Writer value.
+-- | @WriterT write StateT [style] a@, but with a strict Writer value.
+--
+-- The @write@ type is used to append data chunks to, the @style@ is the member
+-- of a stack of styles to model nested styles with.
 newtype RenderM write style a = RenderM ([style] -> (a, write, [style]))
 
 instance Functor (RenderM write style) where
@@ -44,20 +47,27 @@ instance Monoid write => Monad (RenderM write style) where
             !w12 = w1 <> w2
         in (x2, w12, s2))
 
+-- | Add a new style to the style stack.
 pushStyle :: Monoid write => style -> RenderM write style ()
 pushStyle style = RenderM (\styles -> ((), mempty, style : styles))
 
--- | Get the topmost style. 'error's if there is none.
+-- | Get the topmost style.
+--
+-- If the stack is empty, this raises an 'error'.
 unsafePopStyle :: Monoid write => RenderM write style style
 unsafePopStyle = RenderM (\case
     x:xs -> (x, mempty, xs)
     [] -> error "Popped an empty style stack! Please report this as a bug.")
 
+-- | View the topmost style, but do not modify the stack.
+--
+-- If the stack is empty, this raises an 'error'.
 unsafePeekStyle :: Monoid write => RenderM write style style
 unsafePeekStyle = RenderM (\styles -> case styles of
     x:_ -> (x, mempty, styles)
     [] -> error "Peeked an empty style stack! Please report this as a bug.")
 
+-- | Append a value to the write end.
 writeResult :: write -> RenderM write style ()
 writeResult w = RenderM (\styles -> ((), w, styles))
 
