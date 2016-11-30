@@ -183,6 +183,7 @@ module Data.Text.PrettyPrint.Doc (
 
 
 
+import           Data.Maybe
 import           Data.Monoid
 import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 import           Data.String    (IsString (..))
@@ -243,16 +244,18 @@ instance Semi.Semigroup Doc where
 instance IsString Doc where
     fromString = pretty . T.pack
 
--- | The member @'prettyList'@ is only used to define the @instance
--- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
--- function is used.
+-- | Overloaded conversion to 'Doc'.
 class Pretty a where
 
     -- | >>> putDoc (pretty 1 <+> pretty "hello" <+> pretty 1.234)
     -- 1 hello 1.234
     pretty :: a -> Doc
 
-    -- | >>> putDoc (prettyList [1, 23, 456])
+    -- | @'prettyList'@ is only used to define the @instance
+    -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
+    -- function is used.
+    --
+    -- >>> putDoc (prettyList [1, 23, 456])
     -- [1,23,456]
     prettyList :: [a] -> Doc
     prettyList = list . map pretty
@@ -272,6 +275,11 @@ instance Pretty Doc where
     pretty = id
 
 -- | >>> putDoc (pretty ())
+-- ()
+--
+-- The argument is not used,
+--
+-- >>> putDoc (pretty (error "Strict?" :: ()))
 -- ()
 instance Pretty () where
     pretty _ = "()"
@@ -324,19 +332,33 @@ instance (Pretty a,Pretty b) => Pretty (a,b) where
 instance (Pretty a,Pretty b,Pretty c) => Pretty (a,b,c) where
                 pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
 
--- | >>> putDoc (pretty (Just True))
+-- | Ignore 'Nothing's, print 'Just' contents.
+--
+-- >>> putDoc (pretty (Just True))
 -- True
--- >>> putDoc (brackets (pretty (Nothing :: Maybe Bool)))
--- []
+-- >>> putDoc (braces (pretty (Nothing :: Maybe Bool)))
+-- {}
+--
+-- >>> putDoc (pretty [Just 1, Nothing, Just 3, Nothing])
+-- [1,3]
 instance Pretty a => Pretty (Maybe a) where
     pretty Nothing = mempty
     pretty (Just x) = pretty x
+
+    prettyList = prettyList . catMaybes
 
 -- | Automatically converts all newlines to @'line'@.
 --
 -- >>> putDoc (pretty ("hello\nworld" :: Text))
 -- hello
 -- world
+--
+-- Note that  @'line'@ can be undone by @'group'@:
+--
+-- >>> putDoc (group (pretty ("hello\nworld" :: Text)))
+-- hello world
+--
+-- Manually use @'hardline'@ if you /definitely/ want newlines.
 instance Pretty Text where
     pretty = vsep . map unsafeText . T.splitOn "\n"
 
