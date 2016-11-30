@@ -20,7 +20,7 @@ import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO
 
@@ -50,21 +50,21 @@ renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc
   = let (resultBuilder, remainingStyles) = execRenderM [] (build doc)
     in if null remainingStyles
-        then LTB.toLazyText resultBuilder
+        then TLB.toLazyText resultBuilder
         else error ("There are "
                     <> show (length remainingStyles)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: SimpleDoc -> RenderM LTB.Builder Style ()
+build :: SimpleDoc -> RenderM TLB.Builder Style ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
-    SChar c x -> do writeResult (LTB.singleton c)
+    SChar c x -> do writeResult (TLB.singleton c)
                     build x
-    SText t x -> do writeResult (LTB.fromText t)
+    SText t x -> do writeResult (TLB.fromText t)
                     build x
-    SLine i x -> do writeResult (LTB.singleton '\n' )
-                    writeResult (LTB.fromText (T.replicate i " "))
+    SLine i x -> do writeResult (TLB.singleton '\n' )
+                    writeResult (TLB.fromText (T.replicate i " "))
                     build x
     SStylePush s x -> do
         pushStyle s
@@ -75,10 +75,10 @@ build = \case
         writeResult (styleToMarker s)
         build x
 
-styleToMarker :: Style -> LTB.Builder
+styleToMarker :: Style -> TLB.Builder
 styleToMarker = \case
-    SItalicized -> LTB.fromString "*"
-    SBold       -> LTB.fromString "**"
+    SItalicized -> TLB.fromString "*"
+    SBold       -> TLB.fromString "**"
     _other      -> mempty
 
 -- | Strict version of 'renderLazy'.

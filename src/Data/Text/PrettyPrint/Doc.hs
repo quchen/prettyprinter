@@ -81,7 +81,8 @@ module Data.Text.PrettyPrint.Doc (
     -- * Documents
     Doc,
 
-    -- * Basic functions
+    -- * Basic functionality
+    Pretty(..),
     char, text, string, nest, line, line', softline, softline', hardline, group,
 
     -- * Alignment functions
@@ -159,9 +160,6 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Optimization
     optimize,
-
-    -- * Pretty class
-    Pretty(..),
 
     -- * Layout
     --
@@ -339,15 +337,19 @@ data Style =
     | SBold
     | SUnderlined
     | SColor SLayer SIntensity SColor
+    deriving (Eq, Ord, Show)
 
 -- | 8 different colours, so that all can be displayed in an ANSI terminal.
 data SColor = SBlack | SRed | SGreen | SYellow | SBlue | SMagenta | SCyan | SWhite
+    deriving (Eq, Ord, Show)
 
 -- | Dull or vivid coloring, as supported by ANSI terminals.
 data SIntensity = SVivid | SDull
+    deriving (Eq, Ord, Show)
 
 -- | Foreground (text) or background (paper) color
 data SLayer = SForeground | SBackground
+    deriving (Eq, Ord, Show)
 
 -- | The data type @SimpleDoc@ represents layouted documents and is used by the
 -- display functions.
@@ -1295,21 +1297,31 @@ plain = \case
 -- and no computations.
 optimize :: Doc -> Doc
 optimize = \case
-    -- Should we use a Text builder here, or is it enough to directly
-    -- concatenate the entries?
+    -- Fuse consecutive text elements
     Cat (Char c) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.pack [c, c'])) xs)
     Cat (Text t) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.snoc t c')) xs)
     Cat (Text t) (Cat (Text t') xs) -> optimize (Cat (unsafeText (t <> t')) xs)
     Cat x xs                        -> Cat x (optimize xs)
+    -- quchen: I tried improving this by using {lazy text, text builders} here,
+    --         but this was not good for performance.
 
+    -- Fuse consecutive nestings
+    Nest i (Nest j x) -> let !ij = i+j in optimize (Nest ij x)
+    Nest i x          -> Nest i (optimize x)
+
+    -- Drop styles that are overwritten immediately
+    StylePush s x@(StylePush s' _) | s == s' -> optimize x
+    StylePush (SColor l _ _) x@(StylePush (SColor l' _ _) _) | l == l' -> optimize x
+    StylePush s x -> StylePush s (optimize x)
+
+    -- Don't optimize, recurse
     FlatAlt x1 x2 -> FlatAlt (optimize x1) (optimize x2)
-    Nest i x      -> Nest i (optimize x)
     Union x1 x2   -> Union (optimize x1) (optimize x2)
     Column f      -> Column (optimize . f)
     PageWidth f   -> PageWidth (optimize . f)
     Nesting f     -> Nesting (optimize . f)
-    StylePush s x -> StylePush s (optimize x)
 
+    -- Don't optimize
     x@Fail   -> x
     x@Empty  -> x
     x@Char{} -> x

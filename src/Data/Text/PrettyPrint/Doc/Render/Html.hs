@@ -26,7 +26,7 @@ import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO              (Handle, stdout)
 
@@ -61,26 +61,26 @@ renderLazy :: HtmlColors -> SimpleDoc -> LT.Text
 renderLazy colors doc
   = let (resultBuilder, remainingStyles) = execRenderM [] (build colors doc)
     in if null remainingStyles
-        then LTB.toLazyText resultBuilder
+        then TLB.toLazyText resultBuilder
         else error ("There are "
                     <> show (length remainingStyles)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: HtmlColors -> SimpleDoc -> RenderM LTB.Builder Style ()
+build :: HtmlColors -> SimpleDoc -> RenderM TLB.Builder Style ()
 build colors = go
   where
     go = \case
         SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
         SEmpty -> pure ()
         SChar c x -> do
-            writeResult (LTB.singleton c)
+            writeResult (TLB.singleton c)
             go x
         SText t x -> do
-            writeResult (LTB.fromText t)
+            writeResult (TLB.fromText t)
             go x
         SLine i x -> do
-            writeResult (LTB.singleton '\n' )
-            writeResult (LTB.fromText (T.replicate i " "))
+            writeResult (TLB.singleton '\n' )
+            writeResult (TLB.fromText (T.replicate i " "))
             go x
         SStylePush style x -> do
             pushStyle style
@@ -98,7 +98,7 @@ renderStrict colors = LT.toStrict . renderLazy colors
 -- | Opening or closing HTML tag part?
 data OpenClose = Opening | Closing
 
-htmlTagFor :: HtmlColors -> Style -> OpenClose -> LTB.Builder
+htmlTagFor :: HtmlColors -> Style -> OpenClose -> TLB.Builder
 htmlTagFor colors = \case
     SItalicized             -> htmlTag "span" (Just "style=\"font-style: italic;\"")
     SBold                   -> htmlTag "span" (Just "style=\"font-weight: bold;\"")
@@ -106,7 +106,7 @@ htmlTagFor colors = \case
     SColor SForeground dv c -> htmlTag "span" (Just ("style=\"color: " <> cssColor colors dv c <> "\""))
     SColor SBackground dv c -> htmlTag "span" (Just ("style=\"background-color: " <> cssColor colors dv c <> "\""))
 
-cssColor :: HtmlColors -> SIntensity -> SColor -> LTB.Builder
+cssColor :: HtmlColors -> SIntensity -> SColor -> TLB.Builder
 cssColor colors SDull = \case
     SBlack   -> _dullblack colors
     SRed     -> _dullred colors
@@ -128,12 +128,12 @@ cssColor colors SVivid = \case
 
 -- | Enclose a document in an HTML tag
 htmlTag
-    :: LTB.Builder
+    :: TLB.Builder
         -- ^ Tag name, e.g. @span@; attributes,
-    -> Maybe LTB.Builder
+    -> Maybe TLB.Builder
         -- ^ HTML attributes, e.g. @style="text-decoration: underline"@
     -> OpenClose
-    -> LTB.Builder
+    -> TLB.Builder
 htmlTag tag attrs openClose = case openClose of
     Opening -> "<" <> tag <> maybe mempty (" " <>) attrs <> ">"
     Closing -> "</" <> tag <> ">"
@@ -172,23 +172,23 @@ hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty 0.4 80 doc)
 
 -- | CSS color values for each of the styles.
 data HtmlColors = HtmlColors
-    { _black       :: LTB.Builder
-    , _red         :: LTB.Builder
-    , _green       :: LTB.Builder
-    , _yellow      :: LTB.Builder
-    , _blue        :: LTB.Builder
-    , _magenta     :: LTB.Builder
-    , _cyan        :: LTB.Builder
-    , _white       :: LTB.Builder
+    { _black       :: TLB.Builder
+    , _red         :: TLB.Builder
+    , _green       :: TLB.Builder
+    , _yellow      :: TLB.Builder
+    , _blue        :: TLB.Builder
+    , _magenta     :: TLB.Builder
+    , _cyan        :: TLB.Builder
+    , _white       :: TLB.Builder
 
-    , _dullblack   :: LTB.Builder
-    , _dullred     :: LTB.Builder
-    , _dullgreen   :: LTB.Builder
-    , _dullyellow  :: LTB.Builder
-    , _dullblue    :: LTB.Builder
-    , _dullmagenta :: LTB.Builder
-    , _dullcyan    :: LTB.Builder
-    , _dullwhite   :: LTB.Builder
+    , _dullblack   :: TLB.Builder
+    , _dullred     :: TLB.Builder
+    , _dullgreen   :: TLB.Builder
+    , _dullyellow  :: TLB.Builder
+    , _dullblue    :: TLB.Builder
+    , _dullmagenta :: TLB.Builder
+    , _dullcyan    :: TLB.Builder
+    , _dullwhite   :: TLB.Builder
     }
 
 defaultHtmlColors :: HtmlColors

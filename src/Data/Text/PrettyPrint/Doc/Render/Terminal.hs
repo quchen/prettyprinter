@@ -22,7 +22,7 @@ import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.Console.ANSI
 import           System.IO              (Handle, stdout)
@@ -67,24 +67,24 @@ renderLazy doc
     in case remainingStyles of
         [] -> error "There is no empty style left at the end of rendering\
                     \ (but there should be). Please report this as a bug."
-        [_] -> LTB.toLazyText resultBuilder
+        [_] -> TLB.toLazyText resultBuilder
         xs -> error ("There are " <> show (length xs) <> " styles left at the\
                      \end of rendering (there should be only 1). Please report\
                      \ this as a bug.")
 
-build :: SimpleDoc -> RenderM LTB.Builder CombinedStyle ()
+build :: SimpleDoc -> RenderM TLB.Builder CombinedStyle ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
     SChar c x -> do
-        writeResult (LTB.singleton c)
+        writeResult (TLB.singleton c)
         build x
     SText t x -> do
-        writeResult (LTB.fromText t)
+        writeResult (TLB.fromText t)
         build x
     SLine i x -> do
-        writeResult (LTB.singleton '\n')
-        writeResult (LTB.fromText (T.replicate i " "))
+        writeResult (TLB.singleton '\n')
+        writeResult (TLB.fromText (T.replicate i " "))
         build x
     SStylePush s x -> do
         currentStyle <- unsafePeekStyle
@@ -98,8 +98,8 @@ build = \case
         writeResult (styleToBuilder newStyle)
         build x
 
-styleToBuilder :: CombinedStyle -> LTB.Builder
-styleToBuilder = LTB.fromString . setSGRCode . stylesToSgrs
+styleToBuilder :: CombinedStyle -> TLB.Builder
+styleToBuilder = TLB.fromString . setSGRCode . stylesToSgrs
 
 data CombinedStyle = CombinedStyle
     (Maybe (SIntensity, SColor)) -- Foreground

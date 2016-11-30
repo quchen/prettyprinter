@@ -19,7 +19,7 @@ import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
-import qualified Data.Text.Lazy.Builder as LTB
+import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO
 
@@ -49,14 +49,14 @@ import Data.Text.PrettyPrint.Doc
 --       (styles are ignored)
 --       sit amet
 renderLazy :: SimpleDoc -> LT.Text
-renderLazy = LTB.toLazyText . build
+renderLazy = TLB.toLazyText . build
   where
     build = \case
         SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
         SEmpty         -> mempty
-        SChar c x      -> LTB.singleton c <> build x
-        SText t x      -> LTB.fromText t <> build x
-        SLine i x      -> LTB.singleton '\n' <> LTB.fromText (T.replicate i " ") <> build x
+        SChar c x      -> TLB.singleton c <> build x
+        SText t x      -> TLB.fromText t <> build x
+        SLine i x      -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> build x
         SStylePush _ x -> build x
         SStylePop x    -> build x
 
