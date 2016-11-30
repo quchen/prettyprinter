@@ -52,11 +52,13 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- that would render coloured in an ANSI terminal:
 --
 -- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
--- >>> let doc = red ("red" <+> blue ("blue" <+> bold "bold" <+> "blue") <+> "red")
+-- >>> let doc = red ("red" <+> align (vsep [blue ("blue" <+> bold "bold" <+> "blue"), "red"]))
 -- >>> render (plain doc)
--- red blue bold blue red
+-- red blue bold blue
+--     red
 -- >>> render doc
--- \e[0;91mred \e[0;94mblue \e[0;94;1mbold\e[0;94m blue\e[0;91m red\e[0m
+-- \e[0;91mred \e[0;94mblue \e[0;94;1mbold\e[0;94m blue\e[0;91m
+--     red\e[0m
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the colouring.
 renderLazy :: SimpleDoc -> LT.Text
