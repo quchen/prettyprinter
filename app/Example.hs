@@ -14,9 +14,9 @@ import System.IO
 main :: IO ()
 main = do
     -- Going directly to the console is portable across Unix and Windows...
-    putDoc (red "Red" <> comma <+> white "white" <+> "and" <+> blue "blue" <> char '!' <> line')
+    putDoc (red "Red" <> comma <+> white "white" <+> "and" <+> blue "blue" <> pretty '!' <> line')
     putDoc (blue ("Nested" <+> dullyellow "colors" <+> "example") <> line')
-    hPutDoc stdout (onred "Red" <> comma <+> onwhite "white" <+> "and" <+> onblue "blue" <> char '!' <> line')
+    hPutDoc stdout (onred "Red" <> comma <+> onwhite "white" <+> "and" <+> onblue "blue" <> pretty '!' <> line')
     hPutDoc stdout (onblue ("Nested" <+> ondullyellow "colors" <+> "example") <> line')
 
     -- ...but going via a string will only preserve formatting information information on Unix

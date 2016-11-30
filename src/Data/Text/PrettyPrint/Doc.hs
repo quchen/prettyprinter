@@ -83,7 +83,7 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Basic functionality
     Pretty(..),
-    char, text, string, nest, line, line', softline, softline', hardline, group,
+    nest, line, line', softline, softline', hardline, group,
 
     -- * Alignment functions
     --
@@ -241,7 +241,7 @@ instance Semi.Semigroup Doc where
 -- hello
 -- world
 instance IsString Doc where
-    fromString = string
+    fromString = pretty . T.pack
 
 -- | The member @'prettyList'@ is only used to define the @instance
 -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
@@ -281,13 +281,18 @@ instance Pretty () where
 instance Pretty Bool where
     pretty = unsafeText . T.pack . show
 
--- | >>> putDoc (pretty 'c')
--- c
--- >>> putDoc (pretty ("string" :: [Char]))
+-- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
+-- alternative.
+--
+-- >>> putDoc (pretty 'f' <> pretty 'o' <> pretty 'o')
+-- foo
+-- >>> putDoc (pretty ("string" :: String))
 -- string
 instance Pretty Char where
-    pretty = unsafeText . T.singleton
-    prettyList = text . fromString
+    pretty '\n' = line
+    pretty c = Char c
+
+    prettyList = (pretty :: Text -> Doc) . fromString
 
 -- | >>> putDoc (pretty (123 :: Int))
 -- 123
@@ -326,6 +331,14 @@ instance (Pretty a,Pretty b,Pretty c) => Pretty (a,b,c) where
 instance Pretty a => Pretty (Maybe a) where
     pretty Nothing = mempty
     pretty (Just x) = pretty x
+
+-- | Automatically converts all newlines to @'line'@.
+--
+-- >>> putDoc (pretty ("hello\nworld" :: Text))
+-- hello
+-- world
+instance Pretty Text where
+    pretty = vsep . map unsafeText . T.splitOn "\n"
 
 
 
@@ -379,25 +392,6 @@ data SimpleDoc =
 
 
 
--- | @('char' c)@ contains the literal character @c@.
---
--- Instead of @('char' '\n')@, consider using @'line'@ as a more readable
--- alternative.
---
--- >>> putDoc (char 'f' <> char 'o' <> char 'o')
--- foo
-char :: Char -> Doc
-char '\n' = line
-char c = Char c
-
--- | @('text' t)@ converts @t@ to 'Doc', replacing all newlines with @'line'@.
---
--- >>> putDoc (text "hello\nworld")
--- hello
--- world
-text :: Text -> Doc
-text = vsep . map unsafeText . T.splitOn "\n"
-
 -- | @(unsafeText s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
@@ -408,18 +402,6 @@ unsafeText t = case T.compareLength t 1 of
     LT -> Empty
     EQ -> Char (T.head t)
     GT -> Text t
-
--- | @('string' s)@ converts @s@ to a 'Doc'. It is provided for compatibility
--- reasons only. Use 'text' instead, if possible.
---
--- The @'IsString' 'Doc'@ instance uses this function.
---
--- @
--- 'string' = 'text' . 'T.pack'
--- @
-string :: String -> Doc
-string = text . T.pack
-{-# INLINE string #-}
 
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
@@ -567,7 +549,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- | @('hang' i x)@ layouts document @x@ with a nesting level set to the
 -- /current column/ plus @i@.
 --
--- >>> let doc = fillSep (map text (T.words "Indenting these words with hang"))
+-- >>> let doc = fillSep (map pretty (T.words "Indenting these words with hang"))
 -- >>> putDocW 24 ("prefix" <+> hang 4 doc)
 -- prefix Indenting these
 --            words with
@@ -577,7 +559,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- @i@. When you're not sure, try the more efficient 'nest' first. In our
 -- example, this would yield
 --
--- >>> let doc = fillSep (map text (T.words "Indenting these words with nest"))
+-- >>> let doc = fillSep (map pretty (T.words "Indenting these words with nest"))
 -- >>> putDocW 24 ("prefix" <+> nest 4 doc)
 -- prefix Indenting these
 --     words with nest
@@ -591,7 +573,7 @@ hang i d = align (nest i d)
 -- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
 -- current cursor position.
 --
--- >>> let doc = fillSep (map text (T.words "The indent function indents these words!"))
+-- >>> let doc = fillSep (map pretty (T.words "The indent function indents these words!"))
 -- >>> putDocW 24 ("prefix" <> indent 4 doc)
 -- prefix    The indent
 --           function
@@ -675,7 +657,7 @@ concatWith f ds = foldr1 f ds
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor sit amet")
+-- >>> let docs = map pretty (T.words "lorem ipsum dolor sit amet")
 -- >>> putDoc (hsep docs)
 -- lorem ipsum dolor sit amet
 hsep :: [Doc] -> Doc
@@ -763,7 +745,7 @@ sep = group . vsep
 --
 -- It is provided only for consistency, since it is identical to 'mconcat'.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> let docs = map pretty (T.words "lorem ipsum dolor")
 -- >>> putDoc (hcat docs)
 -- loremipsumdolor
 hcat :: [Doc] -> Doc
@@ -775,7 +757,7 @@ hcat = concatWith (<>)
 -- In other words @'vcat'@ is like @'vsep'@, with newlines removed instead of
 -- replaced by 'space's.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> let docs = map pretty (T.words "lorem ipsum dolor")
 -- >>> putDoc (vcat docs)
 -- lorem
 -- ipsum
@@ -820,7 +802,7 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 -- differentiates it from 'vcat', which always layouts its contents beneath each
 -- other.
 --
--- >>> let docs = map text (T.words "lorem ipsum dolor")
+-- >>> let docs = map pretty (T.words "lorem ipsum dolor")
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
 -- Docs: loremipsumdolor
 --
@@ -841,7 +823,7 @@ cat = group . vcat
 
 -- | @('punctuate' p xs)@ appends @p@ to all but the last document in @xs@.
 --
--- >>> let docs = punctuate comma (map text (T.words "lorem ipsum dolor sit amet"))
+-- >>> let docs = punctuate comma (map pretty (T.words "lorem ipsum dolor sit amet"))
 -- >>> putDocW 80 (hsep docs)
 -- lorem, ipsum, dolor, sit, amet
 --
@@ -928,7 +910,7 @@ pageWidth = PageWidth
 -- This function is quite useful in practice to output a list of bindings:
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
--- >>> let ptype (name, tp) = fill 5 (text name) <+> "::" <+> text tp
+-- >>> let ptype (name, tp) = fill 5 (pretty name) <+> "::" <+> pretty tp
 -- >>> putDoc ("let" <+> align (vcat (map ptype types)))
 -- let empty :: Doc
 --     nest  :: Int -> Doc -> Doc
@@ -943,7 +925,7 @@ fill f doc = width doc (\w -> spaces (f - w))
 -- a useful variation of the output:
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
--- >>> let ptype (name, tp) = fillBreak 5 (text name) <+> "::" <+> text tp
+-- >>> let ptype (name, tp) = fillBreak 5 (pretty name) <+> "::" <+> pretty tp
 -- >>> putDoc ("let" <+> align (vcat (map ptype types)))
 -- let empty :: Doc
 --     nest  :: Int -> Doc -> Doc
@@ -1007,64 +989,64 @@ braces = enclose lbrace rbrace
 -- | >>> putDoc squote
 -- '
 squote :: Doc
-squote = char '\''
+squote = pretty '\''
 -- | >>> putDoc dquote
 -- "
 dquote :: Doc
-dquote = char '"'
+dquote = pretty '"'
 
 -- | >>> putDoc lparen
 -- (
 lparen :: Doc
-lparen = char '('
+lparen = pretty '('
 
 -- | >>> putDoc rparen
 -- )
 rparen :: Doc
-rparen = char ')'
+rparen = pretty ')'
 
 -- | >>> putDoc langle
 -- <
 langle :: Doc
-langle = char '<'
+langle = pretty '<'
 
 -- | >>> putDoc rangle
 -- >
 rangle :: Doc
-rangle = char '>'
+rangle = pretty '>'
 
 -- | >>> putDoc lbracket
 -- [
 lbracket :: Doc
-lbracket = char '['
+lbracket = pretty '['
 -- | >>> putDoc rbracket
 -- ]
 rbracket :: Doc
-rbracket = char ']'
+rbracket = pretty ']'
 
 -- | >>> putDoc lbrace
 -- {
 lbrace :: Doc
-lbrace = char '{'
+lbrace = pretty '{'
 -- | >>> putDoc rbrace
 -- }
 rbrace :: Doc
-rbrace = char '}'
+rbrace = pretty '}'
 
 -- | >>> putDoc semi
 -- ;
 semi :: Doc
-semi = char ';'
+semi = pretty ';'
 
 -- | >>> putDoc colon
 -- :
 colon :: Doc
-colon = char ':'
+colon = pretty ':'
 
 -- | >>> putDoc comma
 -- ,
 comma :: Doc
-comma = char ','
+comma = pretty ','
 
 -- | >>> putDoc ("a" <> space <> "b")
 -- a b
@@ -1074,7 +1056,7 @@ comma = char ','
 -- >>> putDoc ("a" <+> "b")
 -- a b
 space :: Doc
-space = char ' '
+space = pretty ' '
 
 -- | Like @'space'@, but empty when 'group'ed.
 --
@@ -1113,22 +1095,22 @@ space' = FlatAlt space mempty
 -- | >>> putDoc dot
 -- .
 dot :: Doc
-dot = char '.'
+dot = pretty '.'
 
 -- | >>> putDoc slash
 -- /
 slash :: Doc
-slash = char '/'
+slash = pretty '/'
 
 -- | >>> putDoc backslash
 -- \
 backslash :: Doc
-backslash = char '\\'
+backslash = pretty '\\'
 
 -- | >>> putDoc equals
 -- =
 equals :: Doc
-equals = char '='
+equals = pretty '='
 
 
 
@@ -1253,7 +1235,7 @@ plain = \case
 --
 -- For example,
 --
--- >>> putDoc ("a" <> string "b" <> char 'c' <> "d")
+-- >>> putDoc ("a" <> "b" <> pretty 'c' <> "d")
 -- abcd
 --
 -- results in a chain of four entries in a 'SimpleDoc', although this is fully
@@ -1274,7 +1256,7 @@ plain = \case
 -- static text with many use sites that can be represented by a single text
 -- node and share this optimized version,
 --
--- >>> oftenUsed = optimize ("a" <> string "b" <> char 'c' <> "d")
+-- >>> oftenUsed = optimize ("a" <> "b" <> pretty 'c' <> "d")
 -- >>> putDoc (hsep (replicate 5 oftenUsed))
 -- abcd abcd abcd abcd abcd
 --
