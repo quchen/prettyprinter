@@ -157,6 +157,9 @@ module Data.Text.PrettyPrint.Doc (
     -- ** Remove formatting
     plain,
 
+    -- * Optimization
+    optimize,
+
     -- * Pretty class
     Pretty(..),
 
@@ -414,6 +417,7 @@ unsafeText t = case T.compareLength t 1 of
 -- @
 string :: String -> Doc
 string = text . T.pack
+{-# INLINE string #-}
 
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
@@ -425,7 +429,8 @@ string = text . T.pack
 -- sit
 -- amet
 nest :: Int -> Doc -> Doc
-nest = Nest
+nest 0 = id
+nest i = Nest i
 
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
@@ -536,8 +541,6 @@ flatten = \case
     x@Char{}     -> x
     x@Text{}     -> x
     x@StylePop{} -> x
-
-
 
 -- | @('align' x)@ layouts document @x@ with the nesting level set to the
 -- current column. It is used for example to implement 'hang'.
@@ -780,7 +783,6 @@ hcat = concatWith (<>)
 -- it.
 vcat :: [Doc] -> Doc
 vcat = concatWith (\x y -> x <> line' <> y)
-
 
 -- | @('fillCat' xs)@ concatenates documents @xs@ horizontally with @'<>'@ as
 -- long as it fits the page, then inserts a @'line''@ and continues doing that
@@ -1234,6 +1236,86 @@ plain = \case
     x@Char{}     -> x
     x@Text{}     -> x
     x@Line       -> x
+
+
+
+-- | @('optimize' doc)@ restructures the @doc@ so that it can sometimes be
+-- rendered more efficiently (see notes below). A document always renders
+-- identical to its unoptimized version.
+--
+-- = Purpose
+--
+-- When layouting a 'Doc' to a 'SimpleDoc', every component of the input is
+-- translated directly to the simpler output format. This sometimes yields
+-- undesirable chunking when many pieces have been concatenated together.
+--
+-- For example,
+--
+-- >>> putDoc ("a" <> string "b" <> char 'c' <> "d")
+-- abcd
+--
+-- results in a chain of four entries in a 'SimpleDoc', although this is fully
+-- equivalent to the tightly packed
+--
+-- >>> putDoc "abcd"
+-- abcd
+--
+-- which is only a single 'SimpleDoc' entry.
+--
+-- 'optimize' does exactly that: compact consecutive text nodes in an input
+-- document.
+--
+-- = When to use 'optimize'
+--
+-- Optimizing documents takes some time to do and traverses the entire result
+-- document, so it should not be done too often. It is a good idea to 'optimize'
+-- static text with many use sites that can be represented by a single text
+-- node and share this optimized version,
+--
+-- >>> oftenUsed = optimize ("a" <> string "b" <> char 'c' <> "d")
+-- >>> putDoc (hsep (replicate 5 oftenUsed))
+-- abcd abcd abcd abcd abcd
+--
+-- but not if the 'optimize' is repeatedly evaluated because it is inside a
+-- function called with many parameters, like in
+--
+-- @
+-- x = 'nesting' (\\i -> 'optimize' (…i…))
+-- @
+--
+-- Here, every use of @x@ would re-optimize the computed document each time the
+-- layouter tries to use @x@. This applies even when the 'nesting' is inside the
+-- 'optimize', like in
+--
+-- @
+-- y = 'optimize' ('nesting' (\\i -> …i…))
+-- @
+--
+-- So take-away message is: 'optimize' only things that contain lots of strings
+-- and no computations.
+optimize :: Doc -> Doc
+optimize = \case
+    -- Should we use a Text builder here, or is it enough to directly
+    -- concatenate the entries?
+    Cat (Char c) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.pack [c, c'])) xs)
+    Cat (Text t) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.snoc t c')) xs)
+    Cat (Text t) (Cat (Text t') xs) -> optimize (Cat (unsafeText (t <> t')) xs)
+    Cat x xs                        -> Cat x (optimize xs)
+
+    FlatAlt x1 x2 -> FlatAlt (optimize x1) (optimize x2)
+    Nest i x      -> Nest i (optimize x)
+    Union x1 x2   -> Union (optimize x1) (optimize x2)
+    Column f      -> Column (optimize . f)
+    PageWidth f   -> PageWidth (optimize . f)
+    Nesting f     -> Nesting (optimize . f)
+    StylePush s x -> StylePush s (optimize x)
+
+    x@Fail   -> x
+    x@Empty  -> x
+    x@Char{} -> x
+    x@Text{} -> x
+    x@Line   -> x
+    StylePop -> StylePop
 
 
 
