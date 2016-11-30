@@ -48,18 +48,30 @@ benchOptimize = env randomShortWords benchmark
         pure (T.pack (take l xs))
 
 benchWLComparison :: Benchmark
-benchWLComparison = bgroup "This vs. ansi-wl-pprint"
-    [ bench "This, unoptimized" (nf (renderLazy . layoutPretty 0.4 80) doc)
-    , bench "This, optimized" (nf (renderLazy . layoutPretty 0.4 80) (optimize doc))
-    , bench "ansi-wl-pprint" (nf (\d -> (WL.displayS (WL.renderPretty 0.4 80 d) "")) wlDoc)
+benchWLComparison = bgroup "vs. other libs"
+    [ bgroup "renderPretty"
+        [ bench "this, unoptimized" (nf (renderLazy . layoutPretty 0.4 80) doc)
+        , bench "this, optimized" (nf (renderLazy . layoutPretty 0.4 80) (optimize doc))
+        , bench "ansi-wl-pprint" (nf (\d -> (WL.displayS (WL.renderPretty 0.4 80 d) "")) wlDoc)
+        ]
+    , bgroup "renderSmart"
+        [ bench "this, unoptimized" (nf (renderLazy . layoutSmart 0.4 80) doc)
+        , bench "this, optimized" (nf (renderLazy . layoutSmart 0.4 80) (optimize doc))
+        , bench "ansi-wl-pprint" (nf (\d -> (WL.displayS (WL.renderSmart 0.4 80 d) "")) wlDoc)
+        ]
+    , bgroup "renderCompact"
+        [ bench "this, unoptimized" (nf (renderLazy . layoutCompact) doc)
+        , bench "this, optimized" (nf (renderLazy . layoutCompact) (optimize doc))
+        , bench "ansi-wl-pprint" (nf (\d -> (WL.displayS (WL.renderCompact d) "")) wlDoc)
+        ]
     ]
   where
     doc :: Doc
     doc = let fun x = "fun" <> parens (softline <> x)
               funnn = fun.fun.fun.fun.fun.fun.fun.fun.fun
-          in funnn (sep (take 64 (cycle ["hello", "world"])))
+          in funnn (sep (take 48 (cycle ["hello", "world"])))
 
     wlDoc :: WL.Doc
     wlDoc = let fun x = "fun" <> WL.parens (WL.softline <> x)
                 funnn = fun.fun.fun.fun.fun.fun.fun.fun.fun
-            in funnn (WL.sep (take 64 (cycle ["hello", "world"])))
+            in funnn (WL.sep (take 48 (cycle ["hello", "world"])))
