@@ -143,16 +143,16 @@ module Data.Text.PrettyPrint.Doc (
 
     Style(..), SColor(..), SIntensity(..), SLayer(..),
 
-    -- ** Forecolor functions
+    -- ** Font color
     black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
     dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
 
-    -- ** Backcolor functions
+    -- ** Background color
     onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
     ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue,
     ondullmagenta, ondullcyan, ondullwhite,
 
-    -- ** Font style functions
+    -- ** Font style
     bold, italics, underline,
 
     -- ** Remove formatting
@@ -374,7 +374,7 @@ data Style =
     | SColor SLayer SIntensity SColor
     deriving (Eq, Ord, Show)
 
--- | 8 different colours, so that all can be displayed in an ANSI terminal.
+-- | 8 different colors, so that all can be displayed in an ANSI terminal.
 data SColor = SBlack | SRed | SGreen | SYellow | SBlue | SMagenta | SCyan | SWhite
     deriving (Eq, Ord, Show)
 

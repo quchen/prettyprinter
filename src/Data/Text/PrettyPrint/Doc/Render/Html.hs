@@ -213,7 +213,7 @@ defaultHtmlColors = HtmlColors
     }
 
 -- | <http://ethanschoonover.com/solarized Solarized light> color scheme,
--- augmented with dull versions of the colours.
+-- augmented with dull versions of the colors.
 solarizedLightColors :: HtmlColors
 solarizedLightColors = HtmlColors
     { _black       = "#002731"
@@ -236,7 +236,7 @@ solarizedLightColors = HtmlColors
     }
 
 -- | <http://ethanschoonover.com/solarized Solarized dark> color scheme,
--- augmented with dull versions of the colours.
+-- augmented with dull versions of the colors.
 solarizedDarkColors :: HtmlColors
 solarizedDarkColors = HtmlColors
     { _black       = "#005064"

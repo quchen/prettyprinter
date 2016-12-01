@@ -49,7 +49,7 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- limitation in Windows ANSI support.
 --
 -- With a bit of trickery to make the ANSI codes printable, here is an example
--- that would render coloured in an ANSI terminal:
+-- that would render colored in an ANSI terminal:
 --
 -- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
 -- >>> let doc = red ("red" <+> align (vsep [blue ("blue" <+> bold "bold" <+> "blue"), "red"]))
@@ -60,7 +60,7 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 -- \e[0;91mred \e[0;94mblue \e[0;94;1mbold\e[0;94m blue\e[0;91m
 --     red\e[0m
 --
--- Run the above via @echo -e '...'@ in your terminal to see the colouring.
+-- Run the above via @echo -e '...'@ in your terminal to see the coloring.
 renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc
   = let (resultBuilder, remainingStyles) = execRenderM [emptyStyle] (build doc)
