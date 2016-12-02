@@ -18,7 +18,18 @@
 -- This module defines a prettyprinter to format text in a flexible and
 -- convenient way. The idea is to combine a 'Doc'ument out of many small
 -- components, then using a layouter to convert it to an easily renderable
--- 'SimpleDoc', which can then for example be converted to plain 'Text'.
+-- 'SimpleDoc', which can then be rendered to a variety of formats, for example
+-- plain 'Text'.
+--
+-- The documentation consists of several parts:
+--
+--   1. Just below is some general textual information about the library.
+--   2. The actual library with extensive documentation and examples
+--   3. Migration guide for users familiar with (ansi-)wl-pprint
+--   4. Historical notes about previous libraries
+--   5. Algebraic properties
+--
+-- = How the layout works
 --
 -- There are two key concepts to layouting: the available width, and 'group'ing.
 --
@@ -83,7 +94,7 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Basic functionality
     Pretty(..),
-    nest, line, line', softline, softline', hardline, group,
+    nest, line, line', softline, softline', hardline, group, flatAlt,
 
     -- * Alignment functions
     --
@@ -105,7 +116,7 @@ module Data.Text.PrettyPrint.Doc (
     --
     -- | The 'sep' and 'cat' functions differ in one detail: when 'group'ed, the
     -- 'sep's replace newlines wich 'space's, while the 'cat's simply remove
-    -- them.
+    -- them. If you're not sure what you want, start with the 'sep's.
 
     -- ** 'sep' family
     --
@@ -125,7 +136,7 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Filler functions
     --
-    -- | Fill up empty space to align documents after a certain gap.
+    -- | Fill up available space
     fill, fillBreak,
 
     -- * Bracketing functions
@@ -135,9 +146,9 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Named character functions
     --
-    -- | Convenience definitions for common special characters.
+    -- | Convenience definitions for common characters
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
-    dquote, semi, colon, comma, space, space', dot, slash, backslash, equals,
+    dquote, semi, colon, comma, space, dot, slash, backslash, equals, pipe,
 
     -- * Styling
 
@@ -171,6 +182,10 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Notes
 
+    -- ** Migration guide
+    --
+    -- $migration
+
     -- ** Historical
     --
     -- $history
@@ -189,6 +204,7 @@ import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 import           Data.String    (IsString (..))
 import           Data.Text      (Text)
 import qualified Data.Text      as T
+import           Data.Void
 
 
 
@@ -214,20 +230,49 @@ import qualified Data.Text      as T
 -- hello
 -- world
 data Doc =
-      Fail -- ^ Occurs when flattening a line. It is a bug if this is possible.
-    | Empty -- ^ The empty document; unit of Cat (observationally)
-    | Char Char -- ^ invariant: char is not '\n'
-    | Text Text -- ^ invariant: text doesn't contain '\n'
-    | Line -- ^ Line break
-    | FlatAlt Doc Doc -- ^ Layout the first doc, but when flattened (via group), layout the second.
-    | Cat Doc Doc -- ^ Concatenation of two documents
-    | Nest !Int Doc -- ^ Document indented by a number of columns
-    | Union Doc Doc -- ^ invariant: first lines of first doc longer than the first lines of the second doc
-    | Column (Int -> Doc) -- ^ React on the current cursor position, see 'column'
-    | PageWidth (Maybe Int -> Doc) -- ^ React on the document's width, see 'pageWidth'
-    | Nesting (Int -> Doc) -- ^ React on the current nesting level, see 'nesting'
-    | StylePush Style Doc -- ^ Add 'Style' information to the enclosed 'Doc'
-    | StylePop -- ^ Remove one previously pushed style. Used only during layouting.
+
+    -- | Occurs when flattening a line. The layouter will reject this document,
+    -- choosing a more suitable rendering.
+    Fail
+
+    -- | The empty document; unit of Cat (observationally)
+    | Empty
+
+    -- | invariant: char is not '\n'
+    | Char Char
+
+    -- | invariant: text doesn't contain '\n'
+    | Text Text
+
+    -- | Line break
+    | Line
+
+    -- | Layout the first doc, but when flattened (via group), layout the second.
+    | FlatAlt Doc Doc
+
+    -- | Concatenation of two documents
+    | Cat Doc Doc
+
+    -- | Document indented by a number of columns
+    | Nest !Int Doc
+
+    -- | invariant: first lines of first doc longer than the first lines of the second doc
+    | Union Doc Doc
+
+    -- | React on the current cursor position, see 'column'
+    | Column (Int -> Doc)
+
+    -- | React on the document's width, see 'pageWidth'
+    | PageWidth (Maybe Int -> Doc)
+
+    -- | React on the current nesting level, see 'nesting'
+    | Nesting (Int -> Doc)
+
+    -- | Add 'Style' information to the enclosed 'Doc'
+    | StylePush Style Doc
+
+    -- | Remove one previously pushed style. Used only during layouting.
+    | StylePop
 
 -- | Empty document, and direct concatenation (without adding any spacing).
 instance Monoid Doc where
@@ -324,12 +369,12 @@ instance Pretty Double where
 
 -- | >>> putDoc (pretty (123, "hello"))
 -- (123,hello)
-instance (Pretty a,Pretty b) => Pretty (a,b) where
+instance (Pretty a, Pretty b) => Pretty (a,b) where
             pretty (x,y) = tupled [pretty x, pretty y]
 
 -- | >>> putDoc (pretty (123, "hello", False))
 -- (123,hello,False)
-instance (Pretty a,Pretty b,Pretty c) => Pretty (a,b,c) where
+instance (Pretty a, Pretty b, Pretty c) => Pretty (a,b,c) where
                 pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
 
 -- | Ignore 'Nothing's, print 'Just' contents.
@@ -361,6 +406,9 @@ instance Pretty a => Pretty (Maybe a) where
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
 instance Pretty Text where
     pretty = vsep . map unsafeText . T.splitOn "\n"
+
+instance Pretty Void where
+    pretty = absurd
 
 
 
@@ -422,7 +470,7 @@ data SimpleDoc =
 unsafeText :: Text -> Doc
 unsafeText t = case T.compareLength t 1 of
     LT -> Empty
-    EQ -> Char (T.head t)
+    EQ -> pretty (T.head t)
     GT -> Text t
 
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
@@ -522,14 +570,17 @@ softline' = group line'
 hardline :: Doc
 hardline = Line
 
--- | @('group' x)@ undoes all line breaks in document @x@. The result is added
--- to the current line if this still fits into the page. Otherwise, the document
--- @x@ is layouted without any changes.
+-- | @('group' x)@ tries layouting @x@ into a single line (by removing the
+-- contained line breaks); if this does not fit the page, @x@ is layouted
+-- without any changes.
 --
--- See 'vcat', 'line' or 'space'' for examples.
+-- See 'vcat', 'line', or 'flatAlt' for examples.
 group :: Doc -> Doc
 group x = Union (flatten x) x
 
+-- Choose the first element of each @Union@, and discard the first field of all
+-- @FlatAlt@s. Note that this is not an idempotent operation, since the other
+-- @FlatAlt@ field is not flattened recursively.
 flatten :: Doc -> Doc
 flatten = \case
     FlatAlt _ y   -> y
@@ -546,7 +597,50 @@ flatten = \case
     x@Empty      -> x
     x@Char{}     -> x
     x@Text{}     -> x
-    x@StylePop{} -> x
+
+    StylePop -> error "StylePop should only appear during layouting, never during flattening"
+
+-- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
+-- @fallback@ when 'group'ed.
+--
+-- Note that 'group' undoes only a single layer of 'flatAlt's, and does not
+-- recursively flatten all of them. This allows more fine-grained control over
+-- the 'group'ing process. Also, the fallback should be narrower than the
+-- original document, or falling back to it might not produce a very appealing
+-- layout.
+--
+-- 'flatAlt' is particularly useful for defining conditional separators such as
+-- in the above example. Some others that might be useful include
+--
+-- @
+-- softHyphen = 'flatAlt' 'mempty' "-"
+-- softline   = 'flatAlt' 'space' 'line'
+-- @
+--
+-- We can use this to render Haskell's do-notation nicely:
+--
+-- >>> let open        = flatAlt "" "{ "
+-- >>> let close       = flatAlt "" " }"
+-- >>> let separator   = flatAlt "" "; "
+-- >>> let prettyDo xs = group ("do" <+> encloseSep open close separator xs)
+-- >>> let statements  = ["name:_ <- getArgs", "let greet = \"Hello, \" <> name", "putStrLn greet"]
+--
+-- This is put into a single line with @{;}@ style if it fits,
+--
+-- >>> putDocW 80 (prettyDo statements)
+-- do { name:_ <- getArgs; let greet = "Hello, " <> name; putStrLn greet }
+--
+-- When there is not enough space the statements are broken up into lines
+-- nicely,
+--
+-- >>> putDocW 10 (prettyDo statements)
+-- do name:_ <- getArgs
+--    let greet = "Hello, " <> name
+--    putStrLn greet
+flatAlt :: Doc -> Doc -> Doc
+flatAlt = FlatAlt
+
+
 
 -- | @('align' x)@ layouts document @x@ with the nesting level set to the
 -- current column. It is used for example to implement 'hang'.
@@ -969,8 +1063,8 @@ spaces n | n <= 0    = mempty
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.
 --
--- >>> putDoc (enclose "A" "Z" "…")
--- A…Z
+-- >>> putDoc (enclose "A" "Z" "·")
+-- A·Z
 --
 -- @
 -- 'enclose' l r x = l '<>' x '<>' r
@@ -978,33 +1072,33 @@ spaces n | n <= 0    = mempty
 enclose :: Doc -> Doc -> Doc -> Doc
 enclose l r x = l <> x <> r
 
--- | >>> putDoc (squotes "…")
--- '…'
+-- | >>> putDoc (squotes "·")
+-- '·'
 squotes :: Doc -> Doc
 squotes = enclose squote squote
 
--- | >>> putDoc (dquotes "…")
--- "…"
+-- | >>> putDoc (dquotes "·")
+-- "·"
 dquotes :: Doc -> Doc
 dquotes = enclose dquote dquote
 
--- | >>> putDoc (parens "…")
--- (…)
+-- | >>> putDoc (parens "·")
+-- (·)
 parens :: Doc -> Doc
 parens = enclose lparen rparen
 
--- | >>> putDoc (angles "…")
--- <…>
+-- | >>> putDoc (angles "·")
+-- <·>
 angles :: Doc -> Doc
 angles = enclose langle rangle
 
--- | >>> putDoc (brackets "…")
--- […]
+-- | >>> putDoc (brackets "·")
+-- [·]
 brackets :: Doc -> Doc
 brackets = enclose lbracket rbracket
 
--- | >>> putDoc (braces "…")
--- {…}
+-- | >>> putDoc (braces "·")
+-- {·}
 braces :: Doc -> Doc
 braces = enclose lbrace rbrace
 
@@ -1080,40 +1174,6 @@ comma = pretty ','
 space :: Doc
 space = pretty ' '
 
--- | Like @'space'@, but empty when 'group'ed.
---
--- >>> putDoc ("a" <> space' <> "b")
--- a b
---
--- >>> putDoc (group ("a" <> space' <> "b"))
--- ab
---
--- We could for example use this to define an arguably prettier list output
--- function:
---
--- >>> let l = map pretty [1,20,300,4000,50000]
--- >>> let prettierList = group . encloseSep (lbracket <> space') (space' <> rbracket) (comma <> space)
--- >>> putDocW 40 ("list =" <+> prettierList l)
--- list = [1, 20, 300, 4000, 50000]
--- >>> putDocW 20 ("list =" <+> prettierList l)
--- list = [ 1
---        , 20
---        , 300
---        , 4000
---        , 50000 ]
---
--- Without 'space'', the multiline version does not render very well:
---
--- >>> let prettyList = group . encloseSep lbracket rbracket (comma <> space)
--- >>> putDocW 20 ("list =" <+> prettyList l)
--- list = [1
---        , 20
---        , 300
---        , 4000
---        , 50000]
-space' :: Doc
-space' = FlatAlt space mempty
-
 -- | >>> putDoc dot
 -- .
 dot :: Doc
@@ -1133,6 +1193,11 @@ backslash = pretty '\\'
 -- =
 equals :: Doc
 equals = pretty '='
+
+-- | >>> putDoc pipe
+-- |
+pipe :: Doc
+pipe = pretty '|'
 
 
 
@@ -1227,7 +1292,6 @@ underline = StylePush SUnderlined
 -- before layouting.
 plain :: Doc -> Doc
 plain = \case
-    Fail          -> Fail
     FlatAlt x y   -> FlatAlt (plain x) (plain y)
     Cat x y       -> Cat (plain x) (plain y)
     Nest i x      -> Nest i (plain x)
@@ -1236,12 +1300,14 @@ plain = \case
     PageWidth f   -> PageWidth (plain . f)
     Nesting f     -> Nesting (plain . f)
     StylePush _ x -> plain x
-    StylePop      -> Empty
 
-    x@Empty      -> x
-    x@Char{}     -> x
-    x@Text{}     -> x
-    x@Line       -> x
+    x@Fail{}  -> x
+    x@Empty{} -> x
+    x@Char{}  -> x
+    x@Text{}  -> x
+    x@Line{}  -> x
+
+    StylePop -> error "StylePop should only appear during layouting, never during composition"
 
 
 
@@ -1297,26 +1363,35 @@ plain = \case
 -- y = 'optimize' ('nesting' (\\i -> …i…))
 -- @
 --
--- So take-away message is: 'optimize' only things that contain lots of strings
--- and no computations.
+-- So take-away message is: 'optimize' only things that contain lots of strings,
+-- no computations, and share the result.
 optimize :: Doc -> Doc
 optimize = \case
+
+    -- TODO: This does not optimize Cat xs (Cat Empty Empty) to xs yet.
+
+    -- Remove empty documents
+    Cat Empty x -> optimize x
+    Cat x Empty -> optimize x
+
+    -- Associate to the right, optimize aggressively
+    Cat (Cat x y) z -> optimize (Cat (optimize x) (optimize (Cat y z)))
+
     -- Fuse consecutive text elements
-    Cat (Char c) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.pack [c, c'])) xs)
-    Cat (Text t) (Cat (Char c') xs) -> optimize (Cat (unsafeText (T.snoc t c')) xs)
-    Cat (Text t) (Cat (Text t') xs) -> optimize (Cat (unsafeText (t <> t')) xs)
-    Cat x xs                        -> Cat x (optimize xs)
+    Cat (Char c) (Cat (Char c') x) -> optimize (Cat (Text (T.pack [c, c'])) x)
+    Cat (Text t) (Cat (Char c') x) -> optimize (Cat (Text (T.snoc t c')) x)
+    Cat (Text t) (Cat (Text t') x) -> optimize (Cat (Text (t <> t')) x)
+    Cat x y@Cat{}                  -> Cat x (optimize y)
+    Cat x y                        -> Cat (optimize x) (optimize y)
     -- quchen: I tried improving this by using {lazy text, text builders} here,
     --         but this was not good for performance.
 
     -- Fuse consecutive nestings
-    Nest i (Nest j x) -> let !ij = i+j in optimize (Nest ij x)
-    Nest i x          -> Nest i (optimize x)
+    Nest !i (Nest j x) -> optimize (Nest (i+j) x)
+    Nest  i x          -> Nest i (optimize x)
 
-    -- Drop styles that are overwritten immediately
-    StylePush s x@(StylePush s' _) | s == s' -> optimize x
-    StylePush (SColor l _ _) x@(StylePush (SColor l' _ _) _) | l == l' -> optimize x
-    StylePush s x -> StylePush s (optimize x)
+    StylePush _ Empty -> Empty
+    StylePush s x     -> StylePush s (optimize x)
 
     -- Don't optimize, recurse
     FlatAlt x1 x2 -> FlatAlt (optimize x1) (optimize x2)
@@ -1326,16 +1401,18 @@ optimize = \case
     Nesting f     -> Nesting (optimize . f)
 
     -- Don't optimize
-    x@Fail   -> x
-    x@Empty  -> x
-    x@Char{} -> x
-    x@Text{} -> x
-    x@Line   -> x
-    StylePop -> StylePop
+    x@Fail{}  -> x
+    x@Empty{} -> x
+    x@Char{}  -> x
+    x@Text{}  -> x
+    x@Line{}  -> x
+
+    StylePop -> error "StylePop should only appear during layouting, never during optimization"
 
 
 
--- list of indentation/document pairs; saves an indirection over [(Int,Doc)]
+-- List of nesting level/document pairs yet to be rendered. Saves one
+-- indirection over [(Int, Doc)].
 data Docs = Nil | Cons !Int Doc Docs
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
@@ -1399,76 +1476,31 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
   where
     ribbonWidth = max 0 (min maxColumns (round (fromIntegral maxColumns * rfrac)))
 
-    -- * current column >= current line's indentation
+    -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
     best
-        :: Int -- ^ Current line's indentation
-        -> Int -- ^ Current column
+        :: Int -- ^ Current nesting level
+        -> Int -- ^ Current column, i.e. "where the cursor is"
         -> Docs -- ^ Documents remaining to be handled (in order)
         -> SimpleDoc
     best _ _ Nil = SEmpty
-    best lineIndent currentColumn (Cons i d ds) = case d of
-        Fail -> SFail
-
-        -- If the next chunk to convert is empty, we simply continue.
-        Empty -> best lineIndent currentColumn ds
-
-        -- To layout a character, insert it and increase the column count by
-        -- one.
-        Char c -> let !col' = currentColumn+1
-                  in SChar c (best lineIndent col' ds)
-
-        -- To layout text, insert it and increase the column count by the length
-        -- of the inserted text. Note that it is an invariant of 'Text' to not
-        -- contain any newlines, so we need not worry about wrapping and
-        -- resetting the column count.
-        Text t -> let !col' = currentColumn+T.length t
-                  in SText t (best lineIndent col' ds)
-
-        -- Insert a line break, and reset the current column to the current
-        -- indentation level.
-        Line -> SLine i (best i i ds)
-
-        -- An unflattened pair of alternatives is simply layouted as the first
-        -- alternative.
-        FlatAlt x _ -> best lineIndent currentColumn (Cons i x ds)
-
-        -- The concatenation of two documents is expanded to layout one after
-        -- the other (duh).
-        Cat x y -> best lineIndent currentColumn (Cons i x (Cons i y ds))
-
-        -- A nested document is layouted by increasing the indentation index,
-        -- and then layouting the contained document.
-        Nest j x -> let !i' = i+j
-                    in best lineIndent currentColumn (Cons i' x ds)
-
-        -- The union of two documents tries layouting the first, and if this
-        -- does not fit the layout constraints, falls back to the second.
-        Union x y -> selectNicer lineIndent
-                                 currentColumn
-                                 (best lineIndent currentColumn (Cons i x ds))
-                                 (best lineIndent currentColumn (Cons i y ds))
-
-        -- A column-aware document is layouted by providing the contained
-        -- function with the current column.
-        Column f -> best lineIndent currentColumn (Cons i (f currentColumn) ds)
-
-        -- A page width aware document is layouted by providing the contained
-        -- function with the page width.
-        PageWidth f -> best lineIndent currentColumn (Cons i (f (Just maxColumns)) ds)
-
-        -- A nesting-aware document is layouted by providing the contained
-        -- function with the current indentation level.
-        Nesting f -> best lineIndent currentColumn (Cons i (f i) ds)
-
-        -- A styled document is layouted by layouting the contained document
-        -- with style information added, and appending a 'StylePop' to revert it
-        -- once its scope is left.
-        StylePush s x -> SStylePush s (best lineIndent currentColumn (Cons i x (Cons i StylePop ds)))
-
-        -- Popping a style ultimately instructs the displaying function to
-        -- revert to the style before the last 'StylePush'.
-        StylePop -> SStylePop (best lineIndent currentColumn ds)
+    best !nl !cc (Cons !i d ds) = case d of
+        Fail          -> SFail
+        Empty         -> best nl cc ds
+        Char c        -> SChar c (best nl (cc + 1) ds)
+        Text t        -> SText t (best nl (cc + T.length t) ds)
+        Line          -> SLine i (best i i ds)
+        FlatAlt x _   -> best nl cc (Cons i x ds)
+        Cat x y       -> best nl cc (Cons i x (Cons i y ds))
+        Nest j x      -> best nl cc (Cons (i+j) x ds)
+        Union x y     -> let x' = best nl cc (Cons i x ds)
+                             y' = best nl cc (Cons i y ds)
+                         in selectNicer nl cc x' y'
+        Column f      -> best nl cc (Cons i (f cc) ds)
+        PageWidth f   -> best nl cc (Cons i (f (Just maxColumns)) ds)
+        Nesting f     -> best nl cc (Cons i (f i) ds)
+        StylePush s x -> SStylePush s (best nl cc (Cons i x (Cons i StylePop ds)))
+        StylePop      -> SStylePop (best nl cc ds)
 
     selectNicer
         :: Int       -- ^ Indentation of current line
@@ -1525,14 +1557,14 @@ fitsR = FP go
        -> SimpleDoc
        -> Bool
     go _ _ w _
-      | w < 0                    = False
+      | w < 0                 = False
     go _ _ _ SFail            = False
     go _ _ _ SEmpty           = True
     go p m w (SChar _ x)      = go p m (w - 1) x
     go p m w (SText t x)      = go p m (w - T.length t) x
     go p m _ (SLine i x)
-      | m < i                    = go p m (p - i) x
-      | otherwise                = True
+      | m < i                 = go p m (p - i) x
+      | otherwise             = True
     go p m w (SStylePush _ x) = go p m w x
     go p m w (SStylePop x)    = go p m w x
 
@@ -1546,11 +1578,11 @@ layoutCompact :: Doc -> SimpleDoc
 layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
-    scan k (d:ds) = case d of
+    scan !k (d:ds) = case d of
         Fail          -> SFail
         Empty         -> scan k ds
-        Char c        -> let !k' = k+1 in SChar c (scan k' ds)
-        Text t        -> let !k' = k+T.length t in SText t (scan k' ds)
+        Char c        -> SChar c (scan (k+1) ds)
+        Text t        -> SText t (scan (k + T.length t) ds)
         FlatAlt x _   -> scan k (x:ds)
         Line          -> SLine 0 (scan 0 ds)
         Cat x y       -> scan k (x:y:ds)
@@ -1574,6 +1606,21 @@ displayString = \case
     SLine i x      -> showString ('\n':replicate i ' ') . displayString x
     SStylePush _ x -> displayString x
     SStylePop x    -> displayString x
+
+
+-- $migration
+--
+-- If you're already familiar with (ansi-)wl-pprint, you'll recognize many
+-- functions in this module, and they work just the same way. However, a couple
+-- of definitions are missing:
+--
+--   - @char@, @string@, @double@, … – these are all special cases of the
+--     overloaded @'pretty'@ function.
+--   - @\<$>@, @\<$$>@, @\</>@, @\<//>@ are special cases of
+--     @'vsep'@, @'vcat'@, @'fillSep'@, @'fillCat'@ with only two documents.
+--   - If you need 'String' output, use 'T.unpack' on the generated renderings.
+--   - The /display/ functions are moved to the rendering submodules.
+--   - The /render/ functions are called /layout/ functions.
 
 
 

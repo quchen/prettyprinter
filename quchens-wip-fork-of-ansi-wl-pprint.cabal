@@ -38,7 +38,7 @@ executable example
     build-depends:
           base
         , quchens-wip-fork-of-ansi-wl-pprint
-        , ansi-terminal >= 0.4.0 && < 0.7
+        , text
 
 test-suite doctest
     type: exitcode-stdio-1.0

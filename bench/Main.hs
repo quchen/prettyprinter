@@ -29,10 +29,10 @@ benchOptimize = env randomShortWords benchmark
   where
     benchmark = \shortWords ->
         bgroup "Many small words"
-            [ let doc' = hsep (map text shortWords)
+            [ let doc' = hsep (map pretty shortWords)
               in bench "Optimizer OFF"
                     (nf renderLazy (layoutPretty 0.4 80 doc'))
-            , let doc' = optimize (hsep (map text shortWords))
+            , let doc' = optimize (hsep (map pretty shortWords))
               in bench "Optimizer ON"
                     (nf renderLazy (layoutPretty 0.4 80 doc'))
             ]
