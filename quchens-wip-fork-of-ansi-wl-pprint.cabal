@@ -6,7 +6,7 @@ synopsis:            The Wadler/Leijen Pretty Printer for colored ANSI terminal 
 description:         This is a pretty printing library based on Wadler's paper "A Prettier Printer". It has been enhanced with support for ANSI terminal colored output using the ansi-terminal package.
 license:             BSD3
 license-file:        LICENSE.md
-extra-source-files:  README.textile
+extra-source-files:  README.md
 author:              Daan Leijen, Max Bolingbroke, Edward Kmett
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/ansi-wl-pprint/issues
@@ -35,6 +35,13 @@ library
 
 executable example
     main-is: app/Example.hs
+    build-depends:
+          base
+        , quchens-wip-fork-of-ansi-wl-pprint
+        , text
+
+executable readme-generator
+    main-is: app/GenerateReadme.hs
     build-depends:
           base
         , quchens-wip-fork-of-ansi-wl-pprint

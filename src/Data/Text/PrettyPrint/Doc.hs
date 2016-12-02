@@ -3,12 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
--- Module      :  Text.PrettyPrint.ANSI.Leijen
+-- Module      :  Data.Text.PrettyPrint.Doc
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
 --                David Luposchainsky (c) 2016, http://github.com/quchen
 -- License     :  BSD-style (see the file LICENSE.md)
---
 -- Maintainer  :  David Luposchainsky <dluposchainsky (λ) google>
 -- Stability   :  experimental
 -- Portability :  portable
