@@ -557,7 +557,8 @@ softline' :: Doc
 softline' = group line'
 
 -- | A @'hardline'@ is /always/ layouted as a line break, even when 'group'ed or
--- when there is plenty of space.
+-- when there is plenty of space. Note that it might still be simply discarded
+-- if it is part of a 'flatAlt' inside a 'group'.
 --
 -- >>> let doc = "lorem ipsum" <> hardline <> "dolor sit amet"
 -- >>> putDocW 1000 doc
@@ -856,7 +857,7 @@ sep = group . vsep
 
 
 
--- | @('hcat' xs)@ concatenates all documents @xs@ horizontally with @(\<\>)@
+-- | @('hcat' xs)@ concatenates all documents @xs@ horizontally with @'<>'@
 -- (i.e. without any spacing).
 --
 -- It is provided only for consistency, since it is identical to 'mconcat'.
@@ -1519,27 +1520,28 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
 
--- | Decide whether a 'SimpleDoc' fits the constraints given, namely page width,
--- minimum nesting level to fit in, and width in which to fit the first line.
+-- | Decide whether a 'SimpleDoc' fits the constraints given, namely
+--
+--   - page width
+--   - minimum nesting level to fit in
+--   - width in which to fit the first line
 newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
 
 -- | @fits1@ does 1 line lookahead.
 fits1 :: FittingPredicate
-fits1 = FP go
+fits1 = FP (\_p _m w -> go w)
   where
-    go :: Int -- ^ Page width
-       -> int -- ^ Minimum nesting level to fit in. Unused by this algorithm.
-       -> Int -- ^ Width in which to fit the first line
+    go :: Int -- ^ Width in which to fit the first line
        -> SimpleDoc
        -> Bool
-    go _ _ w _ | w < 0        = False
-    go _ _ _ SFail            = False
-    go _ _ _ SEmpty           = True
-    go p m w (SChar _ x)      = go p m (w - 1) x
-    go p m w (SText t x)      = go p m (w - T.length t) x
-    go _ _ _ SLine{}          = True
-    go p m w (SStylePush _ x) = go p m w x
-    go p m w (SStylePop x)    = go p m w x
+    go w _ | w < 0        = False
+    go _ SFail            = False
+    go _ SEmpty           = True
+    go w (SChar _ x)      = go (w - 1) x
+    go w (SText t x)      = go (w - T.length t) x
+    go _ SLine{}          = True
+    go w (SStylePush _ x) = go w x
+    go w (SStylePop x)    = go w x
 
 -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
 -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
