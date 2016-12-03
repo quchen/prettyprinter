@@ -25,6 +25,9 @@ library
                    , Data.Text.PrettyPrint.Doc.Render.Terminal
                    , Data.Text.PrettyPrint.Doc.Render.Text
                    , Data.Text.PrettyPrint.Doc.Render.RenderM
+
+                   , Text.PrettyPrint.ANSI.Leijen
+                   , Text.PrettyPrint.Leijen
     ghc-options: -Wall -Wcompat
     hs-source-dirs: src
 

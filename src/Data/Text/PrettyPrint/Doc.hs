@@ -217,7 +217,7 @@ import           Data.Void
 
 
 
--- | The abstract data type @Doc@ represents pretty documents.
+-- | The abstract data type @'Doc'@ represents pretty documents.
 --
 -- More specifically, a value of type @Doc@ represents a non-empty set of
 -- possible layoutings of a document. The layouting functions select one of
@@ -275,8 +275,7 @@ data Doc =
     -- | Remove one previously pushed style. Used only during layouting.
     | StylePop
 
--- | Empty document, and direct concatenation (without adding any spacing).
---
+-- |
 -- @
 -- 'mempty' = 'emptyDoc'
 -- 'mconcat' = 'hcat'
