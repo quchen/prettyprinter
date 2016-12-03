@@ -93,7 +93,7 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Basic functionality
     Pretty(..),
-    nest, line, line', softline, softline', hardline, group, flatAlt,
+    emptyDoc, nest, line, line', softline, softline', hardline, group, flatAlt,
 
     -- * Alignment functions
     --
@@ -274,8 +274,13 @@ data Doc =
     | StylePop
 
 -- | Empty document, and direct concatenation (without adding any spacing).
+--
+-- @
+-- 'mempty' = 'emptyDoc'
+-- 'mconcat' = 'hcat'
+-- @
 instance Monoid Doc where
-    mempty = Empty
+    mempty = emptyDoc
     mappend = (Semi.<>)
     mconcat = hcat
 
@@ -471,6 +476,20 @@ unsafeText t = case T.compareLength t 1 of
     LT -> Empty
     EQ -> pretty (T.head t)
     GT -> Text t
+
+-- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
+-- This may lead to surprising behaviour if we expect it to bear no weight
+-- inside e.g. vcat, where we get an empty line of output from it ('angles' for
+-- visibility only):
+--
+-- >>> putDoc (vsep ["hello", angles emptyDoc, "world"])
+-- hello
+-- <>
+-- world
+--
+-- Together with '<>', 'emptyDoc' forms the 'Monoid' 'Doc'.
+emptyDoc :: Doc
+emptyDoc = Empty
 
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
 -- increased by @i@. See also 'hang', 'align' and 'indent'.
