@@ -108,14 +108,16 @@ module Data.Text.PrettyPrint.Doc (
     -- expressions is fine.
     align, hang, indent, encloseSep, list, tupled,
 
-    -- * Operators
+    -- * Binary functions
     (<>), (<+>),
 
     -- * List functions
-    --
+
     -- | The 'sep' and 'cat' functions differ in one detail: when 'group'ed, the
     -- 'sep's replace newlines wich 'space's, while the 'cat's simply remove
     -- them. If you're not sure what you want, start with the 'sep's.
+
+    concatWith,
 
     -- ** 'sep' family
     --
@@ -784,10 +786,20 @@ x <+> y = x <> space <> y
 
 
 
--- | 'foldr', with an empty special case for empty arguments.
-concatWith :: (Doc -> Doc -> Doc) -> [Doc] -> Doc
-concatWith _ [] = mempty
-concatWith f ds = foldr1 f ds
+-- | 'foldr', with an empty special case for empty arguments. This is useful to
+-- collapse collections of documents element-wise.
+--
+-- Multiple convenience definitions based on 'concatWith' are alredy predefined,
+-- for example
+--
+-- @
+-- 'hsep'    = 'concatWith' ('<+>')
+-- 'fillSep' = 'concatWith' (\\x y -> x '<>' 'softline' '<>' y)
+-- @
+concatWith :: Foldable t => (Doc -> Doc -> Doc) -> t Doc -> Doc
+concatWith f ds
+    | null ds = mempty
+    | otherwise = foldr1 f ds
 
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
