@@ -155,6 +155,10 @@ renderStrict = LT.toStrict . renderLazy
 
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+--
+-- >>> renderIO System.IO.stdout (layoutPretty 1 80 "hello\nworld")
+-- hello
+-- world
 renderIO :: Handle -> SimpleDoc -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 

@@ -141,6 +141,10 @@ htmlTag tag attrs openClose = case openClose of
 
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+--
+-- >>> renderIO System.IO.stdout defaultHtmlColors (layoutPretty 1 80 "hello\nworld")
+-- hello
+-- world
 renderIO :: Handle -> HtmlColors -> SimpleDoc -> IO ()
 renderIO h colors sdoc = LT.hPutStrLn h (renderLazy colors sdoc)
 
@@ -171,6 +175,8 @@ hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty 0.4 80 doc)
 
 
 -- | CSS color values for each of the styles.
+--
+-- Entries should be valid CSS colors, e.g. @"rgb(205, 0, 0)"@ or @"#d01b24"@.
 data HtmlColors = HtmlColors
     { _black       :: TLB.Builder
     , _red         :: TLB.Builder

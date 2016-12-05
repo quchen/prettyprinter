@@ -242,7 +242,9 @@ data Doc =
     -- | invariant: char is not '\n'
     | Char Char
 
-    -- | invariant: text doesn't contain '\n'
+    -- | invariants: at least two characters, doesn't contain '\n'. For empty
+    -- documents, there is 'Empty'; for singleton documents, there is 'Char';
+    -- newlines should be replaced by e.g. 'Line'.
     | Text Text
 
     -- | Line break
@@ -785,8 +787,12 @@ x <+> y = x <> space <> y
 
 
 
--- | 'foldr', with an empty special case for empty arguments. This is useful to
--- collapse collections of documents element-wise.
+-- | Concatenate all documents element-wise with a binary function.
+--
+-- @
+-- 'concatWith' _ [] = 'mempty'
+-- 'concatWith' (**) [x,y,z] = x ** y ** z
+-- @
 --
 -- Multiple convenience definitions based on 'concatWith' are alredy predefined,
 -- for example
@@ -795,10 +801,17 @@ x <+> y = x <> space <> y
 -- 'hsep'    = 'concatWith' ('<+>')
 -- 'fillSep' = 'concatWith' (\\x y -> x '<>' 'softline' '<>' y)
 -- @
+--
+-- This is also useful to define customized joiners,
+--
+-- >>> concatWith (\x y -> x <> dot <> y) ["Data", "Text", "PrettyPrint", "Doc"]
+-- Data.Text.PrettyPrint.Doc
 concatWith :: Foldable t => (Doc -> Doc -> Doc) -> t Doc -> Doc
 concatWith f ds
     | null ds = mempty
     | otherwise = foldr1 f ds
+{-# INLINE concatWith #-}
+{-# SPECIALIZE concatWith :: (Doc -> Doc -> Doc) -> [Doc] -> Doc #-}
 
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
@@ -1533,7 +1546,7 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         StylePop      -> SStylePop (best nl cc ds)
 
     selectNicer
-        :: Int       -- ^ Indentation of current line
+        :: Int       -- ^ Current nesting level
         -> Int       -- ^ Current column
         -> SimpleDoc -- ^ Choice A. Invariant: first lines must be longer than B's.
         -> SimpleDoc -- ^ Choice B.

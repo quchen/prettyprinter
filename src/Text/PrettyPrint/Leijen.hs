@@ -1,4 +1,4 @@
-module Text.PrettyPrint.Leijen {-# WARNING "Compatibility module for users of wl-pprint - use Data.Text.PrettyPrint.Doc instead" #-} (
+module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of wl-pprint - use Data.Text.PrettyPrint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
     softline, softbreak, align, hang, indent, encloseSep, list, tupled,

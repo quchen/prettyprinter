@@ -37,13 +37,16 @@ import Data.Text.PrettyPrint.Doc.Render.RenderM
 
 
 
--- | Add Markdown-style markers for emphasis and strong emphasis. Other styles
--- are ignored.
+-- | Add Markdown-style markers for emphasis and strong emphasis.
 --
 -- >>> let doc = "This text" <+> italics ("is emphasized" <+> bold "even stronger" <> "!")
 -- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty 0.4 40
 -- >>> pprint doc
 -- This text *is emphasized **even stronger**!*
+--
+-- Colorization is not supported by CommonMark, so these directives are simply
+-- ignored,
+--
 -- >>> pprint (red doc)
 -- This text *is emphasized **even stronger**!*
 renderLazy :: SimpleDoc -> LT.Text
@@ -59,13 +62,16 @@ build :: SimpleDoc -> RenderM TLB.Builder Style ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
-    SChar c x -> do writeResult (TLB.singleton c)
-                    build x
-    SText t x -> do writeResult (TLB.fromText t)
-                    build x
-    SLine i x -> do writeResult (TLB.singleton '\n' )
-                    writeResult (TLB.fromText (T.replicate i " "))
-                    build x
+    SChar c x -> do
+        writeResult (TLB.singleton c)
+        build x
+    SText t x -> do
+        writeResult (TLB.fromText t)
+        build x
+    SLine i x -> do
+        writeResult (TLB.singleton '\n' )
+        writeResult (TLB.fromText (T.replicate i " "))
+        build x
     SStylePush s x -> do
         pushStyle s
         writeResult (styleToMarker s)
@@ -88,6 +94,10 @@ renderStrict = LT.toStrict . renderLazy
 
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+--
+-- >>> renderIO System.IO.stdout (layoutPretty 1 80 "hello\nworld")
+-- hello
+-- world
 renderIO :: Handle -> SimpleDoc -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
