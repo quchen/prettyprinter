@@ -243,8 +243,8 @@ data Doc =
     | Char Char
 
     -- | invariants: at least two characters, doesn't contain '\n'. For empty
-    -- documents, there is 'Empty'; for singleton documents, there is 'Char';
-    -- newlines should be replaced by e.g. 'Line'.
+    -- documents, there is @Empty@; for singleton documents, there is @Char@;
+    -- newlines should be replaced by e.g. @Line@.
     | Text Text
 
     -- | Line break
