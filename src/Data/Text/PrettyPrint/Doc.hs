@@ -140,6 +140,11 @@ module Data.Text.PrettyPrint.Doc (
     -- | Fill up available space
     fill, fillBreak,
 
+    -- * General convenience
+    --
+    -- | Useful helper functions
+    plural,
+
     -- * Bracketing functions
     --
     -- | Enclose documents in common ways.
@@ -1100,6 +1105,25 @@ fillBreak f x = width x (\w ->
 spaces :: Int -> Doc
 spaces n | n <= 0    = mempty
          | otherwise = unsafeText (T.replicate n " ")
+
+
+
+-- | @('plural n one many')@ is @one@ if @n@ is @1@, and @many@ otherwise. A
+-- typical use case is  adding a plural "s".
+--
+-- >>> let things = [True]
+-- >>> let amount = length things
+-- >>> putDoc ("The list has" <+> pretty amount <+> plural amount "entry" "entries")
+-- The list has 1 entry
+plural
+    :: (Num amount, Eq amount)
+    => amount
+    -> doc -- ^ @1@ case
+    -> doc -- ^ other cases
+    -> doc
+plural n one many
+    | n == 1    = one
+    | otherwise = many
 
 
 
