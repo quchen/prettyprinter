@@ -1,9 +1,9 @@
 resolver: lts-7.10
 packages:
     - 'wl-pprint'
-    # - 'wl-pprint-ansi'
-    # - 'wl-pprint-compat-old-wl-pprint'
-    # - 'wl-pprint-compat-old-wl-pprint-ansi'
+    - 'wl-pprint-ansi'
+    - 'wl-pprint-compat-old'
+    - 'wl-pprint-compat-ansi'
 extra-deps: []
 flags: {}
 extra-package-dbs: []
