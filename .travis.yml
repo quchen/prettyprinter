@@ -86,7 +86,6 @@ script:
       $STACK_BUILD_ARGS
     - stack $STACK_ARGS --no-terminal sdist
     - hlint wl-pprint*
-    - stack sdist
 
 
 

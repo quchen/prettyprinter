@@ -830,7 +830,6 @@ concatWith f ds
     | null ds = mempty
     | otherwise = foldr1 f ds
 {-# INLINE concatWith #-}
-{-# SPECIALIZE concatWith :: (Doc -> Doc -> Doc) -> [Doc] -> Doc #-}
 
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
@@ -1426,7 +1425,7 @@ plain = \case
 -- static text with many use sites that can be represented by a single text
 -- node and share this optimized version,
 --
--- >>> oftenUsed = optimize ("a" <> "b" <> pretty 'c' <> "d")
+-- >>> let oftenUsed = optimize ("a" <> "b" <> pretty 'c' <> "d")
 -- >>> putDoc (hsep (replicate 5 oftenUsed))
 -- abcd abcd abcd abcd abcd
 --
