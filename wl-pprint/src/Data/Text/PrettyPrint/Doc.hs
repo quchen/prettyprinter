@@ -234,8 +234,6 @@ infixr 6 <>
 
 
 
-
-
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.IO as T
@@ -1505,6 +1503,13 @@ optimize = \case
 
 
 
+-- | Decide whether a 'SimpleDoc' fits the constraints given, namely
+--
+--   - page width
+--   - minimum nesting level to fit in
+--   - width in which to fit the first line
+newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
+
 -- List of nesting level/document pairs yet to be rendered. Saves one
 -- indirection over [(Int, Doc)].
 data Docs = Nil | Cons !Int Doc Docs
@@ -1518,6 +1523,22 @@ data Docs = Nil | Cons !Int Doc Docs
 -- respectively.
 layoutPretty :: Float -> Int -> Doc -> SimpleDoc
 layoutPretty = layoutFits fits1
+  where
+    -- | @fits1@ does 1 line lookahead.
+    fits1 :: FittingPredicate
+    fits1 = FP (\_p _m w -> go w)
+      where
+        go :: Int -- ^ Width in which to fit the first line
+           -> SimpleDoc
+           -> Bool
+        go w _ | w < 0        = False
+        go _ SFail            = False
+        go _ SEmpty           = True
+        go w (SChar _ x)      = go (w - 1) x
+        go w (SText t x)      = go (w - T.length t) x
+        go _ SLine{}          = True
+        go w (SStylePush _ x) = go w x
+        go w (SStylePop x)    = go w x
 
 -- | A slightly smarter layout algorithm with more lookahead. It provides
 -- earlier breaking on deeply nested structures For example, consider this
@@ -1559,6 +1580,35 @@ layoutPretty = layoutFits fits1
 -- This fits within the 20 character boundary.
 layoutSmart :: Float -> Int -> Doc -> SimpleDoc
 layoutSmart = layoutFits fitsR
+  where
+    -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
+    -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
+    -- fits, but the entire syntactic structure being formatted at this level of
+    -- indentation fits. If we were to remove the second case for @SLine@, we would
+    -- check that not only the current structure fits, but also the rest of the
+    -- document, which would be slightly more intelligent but would have exponential
+    -- runtime (and is prohibitively expensive in practice).
+    fitsR :: FittingPredicate
+    fitsR = FP go
+      where
+        go :: Int -- ^ Page width
+           -> Int -- ^ Minimum nesting level to fit in
+           -> Int -- ^ Width in which to fit the first line
+           -> SimpleDoc
+           -> Bool
+        go _ _ w _
+          | w < 0                 = False
+        go _ _ _ SFail            = False
+        go _ _ _ SEmpty           = True
+        go p m w (SChar _ x)      = go p m (w - 1) x
+        go p m w (SText t x)      = go p m (w - T.length t) x
+        go p m _ (SLine i x)
+          | m < i                 = go p m (p - i) x
+          | otherwise             = True
+        go p m w (SStylePush _ x) = go p m w x
+        go p m w (SStylePop x)    = go p m w x
+
+
 
 layoutFits
     :: FittingPredicate
@@ -1613,56 +1663,6 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
 
--- | Decide whether a 'SimpleDoc' fits the constraints given, namely
---
---   - page width
---   - minimum nesting level to fit in
---   - width in which to fit the first line
-newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
-
--- | @fits1@ does 1 line lookahead.
-fits1 :: FittingPredicate
-fits1 = FP (\_p _m w -> go w)
-  where
-    go :: Int -- ^ Width in which to fit the first line
-       -> SimpleDoc
-       -> Bool
-    go w _ | w < 0        = False
-    go _ SFail            = False
-    go _ SEmpty           = True
-    go w (SChar _ x)      = go (w - 1) x
-    go w (SText t x)      = go (w - T.length t) x
-    go _ SLine{}          = True
-    go w (SStylePush _ x) = go w x
-    go w (SStylePop x)    = go w x
-
--- | @fitsR@ has a little more lookahead: assuming that nesting roughly
--- corresponds to syntactic depth, @fitsR@ checks that not only the current line
--- fits, but the entire syntactic structure being formatted at this level of
--- indentation fits. If we were to remove the second case for @SLine@, we would
--- check that not only the current structure fits, but also the rest of the
--- document, which would be slightly more intelligent but would have exponential
--- runtime (and is prohibitively expensive in practice).
-fitsR :: FittingPredicate
-fitsR = FP go
-  where
-    go :: Int -- ^ Page width
-       -> Int -- ^ Minimum nesting level to fit in
-       -> Int -- ^ Width in which to fit the first line
-       -> SimpleDoc
-       -> Bool
-    go _ _ w _
-      | w < 0                 = False
-    go _ _ _ SFail            = False
-    go _ _ _ SEmpty           = True
-    go p m w (SChar _ x)      = go p m (w - 1) x
-    go p m w (SText t x)      = go p m (w - T.length t) x
-    go p m _ (SLine i x)
-      | m < i                 = go p m (p - i) x
-      | otherwise             = True
-    go p m w (SStylePush _ x) = go p m w x
-    go p m w (SStylePop x)    = go p m w x
-
 -- | @(layoutCompact x)@ layouts document @x@ without adding any indentation.
 -- Since no \'pretty\' printing is involved, this layouter is very fast. The
 -- resulting output contains fewer characters than a pretty printed version and
@@ -1701,7 +1701,6 @@ displayString = \case
     SLine i x      -> showString ('\n':replicate i ' ') . displayString x
     SStylePush _ x -> displayString x
     SStylePop x    -> displayString x
-
 
 -- $migration
 --
