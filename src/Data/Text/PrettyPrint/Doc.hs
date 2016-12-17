@@ -142,7 +142,7 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * General convenience
     --
-    -- | Useful helper functions
+    -- | Useful helper functions.
     plural,
 
     -- * Bracketing functions
