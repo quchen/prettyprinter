@@ -41,13 +41,13 @@ env:
       STACK_BUILD_ARGS=""
     - >
       STACK_ARGS="--resolver lts-7"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
+      STACK_BUILD_ARGS="--ghc-options -Werror --ghc-options -Wcompat"
     - >
       STACK_ARGS="--resolver lts"
-      STACK_BUILD_ARGS=""
+      STACK_BUILD_ARGS="--ghc-options -Wcompat"
     - >
       STACK_ARGS="--resolver nightly"
-      STACK_BUILD_ARGS=""
+      STACK_BUILD_ARGS="--ghc-options -Wcompat"
 
 
 
@@ -57,7 +57,7 @@ matrix:
         - env:
             - >
               STACK_ARGS="--resolver nightly"
-              STACK_BUILD_ARGS=""
+              STACK_BUILD_ARGS="--ghc-options -Wcompat"
 
 
 

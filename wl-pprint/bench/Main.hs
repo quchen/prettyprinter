@@ -52,17 +52,17 @@ benchWLComparison = bgroup "vs. other libs"
     [ bgroup "renderPretty"
         [ bench "this, unoptimized" (nf (renderLazy . layoutPretty 0.4 80) doc)
         , bench "this, optimized" (nf (renderLazy . layoutPretty 0.4 80) (optimize doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "" wlDoc))
+        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
         [ bench "this, unoptimized" (nf (renderLazy . layoutSmart 0.4 80) doc)
         , bench "this, optimized" (nf (renderLazy . layoutSmart 0.4 80) (optimize doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "" wlDoc))
+        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
         [ bench "this, unoptimized" (nf (renderLazy . layoutCompact) doc)
         , bench "this, optimized" (nf (renderLazy . layoutCompact) (optimize doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderCompact d) "" wlDoc))
+        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
         ]
     ]
   where
