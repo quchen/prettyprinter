@@ -27,11 +27,21 @@ library
     ghc-options: -Wall
     hs-source-dirs: src
     default-language: Haskell2010
+    other-extensions:
+          BangPatterns
+        , CPP
+        , LambdaCase
+        , OverloadedStrings
 
     build-depends:
           base < 127
         , ansi-terminal >= 0.4.0 && < 0.7
         , text
+
+    if impl(ghc >= 8.0)
+        ghc-options: -Wcompat
+    else
+        build-depends: semigroups >= 0.1 && < 0.19
 
 executable readme-generator
     main-is: app/GenerateReadme.hs
@@ -40,6 +50,7 @@ executable readme-generator
         , wl-pprint
         , text
     default-language: Haskell2010
+    other-extensions: OverloadedStrings
 
 test-suite doctest
     type: exitcode-stdio-1.0
@@ -52,9 +63,9 @@ test-suite doctest
     default-language: Haskell2010
 
 benchmark bench
-    type:                exitcode-stdio-1.0
-    hs-source-dirs:      bench
-    main-is:             Main.hs
+    type:           exitcode-stdio-1.0
+    hs-source-dirs: bench
+    main-is:        Main.hs
     build-depends:
           base
         , wl-pprint
@@ -62,5 +73,6 @@ benchmark bench
         , criterion
         , random
         , text
-    ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+    ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
+    other-extensions: NumDecimals, OverloadedStrings

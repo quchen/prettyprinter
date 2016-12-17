@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -205,12 +206,25 @@ module Data.Text.PrettyPrint.Doc (
 
 
 import           Data.Maybe
-import           Data.Monoid
-import qualified Data.Semigroup as Semi (Semigroup ((<>)))
-import           Data.String    (IsString (..))
-import           Data.Text      (Text)
-import qualified Data.Text      as T
+import           Data.String (IsString (..))
+import           Data.Text   (Text)
+import qualified Data.Text   as T
 import           Data.Void
+
+-- NB: if you import more from Data.Semigroup make sure the
+--     build-depends version range is still accurate
+-- NB2: if you consider re-exporting Semigroup((<>)) take into account
+--      that only starting with semigroup-0.8 `infixr 6 <>` was used!
+import qualified Data.Semigroup as Semi (Semigroup ((<>)))
+
+#if __GLASGOW_HASKELL__ >= 710
+import Data.Monoid ((<>))
+#elif __GLASGOW_HASKELL__ >= 704
+import Data.Monoid (Monoid, mappend, mconcat, mempty, (<>))
+#else
+import Data.Monoid (Monoid, mappend, mconcat, mempty)
+infixr 6 <>
+#endif
 
 
 
@@ -1252,7 +1266,8 @@ slash :: Doc
 slash = pretty '/'
 
 -- | >>> putDoc backslash
--- \
+-- \\
+
 backslash :: Doc
 backslash = pretty '\\'
 
