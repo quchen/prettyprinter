@@ -217,6 +217,11 @@ import           Data.Void
 --      that only starting with semigroup-0.8 `infixr 6 <>` was used!
 import qualified Data.Semigroup as Semi (Semigroup ((<>)))
 
+#if __GLASGOW_HASKELL__ < 710
+import Data.Foldable (Foldable (..))
+import Prelude       hiding (foldr, foldr1)
+#endif
+
 #if __GLASGOW_HASKELL__ >= 710
 import Data.Monoid ((<>))
 #elif __GLASGOW_HASKELL__ >= 704
@@ -225,6 +230,8 @@ import Data.Monoid (Monoid, mappend, mconcat, mempty, (<>))
 import Data.Monoid (Monoid, mappend, mconcat, mempty)
 infixr 6 <>
 #endif
+
+
 
 
 
@@ -827,7 +834,11 @@ x <+> y = x <> space <> y
 -- Data.Text.PrettyPrint.Doc
 concatWith :: Foldable t => (Doc -> Doc -> Doc) -> t Doc -> Doc
 concatWith f ds
+#if __GLASGOW_HASKELL__ < 710
+    | foldr (\_ _ -> False) True ds = mempty
+#else
     | null ds = mempty
+#endif
     | otherwise = foldr1 f ds
 {-# INLINE concatWith #-}
 

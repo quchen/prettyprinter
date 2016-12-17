@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -16,6 +17,10 @@ module Data.Text.PrettyPrint.Doc.Render.RenderM (
 
 
 import Data.Monoid
+
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 
 
 
@@ -40,6 +45,9 @@ instance Monoid write => Applicative (RenderM write style) where
         in (f1 x2, w12, s2))
 
 instance Monoid write => Monad (RenderM write style) where
+#if __GLASGOW_HASKELL__ < 710
+    return = pure
+#endif
     RenderM r >>= f = RenderM (\s ->
         let (x1, w1, s1) = r s
             RenderM r1 = f x1

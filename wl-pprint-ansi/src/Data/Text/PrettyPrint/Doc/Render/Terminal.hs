@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -29,6 +30,10 @@ import           System.IO              (Handle, stdout)
 
 import Data.Text.PrettyPrint.Doc
 import Data.Text.PrettyPrint.Doc.Render.RenderM
+
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 
 
 
@@ -65,12 +70,12 @@ renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc
   = let (resultBuilder, remainingStyles) = execRenderM [emptyStyle] (build doc)
     in case remainingStyles of
-        [] -> error "There is no empty style left at the end of rendering\
-                    \ (but there should be). Please report this as a bug."
+        [] -> error ("There is no empty style left at the end of rendering" ++
+                     " (but there should be). Please report this as a bug.")
         [_] -> TLB.toLazyText resultBuilder
-        xs -> error ("There are " <> show (length xs) <> " styles left at the\
-                     \end of rendering (there should be only 1). Please report\
-                     \ this as a bug.")
+        xs -> error ("There are " <> show (length xs) <> " styles left at the" ++
+                     "end of rendering (there should be only 1). Please report" ++
+                     " this as a bug.")
 
 build :: SimpleDoc -> RenderM TLB.Builder CombinedStyle ()
 build = \case

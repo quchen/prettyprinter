@@ -12,7 +12,7 @@ maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
-tested-with:         GHC==8.0.1
+tested-with:         GHC==8.0.1, GHC==7.10.3, GHC==7.10.2, GHC==7.8.4
 
 source-repository head
   type: git
@@ -41,6 +41,8 @@ library
         ghc-options: -Wcompat
     else
         build-depends: semigroups >= 0.1 && < 0.19
+    if impl (ghc < 7.10)
+        build-depends: void
 
 executable readme-generator
     main-is: app/GenerateReadme.hs
@@ -50,6 +52,8 @@ executable readme-generator
         , text
     default-language: Haskell2010
     other-extensions: OverloadedStrings
+    if impl (ghc < 7.10)
+        buildable: False
 
 test-suite doctest
     type: exitcode-stdio-1.0
@@ -57,9 +61,12 @@ test-suite doctest
     main-is: Main.hs
     build-depends:
           base < 127
-        , doctest >= 0.10
+        , doctest >= 0.9
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
+    if impl (ghc < 7.10)
+        buildable: False
+        -- Doctest cannot search folders in old versions it seems :-(
 
 benchmark bench
     type:           exitcode-stdio-1.0

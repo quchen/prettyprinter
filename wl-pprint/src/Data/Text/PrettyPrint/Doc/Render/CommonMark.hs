@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -27,6 +28,9 @@ import           System.IO
 import Data.Text.PrettyPrint.Doc
 import Data.Text.PrettyPrint.Doc.Render.RenderM
 
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 
 
 -- $setup
