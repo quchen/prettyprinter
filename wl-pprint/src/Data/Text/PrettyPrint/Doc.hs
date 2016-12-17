@@ -31,7 +31,8 @@
 --
 -- = How the layout works
 --
--- There are two key concepts to layouting: the available width, and 'group'ing.
+-- There are two key concepts to laying a document out: the available width, and
+-- 'group'ing.
 --
 -- == Available width
 --
@@ -131,7 +132,7 @@ module Data.Text.PrettyPrint.Doc (
     -- ** Others
     punctuate,
 
-    -- * Reactive/conditional layouting
+    -- * Reactive/conditional layouts
     --
     -- | Layout documents differently based on the current conditions.
     column, nesting, width, pageWidth,
@@ -181,9 +182,9 @@ module Data.Text.PrettyPrint.Doc (
 
     -- * Layout
     --
-    -- | Layouting produces a straightforward 'SimpleDoc' based on parameters
-    -- such as page width and ribbon size, by evaluating how a 'Doc' fits these
-    -- constraints the best.
+    -- | Laying a 'Doc'ument out produces a straightforward 'SimpleDoc' based on
+    -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
+    -- fits these constraints the best.
     SimpleDoc(..),
     layoutPretty, layoutCompact, layoutSmart,
 
@@ -246,8 +247,8 @@ infixr 6 <>
 -- | The abstract data type @'Doc'@ represents pretty documents.
 --
 -- More specifically, a value of type @Doc@ represents a non-empty set of
--- possible layoutings of a document. The layouting functions select one of
--- these possibilities.
+-- possible layouts of a document. The layout functions select one of these
+-- possibilities.
 --
 -- The simplest layouter is via the 'Show' class. @('show' doc)@ pretty prints
 -- document @doc@ with a page width of 80 characters and a ribbon width of 32
@@ -300,7 +301,8 @@ data Doc =
     -- | Add 'Style' information to the enclosed 'Doc'
     | StylePush Style Doc
 
-    -- | Remove one previously pushed style. Used only during layouting.
+    -- | Remove one previously pushed style. Used only during the layout
+    -- process.
     | StylePop
 
 -- |
@@ -467,13 +469,13 @@ data SIntensity = SVivid | SDull
 data SLayer = SForeground | SBackground
     deriving (Eq, Ord, Show)
 
--- | The data type @SimpleDoc@ represents layouted documents and is used by the
+-- | The data type @SimpleDoc@ represents laid out documents and is used by the
 -- display functions.
 --
--- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layouting
--- functions pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all
--- complexity contained in 'Doc' resolved, making it very easy to convert it to
--- other formats, such as plain text or terminal output.
+-- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layout functions
+-- pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all complexity
+-- contained in 'Doc' resolved, making it very easy to convert it to other
+-- formats, such as plain text or terminal output.
 --
 -- To write your own Doc to X converter, it is therefore sufficient to convert
 -- from 'SimpleDoc'.
@@ -603,7 +605,7 @@ softline = group line
 softline' :: Doc
 softline' = group line'
 
--- | A @'hardline'@ is /always/ layouted as a line break, even when 'group'ed or
+-- | A @'hardline'@ is /always/ laid out as a line break, even when 'group'ed or
 -- when there is plenty of space. Note that it might still be simply discarded
 -- if it is part of a 'flatAlt' inside a 'group'.
 --
@@ -618,8 +620,8 @@ softline' = group line'
 hardline :: Doc
 hardline = Line
 
--- | @('group' x)@ tries layouting @x@ into a single line (by removing the
--- contained line breaks); if this does not fit the page, @x@ is layouted
+-- | @('group' x)@ tries laying out @x@ into a single line (by removing the
+-- contained line breaks); if this does not fit the page, @x@ is laid out
 -- without any changes.
 --
 -- See 'vcat', 'line', or 'flatAlt' for examples.
@@ -646,7 +648,7 @@ flatten = \case
     x@Char{}     -> x
     x@Text{}     -> x
 
-    StylePop -> error "StylePop should only appear during layouting, never during flattening"
+    StylePop -> error "StylePop should only appear duringthe layout process, never during flattening"
 
 -- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
 -- @fallback@ when 'group'ed.
@@ -753,7 +755,7 @@ indent i d = hang i (spaces i <> d)
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
 -- @sep@, and encloses the resulting document by @l@ and @r@.
 --
--- The documents are layouted horizontally if that fits the page,
+-- The documents are laid out horizontally if that fits the page,
 --
 -- >>> let doc = "list" <+> encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
 -- >>> putDocW 80 doc
@@ -903,7 +905,7 @@ vsep = concatWith (\x y -> x <> line <> y)
 fillSep :: [Doc] -> Doc
 fillSep = concatWith (\x y -> x <> softline <> y)
 
--- | @('sep' xs)@ tries layouting the documents @xs@ separated with 'space's,
+-- | @('sep' xs)@ tries laying out the documents @xs@ separated with 'space's,
 -- and if this does not fit the page, separates them with newlines. This is what
 -- differentiates it from 'vsep', which always layouts its contents beneath each
 -- other.
@@ -985,8 +987,8 @@ vcat = concatWith (\x y -> x <> line' <> y)
 fillCat :: [Doc] -> Doc
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
--- | @('cat' xs)@ tries layouting the documents @xs@ separated with nothing, and
--- if this does not fit the page, separates them with newlines. This is what
+-- | @('cat' xs)@ tries laying out the documents @xs@ separated with nothing,
+-- and if this does not fit the page, separates them with newlines. This is what
 -- differentiates it from 'vcat', which always layouts its contents beneath each
 -- other.
 --
@@ -1381,7 +1383,7 @@ underline = StylePush SUnderlined
 --
 -- it should not be used without caution, for each invocation traverses the
 -- entire contained document. The most common place to use 'plain' is just
--- before layouting.
+-- before producing a layout.
 plain :: Doc -> Doc
 plain = \case
     FlatAlt x y   -> FlatAlt (plain x) (plain y)
@@ -1399,7 +1401,7 @@ plain = \case
     x@Text{}  -> x
     x@Line{}  -> x
 
-    StylePop -> error "StylePop should only appear during layouting, never during composition"
+    StylePop -> error "StylePop should only appear duringthe layout process, never during composition"
 
 
 
@@ -1409,8 +1411,8 @@ plain = \case
 --
 -- = Purpose
 --
--- When layouting a 'Doc' to a 'SimpleDoc', every component of the input is
--- translated directly to the simpler output format. This sometimes yields
+-- When laying a 'Doc'ument out to a 'SimpleDoc', every component of the input
+-- is translated directly to the simpler output format. This sometimes yields
 -- undesirable chunking when many pieces have been concatenated together.
 --
 -- For example,
@@ -1499,7 +1501,7 @@ optimize = \case
     x@Text{}  -> x
     x@Line{}  -> x
 
-    StylePop -> error "StylePop should only appear during layouting, never during optimization"
+    StylePop -> error "StylePop should only appear duringthe layout process, never during optimization"
 
 
 
@@ -1517,7 +1519,7 @@ data Docs = Nil | Cons !Int Doc Docs
 layoutPretty :: Float -> Int -> Doc -> SimpleDoc
 layoutPretty = layoutFits fits1
 
--- | A slightly smarter layouting algorithm with more lookahead. It provides
+-- | A slightly smarter layout algorithm with more lookahead. It provides
 -- earlier breaking on deeply nested structures For example, consider this
 -- python-ish pseudocode:
 --
@@ -1666,7 +1668,7 @@ fitsR = FP go
 -- resulting output contains fewer characters than a pretty printed version and
 -- can be used for output that is read by other programs.
 --
--- This layouting function does not add any colorisation information.
+-- This layout function does not add any colorisation information.
 layoutCompact :: Doc -> SimpleDoc
 layoutCompact doc = scan 0 [doc]
   where
@@ -1692,7 +1694,7 @@ instance Show Doc where
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
-    SFail          -> error "@SFail@ can not appear uncaught in a layouted @SimpleDoc@"
+    SFail          -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
     SEmpty         -> id
     SChar c x      -> showChar c . displayString x
     SText t x      -> showString (T.unpack t) . displayString x

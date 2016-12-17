@@ -11,7 +11,7 @@ be rendered to a variety of formats, for example plain `Text`, or Markdown.
 me? Well, the source code is added at the very bottom.
 
 `wl-pprint` is the core of a collection of modules. It defines the language to
-generate nicely layouted documents, which can then be given to renderers to
+generate nicely laid out documents, which can then be given to renderers to
 display them in various ways, e.g. HTML, plain text, or ANSI terminal. There are
 also compatibility modules to make transition from old versions of the
 `wl-pprint` libraries easier.
@@ -90,7 +90,7 @@ readmeContents selfSource = mconcat
         \ me? Well, the source code is added at the very bottom."
     , line <> line
     , paragraph "`wl-pprint` is the core of a collection of modules. It\
-        \ defines the language to generate nicely layouted documents, which can\
+        \ defines the language to generate nicely laid out documents, which can\
         \ then be given to renderers to display them in various ways, e.g.\
         \ HTML, plain text, or ANSI terminal. There are also compatibility\
         \ modules to make transition from old versions of the `wl-pprint`\
