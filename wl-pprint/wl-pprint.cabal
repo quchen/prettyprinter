@@ -5,8 +5,8 @@ category:            User Interfaces, Text
 synopsis:            The prettyprinter based on the work of Wadler/Leijen.
 description:         See README.md
 license:             BSD3
-license-file:        ../LICENSE.md
-extra-source-files:  ../README.md
+license-file:        LICENSE.md
+extra-source-files:  README.md
 author:              Daan Leijen, Max Bolingbroke, Edward Kmett
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -26,16 +26,17 @@ library
                    , Data.Text.PrettyPrint.Doc.Render.RenderM
     ghc-options: -Wall -Wcompat
     hs-source-dirs: src
+    default-language: Haskell2010
 
     build-depends:
-          base
+          base < 127
         , ansi-terminal >= 0.4.0 && < 0.7
         , text
 
 executable readme-generator
     main-is: app/GenerateReadme.hs
     build-depends:
-          base
+          base < 127
         , wl-pprint
         , text
     default-language: Haskell2010
@@ -45,7 +46,7 @@ test-suite doctest
     hs-source-dirs: test/Doctest
     main-is: Main.hs
     build-depends:
-          base
+          base < 127
         , doctest >= 0.10
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010

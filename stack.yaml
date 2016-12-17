@@ -3,7 +3,7 @@ packages:
     - 'wl-pprint'
     - 'wl-pprint-ansi'
     - 'wl-pprint-compat-old'
-    - 'wl-pprint-compat-ansi'
+    - 'wl-pprint-compat-old-ansi'
 extra-deps: []
 flags: {}
 extra-package-dbs: []

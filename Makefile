@@ -1,6 +1,6 @@
-all :
-	stack build --exec example
-	stack test
-	stack haddock
+readme :
+	stack build wl-pprint:exe:readme-generator
+	$(shell find wl-pprint -type f -executable -name "readme-generator")
+bench :
 	mkdir -p generated
-	stack bench --benchmark-arguments "-o generated/benchmark.html"
+	stack bench wl-pprint --benchmark-arguments "--output ../generated/wl-pprint-benchmark.html"

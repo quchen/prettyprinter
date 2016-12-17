@@ -2,11 +2,11 @@ name:                wl-pprint-ansi
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            ANSI terminal renderer for the prettyprinter based on the work of Wadler/Leijen.
+synopsis:            ANSI terminal renderer for the Wadler/Leijen prettyprinter.
 description:         See README.md
 license:             BSD3
-license-file:        ../LICENSE.md
-extra-source-files:  ../README.md
+license-file:        LICENSE.md
+extra-source-files:  README.md
 author:              Daan Leijen, Max Bolingbroke, Edward Kmett
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -22,9 +22,10 @@ library
     exposed-modules: Data.Text.PrettyPrint.Doc.Render.Terminal
     ghc-options: -Wall -Wcompat
     hs-source-dirs: src
+    default-language: Haskell2010
 
     build-depends:
-          base
+          base < 127
         , ansi-terminal >= 0.4.0 && < 0.7
         , text
         , wl-pprint
@@ -34,7 +35,7 @@ test-suite doctest
     hs-source-dirs: test/Doctest
     main-is: Main.hs
     build-depends:
-          base
+          base < 127
         , doctest >= 0.10
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
