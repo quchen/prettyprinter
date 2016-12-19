@@ -858,8 +858,17 @@ concatWith f ds
 -- i.e. it puts a space between all entries.
 --
 -- >>> let docs = map pretty (T.words "lorem ipsum dolor sit amet")
+--
 -- >>> putDoc (hsep docs)
 -- lorem ipsum dolor sit amet
+--
+-- @'hsep'@ does not introduce line breaks on its own, even when the page is too
+-- narrow:
+--
+-- >>> putDocW 5 (hsep docs)
+-- lorem ipsum dolor sit amet
+--
+-- For automatic line breaks, consider using 'fillSep' instead.
 hsep :: [Doc] -> Doc
 hsep = concatWith (<+>)
 
