@@ -84,7 +84,7 @@ build = \case
     SChar c x -> do
         writeResult (TLB.singleton c)
         build x
-    SText t x -> do
+    SText _l t x -> do
         writeResult (TLB.fromText t)
         build x
     SLine i x -> do

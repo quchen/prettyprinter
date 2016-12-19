@@ -270,7 +270,10 @@ data Doc =
     -- | invariants: at least two characters, doesn't contain '\n'. For empty
     -- documents, there is @Empty@; for singleton documents, there is @Char@;
     -- newlines should be replaced by e.g. @Line@.
-    | Text Text
+    --
+    -- Since the frequently used 'T.length' of 'Text' is /O(n)/, we cache it
+    -- in this constructor.
+    | Text {-# UNPACK #-} !Int Text
 
     -- | Line break
     | Line
@@ -481,7 +484,16 @@ data SimpleDoc =
       SFail
     | SEmpty
     | SChar Char SimpleDoc
-    | SText Text SimpleDoc
+
+    -- | Since the frequently used 'T.length' of 'Text' is /O(n)/, we cache it
+    -- in this constructor.
+    --
+    -- A 'SimpleDoc' is just a collection of how to concatenate things, for
+    -- which the length would be unnecessary from a user's perspective that
+    -- merely wants to print it; however, the layout algorithms might retry
+    -- generating certain sections of output multiple times in different ways to
+    -- fit the layout constraints.
+    | SText !Int Text SimpleDoc
 
     -- | @Int@ = indentation level for the line
     | SLine !Int SimpleDoc
@@ -501,10 +513,10 @@ data SimpleDoc =
 -- invariant of the 'Text' constructor. If you're not sure, use the safer
 -- 'text'.
 unsafeText :: Text -> Doc
-unsafeText t = case T.compareLength t 1 of
-    LT -> Empty
-    EQ -> pretty (T.head t)
-    GT -> Text t
+unsafeText t = case T.length t of
+    0 -> Empty
+    1 -> pretty (T.head t)
+    n -> Text n t
 
 -- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
@@ -1470,11 +1482,11 @@ optimize = \case
     Cat (Cat x y) z -> optimize (Cat (optimize x) (optimize (Cat y z)))
 
     -- Fuse consecutive text elements
-    Cat (Char c) (Cat (Char c') x) -> optimize (Cat (Text (T.pack [c, c'])) x)
-    Cat (Text t) (Cat (Char c') x) -> optimize (Cat (Text (T.snoc t c')) x)
-    Cat (Text t) (Cat (Text t') x) -> optimize (Cat (Text (t <> t')) x)
-    Cat x y@Cat{}                  -> Cat x (optimize y)
-    Cat x y                        -> Cat (optimize x) (optimize y)
+    Cat (Char c) (Cat (Char c') x)        -> optimize (Cat (unsafeText (T.pack [c, c'])) x)
+    Cat (Text l t) (Cat (Char c') x)      -> let !l' = l+1 in optimize (Cat (Text l' (T.snoc t c')) x)
+    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1 + l2 in optimize (Cat (Text l' (t1 <> t2)) x)
+    Cat x y@Cat{}                         -> Cat x (optimize y)
+    Cat x y                               -> Cat (optimize x) (optimize y)
     -- quchen: I tried improving this by using {lazy text, text builders} here,
     --         but this was not good for performance.
 
@@ -1535,7 +1547,7 @@ layoutPretty = layoutFits fits1
         go _ SFail            = False
         go _ SEmpty           = True
         go w (SChar _ x)      = go (w - 1) x
-        go w (SText t x)      = go (w - T.length t) x
+        go w (SText l _t x)   = go (w - l) x
         go _ SLine{}          = True
         go w (SStylePush _ x) = go w x
         go w (SStylePop x)    = go w x
@@ -1601,7 +1613,7 @@ layoutSmart = layoutFits fitsR
         go _ _ _ SFail            = False
         go _ _ _ SEmpty           = True
         go p m w (SChar _ x)      = go p m (w - 1) x
-        go p m w (SText t x)      = go p m (w - T.length t) x
+        go p m w (SText l _t x)   = go p m (w - l) x
         go p m _ (SLine i x)
           | m < i                 = go p m (p - i) x
           | otherwise             = True
@@ -1631,8 +1643,8 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
     best !nl !cc (Cons !i d ds) = case d of
         Fail          -> SFail
         Empty         -> best nl cc ds
-        Char c        -> SChar c (best nl (cc + 1) ds)
-        Text t        -> SText t (best nl (cc + T.length t) ds)
+        Char c        -> let !cc' = cc+1 in SChar c (best nl cc' ds)
+        Text l t      -> let !cc' = cc+l in SText l t (best nl cc' ds)
         Line          -> SLine i (best i i ds)
         FlatAlt x _   -> best nl cc (Cons i x ds)
         Cat x y       -> best nl cc (Cons i x (Cons i y ds))
@@ -1677,7 +1689,7 @@ layoutCompact doc = scan 0 [doc]
         Fail          -> SFail
         Empty         -> scan k ds
         Char c        -> SChar c (scan (k+1) ds)
-        Text t        -> SText t (scan (k + T.length t) ds)
+        Text l t      -> let !k' = k+l in SText l t (scan k' ds)
         FlatAlt x _   -> scan k (x:ds)
         Line          -> SLine 0 (scan 0 ds)
         Cat x y       -> scan k (x:y:ds)
@@ -1697,7 +1709,7 @@ displayString = \case
     SFail          -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
     SEmpty         -> id
     SChar c x      -> showChar c . displayString x
-    SText t x      -> showString (T.unpack t) . displayString x
+    SText _l t x   -> showString (T.unpack t) . displayString x
     SLine i x      -> showString ('\n':replicate i ' ') . displayString x
     SStylePush _ x -> displayString x
     SStylePop x    -> displayString x

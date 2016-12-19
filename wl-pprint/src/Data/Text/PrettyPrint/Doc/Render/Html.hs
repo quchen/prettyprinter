@@ -80,7 +80,7 @@ build colors = go
         SChar c x -> do
             writeResult (TLB.singleton c)
             go x
-        SText t x -> do
+        SText _l t x -> do
             writeResult (TLB.fromText t)
             go x
         SLine i x -> do
