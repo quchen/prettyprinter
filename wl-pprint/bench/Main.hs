@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE NumDecimals       #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -15,7 +16,9 @@ import           Data.Text.PrettyPrint.Doc
 import           Data.Text.PrettyPrint.Doc.Render.Text
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
-
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 
 
 main :: IO ()
