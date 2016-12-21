@@ -533,7 +533,8 @@ emptyDoc :: Doc
 emptyDoc = Empty
 
 -- | @('nest' i x)@ layouts document @x@ with the current indentation level
--- increased by @i@. See also 'hang', 'align' and 'indent'.
+-- increased by @i@. Negative values are allowed, and decrease the nesting level
+-- accordingly.
 --
 -- >>> putDoc (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
 -- lorem
@@ -541,7 +542,12 @@ emptyDoc = Empty
 --     dolor
 -- sit
 -- amet
-nest :: Int -> Doc -> Doc
+--
+-- See also 'hang', 'align' and 'indent'.
+nest
+    :: Int -- ^ Change of nesting level
+    -> Doc
+    -> Doc
 nest 0 = id
 nest i = Nest i
 
@@ -630,20 +636,21 @@ softline' = group line'
 hardline :: Doc
 hardline = Line
 
--- | @('group' x)@ tries laying out @x@ into a single line (by removing the
--- contained line breaks); if this does not fit the page, @x@ is laid out
--- without any changes.
+-- | @('group' x)@ tries laying out @x@ into a single line by removing the
+-- contained line breaks; if this does not fit the page, @x@ is laid out without
+-- any changes. The 'group' function is key to layouts that adapt to available
+-- space nicely.
 --
--- See 'vcat', 'line', or 'flatAlt' for examples.
+-- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
+-- use of it.
 group :: Doc -> Doc
 group x = Union (flatten x) x
 
 -- Choose the first element of each @Union@, and discard the first field of all
--- @FlatAlt@s. Note that this is not an idempotent operation, since the other
--- @FlatAlt@ field is not flattened recursively.
+-- @FlatAlt@s.
 flatten :: Doc -> Doc
 flatten = \case
-    FlatAlt _ y   -> y
+    FlatAlt _ y   -> flatten y
     Cat x y       -> Cat (flatten x) (flatten y)
     Nest i x      -> Nest i (flatten x)
     Line          -> Fail
@@ -658,19 +665,14 @@ flatten = \case
     x@Char{}     -> x
     x@Text{}     -> x
 
-    StylePop -> error "StylePop should only appear duringthe layout process, never during flattening"
+    StylePop -> error "StylePop should only appear during the layout process, never during flattening"
 
 -- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
--- @fallback@ when 'group'ed.
---
--- Note that 'group' undoes only a single layer of 'flatAlt's, and does not
--- recursively flatten all of them. This allows more fine-grained control over
--- the 'group'ing process. Also, the fallback should be narrower than the
--- original document, or falling back to it might not produce a very appealing
--- layout.
+-- @fallback@ when 'group'ed. Since the layout algorithms rely on 'group' having
+-- an effect of shortening the width of the contained text, careless usage of
+-- 'flatAlt' with wide fallbacks might lead to unappealingly long lines.
 --
 -- 'flatAlt' is particularly useful for defining conditional separators such as
--- in the above example. Some others that might be useful include
 --
 -- @
 -- softHyphen = 'flatAlt' 'mempty' "-"
@@ -697,7 +699,10 @@ flatten = \case
 -- do name:_ <- getArgs
 --    let greet = "Hello, " <> name
 --    putStrLn greet
-flatAlt :: Doc -> Doc -> Doc
+flatAlt
+    :: Doc -- ^ Default
+    -> Doc -- ^ Fallback when 'group'ed
+    -> Doc
 flatAlt = FlatAlt
 
 
@@ -723,7 +728,8 @@ align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 -- | @('hang' i x)@ layouts document @x@ with a nesting level set to the
--- /current column/ plus @i@.
+-- /current column/ plus @i@. Negative values are allowed, and decrease the
+-- nesting level accordingly.
 --
 -- >>> let doc = fillSep (map pretty (T.words "Indenting these words with hang"))
 -- >>> putDocW 24 ("prefix" <+> hang 4 doc)
@@ -743,7 +749,10 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- @
 -- 'hang' i doc = 'align' ('nest' i doc)
 -- @
-hang :: Int -> Doc -> Doc
+hang
+    :: Int -- ^ Change of nesting level, relative to the start of the first line
+    -> Doc
+    -> Doc
 hang i d = align (nest i d)
 
 -- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
@@ -759,7 +768,10 @@ hang i d = align (nest i d)
 -- @
 -- 'indent' i d = 'hang' i ({i spaces} <> d)
 -- @
-indent :: Int -> Doc -> Doc
+indent
+    :: Int -- ^ Number of spaces to increase indentation by
+    -> Doc
+    -> Doc
 indent i d = hang i (spaces i <> d)
 
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
@@ -1048,7 +1060,10 @@ cat = group . vcat
 --
 -- If you want put the commas in front of their elements instead of at the end,
 -- you should use 'tupled' or, in general, 'encloseSep'.
-punctuate :: Doc -> [Doc] -> [Doc]
+punctuate
+    :: Doc -- ^ Punctuation, e.g. @, @
+    -> [Doc]
+    -> [Doc]
 punctuate _ [] = []
 punctuate _ [d] = [d]
 punctuate p (d:ds) = (d <> p) : punctuate p ds
@@ -1124,7 +1139,10 @@ pageWidth = PageWidth
 -- let empty :: Doc
 --     nest  :: Int -> Doc -> Doc
 --     fillSep :: [Doc] -> Doc
-fill :: Int -> Doc -> Doc
+fill
+    :: Int -- ^ Append spaces until the document is at least this wide
+    -> Doc
+    -> Doc
 fill f doc = width doc (\w -> spaces (f - w))
 
 -- | @('fillBreak' i x)@ first layouts document @x@. It then appends @space@s
@@ -1140,7 +1158,10 @@ fill f doc = width doc (\w -> spaces (f - w))
 --     nest  :: Int -> Doc -> Doc
 --     fillSep
 --           :: [Doc] -> Doc
-fillBreak :: Int -> Doc -> Doc
+fillBreak
+    :: Int -- ^ Append spaces until the document is at least this wide
+    -> Doc
+    -> Doc
 fillBreak f x = width x (\w ->
     if w > f
         then nest f line'
@@ -1181,7 +1202,11 @@ plural n one many
 -- @
 -- 'enclose' l r x = l '<>' x '<>' r
 -- @
-enclose :: Doc -> Doc -> Doc -> Doc
+enclose
+    :: Doc -- ^ L
+    -> Doc -- ^ R
+    -> Doc -- ^ x
+    -> Doc -- ^ LxR
 enclose l r x = l <> x <> r
 
 -- | >>> putDoc (squotes "·")
@@ -1420,7 +1445,7 @@ plain = \case
     x@Text{}  -> x
     x@Line{}  -> x
 
-    StylePop -> error "StylePop should only appear duringthe layout process, never during composition"
+    StylePop -> error "StylePop should only appear during the layout process, never during composition"
 
 
 
@@ -1493,15 +1518,15 @@ optimize = \case
     -- Fuse consecutive text elements
     Cat (Char c) (Cat (Char c') x)        -> optimize (Cat (unsafeText (T.pack [c, c'])) x)
     Cat (Text l t) (Cat (Char c') x)      -> let !l' = l+1 in optimize (Cat (Text l' (T.snoc t c')) x)
-    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1 + l2 in optimize (Cat (Text l' (t1 <> t2)) x)
+    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1+l2 in optimize (Cat (Text l' (t1 <> t2)) x)
     Cat x y@Cat{}                         -> Cat x (optimize y)
     Cat x y                               -> Cat (optimize x) (optimize y)
     -- quchen: I tried improving this by using {lazy text, text builders} here,
     --         but this was not good for performance.
 
     -- Fuse consecutive nestings
-    Nest !i (Nest j x) -> optimize (Nest (i+j) x)
-    Nest  i x          -> Nest i (optimize x)
+    Nest i (Nest j x) -> let !ij = i+j in optimize (Nest ij x)
+    Nest i x          -> Nest i (optimize x)
 
     StylePush _ Empty -> Empty
     StylePush s x     -> StylePush s (optimize x)
@@ -1520,7 +1545,7 @@ optimize = \case
     x@Text{}  -> x
     x@Line{}  -> x
 
-    StylePop -> error "StylePop should only appear duringthe layout process, never during optimization"
+    StylePop -> error "StylePop should only appear during the layout process, never during optimization"
 
 
 
@@ -1542,7 +1567,11 @@ data Docs = Nil | Cons !Int Doc Docs
 -- characters on a line. The parameter @ribbonfrac@ should be between @0.0@ and
 -- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
 -- respectively.
-layoutPretty :: Float -> Int -> Doc -> SimpleDoc
+layoutPretty
+    :: Float -- ^ Ribbon width as fraction of page width
+    -> Int -- ^ Page width in characters
+    -> Doc
+    -> SimpleDoc
 layoutPretty = layoutFits fits1
   where
     -- | @fits1@ does 1 line lookahead.
@@ -1599,7 +1628,11 @@ layoutPretty = layoutFits fits1
 -- @
 --
 -- This fits within the 20 character boundary.
-layoutSmart :: Float -> Int -> Doc -> SimpleDoc
+layoutSmart
+    :: Float -- ^ Ribbon width as fraction of page width
+    -> Int -- ^ Page width in characters
+    -> Doc
+    -> SimpleDoc
 layoutSmart = layoutFits fitsR
   where
     -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
@@ -1633,8 +1666,8 @@ layoutSmart = layoutFits fitsR
 
 layoutFits
     :: FittingPredicate
-    -> Float -- ^ Ribbon fraction, typically around @0.5@
-    -> Int   -- ^ Page width, often @80@
+    -> Float -- ^ Ribbon width as fraction of page width
+    -> Int   -- ^ Page width in characters
     -> Doc
     -> SimpleDoc
 layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
@@ -1657,7 +1690,7 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         Line          -> SLine i (best i i ds)
         FlatAlt x _   -> best nl cc (Cons i x ds)
         Cat x y       -> best nl cc (Cons i x (Cons i y ds))
-        Nest j x      -> best nl cc (Cons (i+j) x ds)
+        Nest j x      -> let !ij = i+j in best nl cc (Cons ij x ds)
         Union x y     -> let x' = best nl cc (Cons i x ds)
                              y' = best nl cc (Cons i y ds)
                          in selectNicer nl cc x' y'
@@ -1690,6 +1723,9 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
 -- can be used for output that is read by other programs.
 --
 -- This layout function does not add any colorisation information.
+--
+-- >>> let doc = hang 4 (vsep ["lorem", "ipsum", hang 4 (vsep ["dolor", "sit"])])
+--
 layoutCompact :: Doc -> SimpleDoc
 layoutCompact doc = scan 0 [doc]
   where
@@ -1722,6 +1758,8 @@ displayString = \case
     SLine i x      -> showString ('\n':replicate i ' ') . displayString x
     SStylePush _ x -> displayString x
     SStylePop x    -> displayString x
+
+
 
 -- $migration
 --
