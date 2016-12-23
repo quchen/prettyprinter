@@ -22,8 +22,9 @@ library
     exposed-modules: Data.Text.PrettyPrint.Doc
                    , Data.Text.PrettyPrint.Doc.Render.CommonMark
                    , Data.Text.PrettyPrint.Doc.Render.Html
-                   , Data.Text.PrettyPrint.Doc.Render.Text
                    , Data.Text.PrettyPrint.Doc.Render.RenderM
+                   , Data.Text.PrettyPrint.Doc.Render.Text
+                   , Data.Text.PrettyPrint.Doc.Unicode
     ghc-options: -Wall
     hs-source-dirs: src
     default-language: Haskell2010

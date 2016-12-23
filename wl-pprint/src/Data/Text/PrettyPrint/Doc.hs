@@ -152,7 +152,7 @@ module Data.Text.PrettyPrint.Doc (
     -- | Enclose documents in common ways.
     enclose, squotes, dquotes, parens, angles, brackets, braces,
 
-    -- * Named character functions
+    -- * Named characters
     --
     -- | Convenience definitions for common characters
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
@@ -1238,64 +1238,65 @@ braces = enclose lbrace rbrace
 -- | >>> putDoc squote
 -- '
 squote :: Doc
-squote = pretty '\''
+squote = "'"
+
 -- | >>> putDoc dquote
 -- "
 dquote :: Doc
-dquote = pretty '"'
+dquote = "\""
 
 -- | >>> putDoc lparen
 -- (
 lparen :: Doc
-lparen = pretty '('
+lparen = "("
 
 -- | >>> putDoc rparen
 -- )
 rparen :: Doc
-rparen = pretty ')'
+rparen = ")"
 
 -- | >>> putDoc langle
 -- <
 langle :: Doc
-langle = pretty '<'
+langle = "<"
 
 -- | >>> putDoc rangle
 -- >
 rangle :: Doc
-rangle = pretty '>'
+rangle = ">"
 
 -- | >>> putDoc lbracket
 -- [
 lbracket :: Doc
-lbracket = pretty '['
+lbracket = "["
 -- | >>> putDoc rbracket
 -- ]
 rbracket :: Doc
-rbracket = pretty ']'
+rbracket = "]"
 
 -- | >>> putDoc lbrace
 -- {
 lbrace :: Doc
-lbrace = pretty '{'
+lbrace = "{"
 -- | >>> putDoc rbrace
 -- }
 rbrace :: Doc
-rbrace = pretty '}'
+rbrace = "}"
 
 -- | >>> putDoc semi
 -- ;
 semi :: Doc
-semi = pretty ';'
+semi = ";"
 
 -- | >>> putDoc colon
 -- :
 colon :: Doc
-colon = pretty ':'
+colon = ":"
 
 -- | >>> putDoc comma
 -- ,
 comma :: Doc
-comma = pretty ','
+comma = ","
 
 -- | >>> putDoc ("a" <> space <> "b")
 -- a b
@@ -1305,33 +1306,33 @@ comma = pretty ','
 -- >>> putDoc ("a" <+> "b")
 -- a b
 space :: Doc
-space = pretty ' '
+space = " "
 
 -- | >>> putDoc dot
 -- .
 dot :: Doc
-dot = pretty '.'
+dot = "."
 
 -- | >>> putDoc slash
 -- /
 slash :: Doc
-slash = pretty '/'
+slash = "/"
 
 -- | >>> putDoc backslash
 -- \\
 
 backslash :: Doc
-backslash = pretty '\\'
+backslash = "\\"
 
 -- | >>> putDoc equals
 -- =
 equals :: Doc
-equals = pretty '='
+equals = "="
 
 -- | >>> putDoc pipe
 -- |
 pipe :: Doc
-pipe = pretty '|'
+pipe = "|"
 
 
 
