@@ -1453,9 +1453,10 @@ data FusionDepth =
 
     -- | Recurse into all parts of the 'Doc', including different layout
     -- alternatives, and location-sensitive values such as created by 'nesting'
-    -- which cannot be fused before, but only during, rendering. As a result,
-    -- the performance cost of using deep fusion is often hard to predict, and
-    -- depends on the interplay between page layout and document to prettyprint.
+    -- which cannot be fused before, but only during, the layout process. As a
+    -- result, the performance cost of using deep fusion is often hard to
+    -- predict, and depends on the interplay between page layout and document to
+    -- prettyprint.
     --
     -- This value should only be used if profiling shows it is significantly
     -- faster than using 'Shallow'.
@@ -1463,7 +1464,8 @@ data FusionDepth =
     deriving (Eq, Ord, Show)
 
 -- | @('fuse' depth doc)@ combines text nodes so they can be rendered more
--- efficiently. A document always renders identical to its unfused version.
+-- efficiently. A fused document is always laid out identical to its unfused
+-- version.
 --
 -- When laying a 'Doc'ument out to a 'SimpleDoc', every component of the input
 -- is translated directly to the simpler output format. This sometimes yields
