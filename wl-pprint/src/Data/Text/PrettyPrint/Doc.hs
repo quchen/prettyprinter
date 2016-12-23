@@ -1575,7 +1575,7 @@ layoutPretty = layoutFits fits1
         go w (SStylePop x)    = go w x
 
 -- | A slightly smarter layout algorithm with more lookahead. It provides
--- earlier breaking on deeply nested structures For example, consider this
+-- earlier breaking on deeply nested structures. For example, consider this
 -- python-ish pseudocode:
 --
 -- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
@@ -1688,7 +1688,7 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
     selectNicer
         :: Int       -- ^ Current nesting level
         -> Int       -- ^ Current column
-        -> SimpleDoc -- ^ Choice A. Invariant: first lines must be longer than B's.
+        -> SimpleDoc -- ^ Choice A. Invariant: first lines should not be longer than B's.
         -> SimpleDoc -- ^ Choice B.
         -> SimpleDoc -- ^ The nicer one among A and B, depending on which one
                      --   fits better.
@@ -1710,7 +1710,18 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
 -- This layout function does not add any colorisation information.
 --
 -- >>> let doc = hang 4 (vsep ["lorem", "ipsum", hang 4 (vsep ["dolor", "sit"])])
+-- >>> putDoc doc
+-- lorem
+--     ipsum
+--     dolor
+--         sit
 --
+-- >>> let putDocCompact = renderIO System.IO.stdout . layoutCompact
+-- >>> putDocCompact doc
+-- lorem
+-- ipsum
+-- dolor
+-- sit
 layoutCompact :: Doc -> SimpleDoc
 layoutCompact doc = scan 0 [doc]
   where
