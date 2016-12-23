@@ -178,7 +178,7 @@ module Data.Text.PrettyPrint.Doc (
     plain,
 
     -- * Optimization
-    fuse, deepFuse,
+    fuse, FusionDepth(..),
 
     -- * Layout
     --
@@ -301,10 +301,6 @@ data Doc =
 
     -- | Add 'Style' information to the enclosed 'Doc'
     | StylePush Style Doc
-
-    -- | Remove one previously pushed style. Used only during the layout
-    -- process.
-    | StylePop
 
 -- |
 -- @
@@ -665,7 +661,7 @@ flatten = \case
     x@Char{}     -> x
     x@Text{}     -> x
 
-    StylePop -> error "StylePop should only appear during the layout process, never during flattening"
+
 
 -- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
 -- @fallback@ when 'group'ed. Since the layout algorithms rely on 'group' having
@@ -1445,64 +1441,27 @@ plain = \case
     x@Text{}  -> x
     x@Line{}  -> x
 
-    StylePop -> error "StylePop should only appear during the layout process, never during composition"
 
 
+-- | Fusion depth parameter, used by 'fuse'.
+data FusionDepth =
 
--- | @('deepFuse' doc)@ is the deep analogon to the shallow 'fuse'. While the
--- latter optimizes only concatenation of text nodes at the top level,
--- 'deepFuse' traverses the entire 'Doc' and optimizes recursively.
---
--- 'deepFuse' may become pretty slow for large documents with lots of different
--- layouts, because all possible choices are optimized. Make sure to profile
--- uses 'deepFuse', and remember that for most use cases, 'fuse' is good enough.
-deepFuse :: Doc -> Doc
-deepFuse = \case
+    -- | Do not dive deep into nested documents, fusing mostly concatenations of
+    -- text nodes together.
+    Shallow
 
-    -- TODO: This does not optimize Cat xs (Cat Empty Empty) to xs yet.
+    -- | Recurse into all parts of the 'Doc', including different layout
+    -- alternatives, and location-sensitive values such as created by 'nesting'
+    -- which cannot be fused before, but only during, rendering. As a result,
+    -- the performance cost of using deep fusion is often hard to predict, and
+    -- depends on the interplay between page layout and document to prettyprint.
+    --
+    -- This value should only be used if profiling shows it is significantly
+    -- faster than using 'Shallow'.
+    | Deep
+    deriving (Eq, Ord, Show)
 
-    -- Remove empty documents
-    Cat Empty x -> deepFuse x
-    Cat x Empty -> deepFuse x
-
-    -- Associate to the right, optimize aggressively
-    Cat (Cat x y) z -> deepFuse (Cat (deepFuse x) (deepFuse (Cat y z)))
-
-    -- Fuse consecutive text elements
-    Cat (Char c) (Cat (Char c') x)        -> deepFuse (Cat (unsafeText (T.pack [c, c'])) x)
-    Cat (Text l t) (Cat (Char c') x)      -> let !l' = l+1 in deepFuse (Cat (Text l' (T.snoc t c')) x)
-    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1+l2 in deepFuse (Cat (Text l' (t1 <> t2)) x)
-    Cat x y@Cat{}                         -> Cat x (deepFuse y)
-    Cat x y                               -> Cat (deepFuse x) (deepFuse y)
-    -- quchen: I tried improving this by using {lazy text, text builders} here,
-    --         but this was not good for performance.
-
-    -- Fuse consecutive nestings
-    Nest i (Nest j x) -> let !ij = i+j in deepFuse (Nest ij x)
-    Nest i x          -> Nest i (deepFuse x)
-
-    StylePush _ Empty -> Empty
-    StylePush s x     -> StylePush s (deepFuse x)
-
-    -- Don't optimize, recurse
-    FlatAlt x1 x2 -> FlatAlt (deepFuse x1) (deepFuse x2)
-    Union x1 x2   -> Union (deepFuse x1) (deepFuse x2)
-    Column f      -> Column (deepFuse . f)
-    PageWidth f   -> PageWidth (deepFuse . f)
-    Nesting f     -> Nesting (deepFuse . f)
-
-    -- Don't optimize
-    x@Fail{}  -> x
-    x@Empty{} -> x
-    x@Char{}  -> x
-    x@Text{}  -> x
-    x@Line{}  -> x
-
-    StylePop -> error "StylePop should only appear during the layout process, never during optimization"
-
-
-
--- | @('fuse' doc)@ combines text nodes so they can be rendered more
+-- | @('fuse' depth doc)@ combines text nodes so they can be rendered more
 -- efficiently. A document always renders identical to its unfused version.
 --
 -- When laying a 'Doc'ument out to a 'SimpleDoc', every component of the input
@@ -1525,44 +1484,49 @@ deepFuse = \case
 -- It is therefore a good idea to run 'fuse' on concatenations of lots of small
 -- strings that are used many times,
 --
--- >>> let oftenUsed = fuse ("a" <> "b" <> pretty 'c' <> "d")
+-- >>> let oftenUsed = fuse Shallow ("a" <> "b" <> pretty 'c' <> "d")
 -- >>> putDoc (hsep (replicate 5 oftenUsed))
 -- abcd abcd abcd abcd abcd
---
--- 'fuse' scales linearly with the size of the input document, but will not dive
--- deep into nested documents. If this is desirable, consider using 'optimize'.
-fuse :: Doc -> Doc
-fuse = \case
+fuse :: FusionDepth -> Doc -> Doc
+fuse depth = go
+  where
+    go = \case
+        Cat Empty x                   -> go x
+        Cat x Empty                   -> go x
+        Cat (Char c1) (Char c2)       -> Text 2 (T.singleton c1 <> T.singleton c2)
+        Cat (Text lt t) (Char c)      -> Text (lt+1) (T.snoc t c)
+        Cat (Char c) (Text lt t)      -> Text (1+lt) (T.cons c t)
+        Cat (Text l1 t1) (Text l2 t2) -> Text (l1+l2) (t1 <> t2)
 
-    Cat Empty x -> fuse x
-    Cat x Empty -> fuse x
+        Cat x@Char{} (Cat y@Char{} z) -> go (Cat (go (Cat x y)) z)
+        Cat x@Text{} (Cat y@Char{} z) -> go (Cat (go (Cat x y)) z)
+        Cat x@Char{} (Cat y@Text{} z) -> go (Cat (go (Cat x y)) z)
+        Cat x@Text{} (Cat y@Text{} z) -> go (Cat (go (Cat x y)) z)
 
-    Cat (Char c1)    (Cat (Char c2)    x) -> let !fused = Text 2 (T.singleton c1 <> T.singleton c2)
-                                             in fuse (Cat fused x)
-    Cat (Text lt t)  (Cat (Char c)     x) -> let !fused = Text (lt+1) (T.snoc t c)
-                                             in fuse (Cat fused x)
-    Cat (Char c)     (Cat (Text lt t)  x) -> let !fused = Text (1+lt) (T.cons c t)
-                                             in fuse (Cat fused x)
-    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !fused = Text (l1+l2) (t1 <> t2)
-                                             in fuse (Cat fused x)
+        Cat (Cat x y@Char{}) z -> go (Cat x (go (Cat y z)))
+        Cat (Cat x y@Text{}) z -> go (Cat x (go (Cat y z)))
 
-    Cat (Cat x y@Char{}) z -> fuse (Cat x (fuse (Cat y z)))
-    Cat (Cat x y@Text{}) z -> fuse (Cat x (fuse (Cat y z)))
+        Cat x y -> Cat (go x) (go y)
 
-    Cat x y -> Cat (fuse x) (fuse y)
+        Nest i (Nest j x) -> let !fused = Nest (i+j) x
+                             in go fused
+        Nest _ x@Empty{}  -> x
+        Nest _ x@Text{}   -> x
+        Nest _ x@Char{}   -> x
+        Nest 0 x          -> go x
+        Nest i x          -> Nest i (go x)
 
-    Nest i (Nest j x) -> let !fused = Nest (i+j) x
-                         in fuse fused
-    Nest _ x@Empty{}  -> x
-    Nest _ x@Text{}   -> x
-    Nest _ x@Char{}   -> x
-    Nest 0 x          -> fuse x
-    Nest i x          -> Nest i (fuse x)
+        StylePush _ Empty -> Empty
 
-    StylePush _ Empty -> Empty
+        other | depth == Shallow -> other
 
-    other -> other
+        FlatAlt x1 x2 -> FlatAlt (go x1) (go x2)
+        Union x1 x2   -> Union (go x1) (go x2)
+        Column f      -> Column (go . f)
+        PageWidth f   -> PageWidth (go . f)
+        Nesting f     -> Nesting (go . f)
 
+        other -> other
 
 
 -- | Decide whether a 'SimpleDoc' fits the constraints given, namely
@@ -1574,7 +1538,10 @@ newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
 
 -- List of nesting level/document pairs yet to be rendered. Saves one
 -- indirection over [(Int, Doc)].
-data Docs = Nil | Cons !Int Doc Docs
+data Docs =
+      Nil
+    | Cons !Int Doc Docs
+    | UndoStyle Docs -- Remove one previously applied style.
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ layouts document @x@ with a
@@ -1699,6 +1666,7 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         -> Docs -- ^ Documents remaining to be handled (in order)
         -> SimpleDoc
     best _ _ Nil = SEmpty
+    best !nl !cc (UndoStyle ds) = SStylePop (best nl cc ds)
     best !nl !cc (Cons !i d ds) = case d of
         Fail          -> SFail
         Empty         -> best nl cc ds
@@ -1714,8 +1682,7 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
         Column f      -> best nl cc (Cons i (f cc) ds)
         PageWidth f   -> best nl cc (Cons i (f (Just maxColumns)) ds)
         Nesting f     -> best nl cc (Cons i (f i) ds)
-        StylePush s x -> SStylePush s (best nl cc (Cons i x (Cons i StylePop ds)))
-        StylePop      -> SStylePop (best nl cc ds)
+        StylePush s x -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
 
     selectNicer
         :: Int       -- ^ Current nesting level
@@ -1761,7 +1728,6 @@ layoutCompact doc = scan 0 [doc]
         PageWidth f   -> scan k (f Nothing:ds)
         Nesting f     -> scan k (f 0:ds)
         StylePush _ x -> scan k (x:ds)
-        StylePop      -> scan k ds
 
 instance Show Doc where
     showsPrec _ doc = displayString (layoutPretty 0.4 80 doc)

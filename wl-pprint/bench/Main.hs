@@ -33,9 +33,9 @@ benchOptimize = env randomShortWords benchmark
     benchmark = \shortWords ->
         let doc = hsep (map pretty shortWords)
         in bgroup "Many small words"
-            [ bench "Unoptimized"  (nf renderLazy (layoutPretty 0.4 80           doc))
-            , bench "Fused"        (nf renderLazy (layoutPretty 0.4 80 (fuse     doc)))
-            , bench "Deeply fused" (nf renderLazy (layoutPretty 0.4 80 (deepFuse doc)))
+            [ bench "Unoptimized"     (nf renderLazy (layoutPretty 0.4 80           doc))
+            , bench "Shallowly fused" (nf renderLazy (layoutPretty 0.4 80 (fuse Shallow     doc)))
+            , bench "Deeply fused"    (nf renderLazy (layoutPretty 0.4 80 (fuse Deep doc)))
             ]
 
     randomShortWords :: IO [Text]
@@ -51,22 +51,22 @@ benchOptimize = env randomShortWords benchmark
 benchWLComparison :: Benchmark
 benchWLComparison = bgroup "vs. other libs"
     [ bgroup "renderPretty"
-        [ bench "this, unoptimized" (nf (renderLazy . layoutPretty 0.4 80) doc)
-        , bench "this, fused" (nf (renderLazy . layoutPretty 0.4 80) (fuse doc))
-        , bench "this, deeply fused" (nf (renderLazy . layoutPretty 0.4 80) (deepFuse doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutPretty 0.4 80) doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutPretty 0.4 80) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutPretty 0.4 80) (fuse Deep doc))
+        , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
-        [ bench "this, unoptimized" (nf (renderLazy . layoutSmart 0.4 80) doc)
-        , bench "this, fused" (nf (renderLazy . layoutSmart 0.4 80) (fuse doc))
-        , bench "this, deeply fused" (nf (renderLazy . layoutSmart 0.4 80) (deepFuse doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart 0.4 80) doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart 0.4 80) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart 0.4 80) (fuse Deep doc))
+        , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
-        [ bench "this, unoptimized" (nf (renderLazy . layoutCompact) doc)
-        , bench "this, fused" (nf (renderLazy . layoutCompact) (fuse doc))
-        , bench "this, deeply fused" (nf (renderLazy . layoutCompact) (deepFuse doc))
-        , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutCompact) doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutCompact) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutCompact) (fuse Deep doc))
+        , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
         ]
     ]
   where
