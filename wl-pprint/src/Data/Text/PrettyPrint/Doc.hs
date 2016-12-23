@@ -178,7 +178,7 @@ module Data.Text.PrettyPrint.Doc (
     plain,
 
     -- * Optimization
-    optimize,
+    fuse, deepFuse,
 
     -- * Layout
     --
@@ -1449,17 +1449,67 @@ plain = \case
 
 
 
--- | @('optimize' doc)@ restructures the @doc@ so that it can sometimes be
--- rendered more efficiently (see notes below). A document always renders
--- identical to its unoptimized version.
+-- | @('deepFuse' doc)@ is the deep analogon to the shallow 'fuse'. While the
+-- latter optimizes only concatenation of text nodes at the top level,
+-- 'deepFuse' traverses the entire 'Doc' and optimizes recursively.
 --
--- = Purpose
+-- 'deepFuse' may become pretty slow for large documents with lots of different
+-- layouts, because all possible choices are optimized. Make sure to profile
+-- uses 'deepFuse', and remember that for most use cases, 'fuse' is good enough.
+deepFuse :: Doc -> Doc
+deepFuse = \case
+
+    -- TODO: This does not optimize Cat xs (Cat Empty Empty) to xs yet.
+
+    -- Remove empty documents
+    Cat Empty x -> deepFuse x
+    Cat x Empty -> deepFuse x
+
+    -- Associate to the right, optimize aggressively
+    Cat (Cat x y) z -> deepFuse (Cat (deepFuse x) (deepFuse (Cat y z)))
+
+    -- Fuse consecutive text elements
+    Cat (Char c) (Cat (Char c') x)        -> deepFuse (Cat (unsafeText (T.pack [c, c'])) x)
+    Cat (Text l t) (Cat (Char c') x)      -> let !l' = l+1 in deepFuse (Cat (Text l' (T.snoc t c')) x)
+    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1+l2 in deepFuse (Cat (Text l' (t1 <> t2)) x)
+    Cat x y@Cat{}                         -> Cat x (deepFuse y)
+    Cat x y                               -> Cat (deepFuse x) (deepFuse y)
+    -- quchen: I tried improving this by using {lazy text, text builders} here,
+    --         but this was not good for performance.
+
+    -- Fuse consecutive nestings
+    Nest i (Nest j x) -> let !ij = i+j in deepFuse (Nest ij x)
+    Nest i x          -> Nest i (deepFuse x)
+
+    StylePush _ Empty -> Empty
+    StylePush s x     -> StylePush s (deepFuse x)
+
+    -- Don't optimize, recurse
+    FlatAlt x1 x2 -> FlatAlt (deepFuse x1) (deepFuse x2)
+    Union x1 x2   -> Union (deepFuse x1) (deepFuse x2)
+    Column f      -> Column (deepFuse . f)
+    PageWidth f   -> PageWidth (deepFuse . f)
+    Nesting f     -> Nesting (deepFuse . f)
+
+    -- Don't optimize
+    x@Fail{}  -> x
+    x@Empty{} -> x
+    x@Char{}  -> x
+    x@Text{}  -> x
+    x@Line{}  -> x
+
+    StylePop -> error "StylePop should only appear during the layout process, never during optimization"
+
+
+
+-- | @('fuse' doc)@ combines text nodes so they can be rendered more
+-- efficiently. A document always renders identical to its unfused version.
 --
 -- When laying a 'Doc'ument out to a 'SimpleDoc', every component of the input
 -- is translated directly to the simpler output format. This sometimes yields
 -- undesirable chunking when many pieces have been concatenated together.
 --
--- For example,
+-- For example
 --
 -- >>> putDoc ("a" <> "b" <> pretty 'c' <> "d")
 -- abcd
@@ -1470,82 +1520,48 @@ plain = \case
 -- >>> putDoc "abcd"
 -- abcd
 --
--- which is only a single 'SimpleDoc' entry.
+-- which is only a single 'SimpleDoc' entry, and can be processed faster.
 --
--- 'optimize' does exactly that: compact consecutive text nodes in an input
--- document.
+-- It is therefore a good idea to run 'fuse' on concatenations of lots of small
+-- strings that are used many times,
 --
--- = When to use 'optimize'
---
--- Optimizing documents takes some time to do and traverses the entire result
--- document, so it should not be done too often. It is a good idea to 'optimize'
--- static text with many use sites that can be represented by a single text
--- node and share this optimized version,
---
--- >>> let oftenUsed = optimize ("a" <> "b" <> pretty 'c' <> "d")
+-- >>> let oftenUsed = fuse ("a" <> "b" <> pretty 'c' <> "d")
 -- >>> putDoc (hsep (replicate 5 oftenUsed))
 -- abcd abcd abcd abcd abcd
 --
--- but not if the 'optimize' is repeatedly evaluated because it is inside a
--- function called with many parameters, like in
---
--- @
--- x = 'nesting' (\\i -> 'optimize' (…i…))
--- @
---
--- Here, every use of @x@ would re-optimize the computed document each time the
--- layouter tries to use @x@. This applies even when the 'nesting' is inside the
--- 'optimize', like in
---
--- @
--- y = 'optimize' ('nesting' (\\i -> …i…))
--- @
---
--- So take-away message is: 'optimize' only things that contain lots of strings,
--- no computations, and share the result.
-optimize :: Doc -> Doc
-optimize = \case
+-- 'fuse' scales linearly with the size of the input document, but will not dive
+-- deep into nested documents. If this is desirable, consider using 'optimize'.
+fuse :: Doc -> Doc
+fuse = \case
 
-    -- TODO: This does not optimize Cat xs (Cat Empty Empty) to xs yet.
+    Cat Empty x -> fuse x
+    Cat x Empty -> fuse x
 
-    -- Remove empty documents
-    Cat Empty x -> optimize x
-    Cat x Empty -> optimize x
+    Cat (Char c1)    (Cat (Char c2)    x) -> let !fused = Text 2 (T.singleton c1 <> T.singleton c2)
+                                             in fuse (Cat fused x)
+    Cat (Text lt t)  (Cat (Char c)     x) -> let !fused = Text (lt+1) (T.snoc t c)
+                                             in fuse (Cat fused x)
+    Cat (Char c)     (Cat (Text lt t)  x) -> let !fused = Text (1+lt) (T.cons c t)
+                                             in fuse (Cat fused x)
+    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !fused = Text (l1+l2) (t1 <> t2)
+                                             in fuse (Cat fused x)
 
-    -- Associate to the right, optimize aggressively
-    Cat (Cat x y) z -> optimize (Cat (optimize x) (optimize (Cat y z)))
+    Cat (Cat x y@Char{}) z -> fuse (Cat x (fuse (Cat y z)))
+    Cat (Cat x y@Text{}) z -> fuse (Cat x (fuse (Cat y z)))
 
-    -- Fuse consecutive text elements
-    Cat (Char c) (Cat (Char c') x)        -> optimize (Cat (unsafeText (T.pack [c, c'])) x)
-    Cat (Text l t) (Cat (Char c') x)      -> let !l' = l+1 in optimize (Cat (Text l' (T.snoc t c')) x)
-    Cat (Text l1 t1) (Cat (Text l2 t2) x) -> let !l' = l1+l2 in optimize (Cat (Text l' (t1 <> t2)) x)
-    Cat x y@Cat{}                         -> Cat x (optimize y)
-    Cat x y                               -> Cat (optimize x) (optimize y)
-    -- quchen: I tried improving this by using {lazy text, text builders} here,
-    --         but this was not good for performance.
+    Cat x y -> Cat (fuse x) (fuse y)
 
-    -- Fuse consecutive nestings
-    Nest i (Nest j x) -> let !ij = i+j in optimize (Nest ij x)
-    Nest i x          -> Nest i (optimize x)
+    Nest i (Nest j x) -> let !fused = Nest (i+j) x
+                         in fuse fused
+    Nest _ x@Empty{}  -> x
+    Nest _ x@Text{}   -> x
+    Nest _ x@Char{}   -> x
+    Nest 0 x          -> fuse x
+    Nest i x          -> Nest i (fuse x)
 
     StylePush _ Empty -> Empty
-    StylePush s x     -> StylePush s (optimize x)
 
-    -- Don't optimize, recurse
-    FlatAlt x1 x2 -> FlatAlt (optimize x1) (optimize x2)
-    Union x1 x2   -> Union (optimize x1) (optimize x2)
-    Column f      -> Column (optimize . f)
-    PageWidth f   -> PageWidth (optimize . f)
-    Nesting f     -> Nesting (optimize . f)
-
-    -- Don't optimize
-    x@Fail{}  -> x
-    x@Empty{} -> x
-    x@Char{}  -> x
-    x@Text{}  -> x
-    x@Line{}  -> x
-
-    StylePop -> error "StylePop should only appear during the layout process, never during optimization"
+    other -> other
 
 
 
@@ -1635,13 +1651,14 @@ layoutSmart
     -> SimpleDoc
 layoutSmart = layoutFits fitsR
   where
-    -- | @fitsR@ has a little more lookahead: assuming that nesting roughly
-    -- corresponds to syntactic depth, @fitsR@ checks that not only the current line
-    -- fits, but the entire syntactic structure being formatted at this level of
-    -- indentation fits. If we were to remove the second case for @SLine@, we would
-    -- check that not only the current structure fits, but also the rest of the
-    -- document, which would be slightly more intelligent but would have exponential
-    -- runtime (and is prohibitively expensive in practice).
+    -- @fitsR@ has a little more lookahead: assuming that nesting roughly
+    -- corresponds to syntactic depth, @fitsR@ checks that not only the current
+    -- line fits, but the entire syntactic structure being formatted at this
+    -- level of indentation fits. If we were to remove the second case for
+    -- @SLine@, we would check that not only the current structure fits, but
+    -- also the rest of the document, which would be slightly more intelligent
+    -- but would have exponential runtime (and is prohibitively expensive in
+    -- practice).
     fitsR :: FittingPredicate
     fitsR = FP go
       where

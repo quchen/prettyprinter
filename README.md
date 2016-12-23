@@ -85,11 +85,9 @@ readmeContents selfSource = mconcat
 
     , h1 "Prettyprinter à la Wadler/Leijen"
 
-    , line
-    , line
+    , line <> line
     , "Master build: [![status](https://travis-ci.org/quchen/prettyprinter.svg?branch=master)](https://travis-ci.org/quchen/prettyprinter)"
-    , line
-    , line
+    , line <> line
 
     , paragraph "This module defines a prettyprinter to format text in a\
         \ flexible and convenient way. The idea is to combine a document out\

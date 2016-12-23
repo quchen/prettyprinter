@@ -31,13 +31,11 @@ benchOptimize :: Benchmark
 benchOptimize = env randomShortWords benchmark
   where
     benchmark = \shortWords ->
-        bgroup "Many small words"
-            [ let doc' = hsep (map pretty shortWords)
-              in bench "Optimizer OFF"
-                    (nf renderLazy (layoutPretty 0.4 80 doc'))
-            , let doc' = optimize (hsep (map pretty shortWords))
-              in bench "Optimizer ON"
-                    (nf renderLazy (layoutPretty 0.4 80 doc'))
+        let doc = hsep (map pretty shortWords)
+        in bgroup "Many small words"
+            [ bench "Unoptimized"  (nf renderLazy (layoutPretty 0.4 80           doc))
+            , bench "Fused"        (nf renderLazy (layoutPretty 0.4 80 (fuse     doc)))
+            , bench "Deeply fused" (nf renderLazy (layoutPretty 0.4 80 (deepFuse doc)))
             ]
 
     randomShortWords :: IO [Text]
@@ -54,27 +52,32 @@ benchWLComparison :: Benchmark
 benchWLComparison = bgroup "vs. other libs"
     [ bgroup "renderPretty"
         [ bench "this, unoptimized" (nf (renderLazy . layoutPretty 0.4 80) doc)
-        , bench "this, optimized" (nf (renderLazy . layoutPretty 0.4 80) (optimize doc))
+        , bench "this, fused" (nf (renderLazy . layoutPretty 0.4 80) (fuse doc))
+        , bench "this, deeply fused" (nf (renderLazy . layoutPretty 0.4 80) (deepFuse doc))
         , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
         [ bench "this, unoptimized" (nf (renderLazy . layoutSmart 0.4 80) doc)
-        , bench "this, optimized" (nf (renderLazy . layoutSmart 0.4 80) (optimize doc))
+        , bench "this, fused" (nf (renderLazy . layoutSmart 0.4 80) (fuse doc))
+        , bench "this, deeply fused" (nf (renderLazy . layoutSmart 0.4 80) (deepFuse doc))
         , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
         [ bench "this, unoptimized" (nf (renderLazy . layoutCompact) doc)
-        , bench "this, optimized" (nf (renderLazy . layoutCompact) (optimize doc))
+        , bench "this, fused" (nf (renderLazy . layoutCompact) (fuse doc))
+        , bench "this, deeply fused" (nf (renderLazy . layoutCompact) (deepFuse doc))
         , bench "ansi-wl-pprint" (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
         ]
     ]
   where
     doc :: Doc
     doc = let fun x = "fun" <> parens (softline <> x)
-              funnn = fun.fun.fun.fun.fun.fun.fun.fun.fun
+              funnn = chain 10 fun
           in funnn (sep (take 48 (cycle ["hello", "world"])))
 
     wlDoc :: WL.Doc
     wlDoc = let fun x = "fun" <> WL.parens (WL.softline <> x)
-                funnn = fun.fun.fun.fun.fun.fun.fun.fun.fun
+                funnn = chain 10 fun
             in funnn (WL.sep (take 48 (cycle ["hello", "world"])))
+
+    chain n f = foldr (.) id (replicate n f)
