@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE NumDecimals       #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main (main) where
@@ -7,9 +6,10 @@ module Main (main) where
 
 
 import           Control.Monad
+import           Control.Monad.State
 import           Criterion.Main
-import           Data.Text      (Text)
-import qualified Data.Text      as T
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 import           System.Random
 
 import           Data.Text.PrettyPrint.Doc
@@ -33,39 +33,44 @@ benchOptimize = env randomShortWords benchmark
     benchmark = \shortWords ->
         let doc = hsep (map pretty shortWords)
         in bgroup "Many small words"
-            [ bench "Unoptimized"     (nf renderLazy (layoutPretty 0.4 80           doc))
-            , bench "Shallowly fused" (nf renderLazy (layoutPretty 0.4 80 (fuse Shallow     doc)))
-            , bench "Deeply fused"    (nf renderLazy (layoutPretty 0.4 80 (fuse Deep doc)))
+            [ bench "Unoptimized"     (nf renderLazy (layoutPretty 0.4 80               doc))
+            , bench "Shallowly fused" (nf renderLazy (layoutPretty 0.4 80 (fuse Shallow doc)))
+            , bench "Deeply fused"    (nf renderLazy (layoutPretty 0.4 80 (fuse Deep    doc)))
             ]
 
-    randomShortWords :: IO [Text]
-    randomShortWords = replicateM 1e2 randomWord
+    randomShortWords :: Applicative m => m [Text]
+    randomShortWords = pure (evalState (randomShortWords' 100) (mkStdGen 0))
 
-    randomWord :: IO Text
-    randomWord = do
-        g <- newStdGen
+    randomShortWords' :: Int -> State StdGen [Text]
+    randomShortWords' n = replicateM n randomShortWord
+
+    randomShortWord :: State StdGen Text
+    randomShortWord = do
+        g <- get
         let (l, g') = randomR (0, 5) g
-            xs = take l (randoms g')
-        pure (T.pack (take l xs))
+            (gNew, gFree) = split g'
+            xs = take l (randoms gFree)
+        put gNew
+        pure (T.pack xs)
 
 benchWLComparison :: Benchmark
 benchWLComparison = bgroup "vs. other libs"
     [ bgroup "renderPretty"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutPretty 0.4 80) doc)
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutPretty 0.4 80)               doc)
         , bench "this, shallowly fused" (nf (renderLazy . layoutPretty 0.4 80) (fuse Shallow doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutPretty 0.4 80) (fuse Deep doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutPretty 0.4 80) (fuse Deep    doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart 0.4 80) doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart 0.4 80) (fuse Shallow doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart 0.4 80) (fuse Deep doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart 0.4 80)                doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart 0.4 80) (fuse Shallow  doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart 0.4 80) (fuse Deep     doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutCompact) doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutCompact) (fuse Shallow doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutCompact) (fuse Deep doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutCompact)                     doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutCompact) (fuse Shallow       doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutCompact) (fuse Deep          doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
         ]
     ]
