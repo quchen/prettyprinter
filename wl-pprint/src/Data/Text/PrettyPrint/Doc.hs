@@ -404,13 +404,25 @@ instance Pretty Double where
 
 -- | >>> putDoc (pretty (123, "hello"))
 -- (123,hello)
-instance (Pretty a, Pretty b) => Pretty (a,b) where
-    pretty (x,y) = tupled [pretty x, pretty y]
+instance (Pretty a1, Pretty a2) => Pretty (a1,a2) where
+    pretty (x1,x2) = tupled [pretty x1, pretty x2]
 
 -- | >>> putDoc (pretty (123, "hello", False))
 -- (123,hello,False)
-instance (Pretty a, Pretty b, Pretty c) => Pretty (a,b,c) where
-    pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
+instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
+    pretty (x1,x2,x3) = tupled [pretty x1, pretty x2, pretty x3]
+
+instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4) => Pretty (a1,a2,a3,a4) where
+    pretty (x1,x2,x3,x4) = tupled [pretty x1, pretty x2, pretty x3, pretty x4]
+
+instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5) => Pretty (a1,a2,a3,a4,a5) where
+    pretty (x1,x2,x3,x4,x5) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5]
+
+instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6) => Pretty (a1,a2,a3,a4,a5,a6) where
+    pretty (x1,x2,x3,x4,x5,x6) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6]
+
+instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6, Pretty a7) => Pretty (a1,a2,a3,a4,a5,a6,a7) where
+    pretty (x1,x2,x3,x4,x5,x6,x7) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6, pretty x7]
 
 -- | Ignore 'Nothing's, print 'Just' contents.
 --
