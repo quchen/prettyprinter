@@ -134,7 +134,8 @@ module Data.Text.Prettyprint.Doc (
 
     -- * Reactive/conditional layouts
     --
-    -- | Layout documents differently based on the current conditions.
+    -- | Lay documents out differently based on current position and the page
+    -- layout.
     column, nesting, width, pageWidth,
 
     -- * Filler functions
@@ -557,8 +558,8 @@ unsafeText t = case T.length t of
 
 -- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
--- inside e.g. vcat, where we get an empty line of output from it ('angles' for
--- visibility only):
+-- inside e.g. 'vcat', where we get an empty line of output from it ('angles'
+-- for visibility only):
 --
 -- >>> putDoc (vsep ["hello", angles emptyDoc, "world"])
 -- hello
@@ -641,15 +642,15 @@ softline = group line
 --
 -- With enough space, we get direct concatenation:
 --
--- >>> let doc = "lorem ipsum" <> softline' <> "dolor sit amet"
+-- >>> let doc = "ThisWord" <> softline' <> "IsWayTooLong"
 -- >>> putDocW 80 doc
--- lorem ipsumdolor sit amet
+-- ThisWordIsWayTooLong
 --
 -- If we narrow the page to width 10, the layouter produces a line break:
 --
 -- >>> putDocW 10 doc
--- lorem ipsum
--- dolor sit amet
+-- ThisWord
+-- IsWayTooLong
 --
 -- @
 -- 'softline'' = 'group' 'line''
@@ -855,9 +856,9 @@ encloseSep l r s ds = case ds of
 -- , 300
 -- , 4000 ]
 list :: [Doc] -> Doc
-list xs = group (encloseSep (flatAlt "[ " "[")
-                         (flatAlt " ]" "]")
-                         ", " xs)
+list = group . encloseSep (flatAlt "[ " "[")
+                          (flatAlt " ]" "]")
+                          ", "
 
 -- | Haskell-inspired variant of 'encloseSep' with parentheses and comma as
 -- separator.
@@ -873,9 +874,9 @@ list xs = group (encloseSep (flatAlt "[ " "[")
 -- , 300
 -- , 4000 )
 tupled :: [Doc] -> Doc
-tupled xs = group (encloseSep (flatAlt "( " "(")
-                              (flatAlt " )" ")")
-                              ", " xs)
+tupled = group . encloseSep (flatAlt "( " "(")
+                            (flatAlt " )" ")")
+                            ", "
 
 
 
@@ -1117,12 +1118,14 @@ cat = group . vcat
 -- If you want put the commas in front of their elements instead of at the end,
 -- you should use 'tupled' or, in general, 'encloseSep'.
 punctuate
-    :: Doc -- ^ Punctuation, e.g. @, @
+    :: Doc -- ^ Punctuation, e.g. 'comma'
     -> [Doc]
     -> [Doc]
-punctuate _ [] = []
-punctuate _ [d] = [d]
-punctuate p (d:ds) = (d <> p) : punctuate p ds
+punctuate p = go
+  where
+    go []     = []
+    go [d]    = [d]
+    go (d:ds) = (d <> p) : go ds
 
 
 
