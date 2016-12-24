@@ -12,8 +12,8 @@ import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           System.Random
 
-import           Data.Text.PrettyPrint.Doc
-import           Data.Text.PrettyPrint.Doc.Render.Text
+import           Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc.Render.Text
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
 #if __GLASGOW_HASKELL__ < 710

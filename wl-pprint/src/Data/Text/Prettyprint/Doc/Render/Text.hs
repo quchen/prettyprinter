@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Render 'SimpleDoc' as plain 'Text'.
-module Data.Text.PrettyPrint.Doc.Render.Text (
+module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
 
@@ -23,7 +23,7 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO
 
-import Data.Text.PrettyPrint.Doc
+import Data.Text.Prettyprint.Doc
 
 
 
@@ -39,7 +39,7 @@ import Data.Text.PrettyPrint.Doc
 -- and transforms it to lazy text.
 --
 -- All styling information is discarded. If this is undesirable, maybe the
--- functions in "Data.Text.PrettyPrint.Doc.Render.Terminal" are closer to what
+-- functions in "Data.Text.Prettyprint.Doc.Render.Terminal" are closer to what
 -- you are looking for.
 --
 -- >>> let render = LT.putStrLn . renderLazy . layoutPretty 0.4 80

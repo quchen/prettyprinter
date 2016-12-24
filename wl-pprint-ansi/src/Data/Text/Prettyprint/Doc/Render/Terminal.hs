@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Render 'SimpleDoc' in a terminal.
-module Data.Text.PrettyPrint.Doc.Render.Terminal (
+module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
 
@@ -28,8 +28,8 @@ import qualified Data.Text.Lazy.IO      as LT
 import           System.Console.ANSI
 import           System.IO              (Handle, stdout)
 
-import Data.Text.PrettyPrint.Doc
-import Data.Text.PrettyPrint.Doc.Render.RenderM
+import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.RenderM
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
@@ -41,7 +41,7 @@ import Control.Applicative
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.Lazy.IO as LT
 -- >>> import qualified Data.Text.Lazy as LT
--- >>> import Data.Text.PrettyPrint.Doc.Render.Terminal
+-- >>> import Data.Text.Prettyprint.Doc.Render.Terminal
 
 
 

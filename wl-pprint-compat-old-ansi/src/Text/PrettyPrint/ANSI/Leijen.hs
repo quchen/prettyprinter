@@ -1,4 +1,4 @@
-module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for users of ansi-wl-pprint - use Data.Text.PrettyPrint.Doc instead" #-} (
+module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for users of ansi-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
     softline, softbreak, hardline, flatAlt, renderSmart, align, hang, indent,
@@ -25,10 +25,10 @@ import           Data.Monoid
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
-import           Data.Text.PrettyPrint.Doc
+import           Data.Text.Prettyprint.Doc
     (Doc, Pretty (..), SimpleDoc (..))
-import qualified Data.Text.PrettyPrint.Doc                 as New
-import qualified Data.Text.PrettyPrint.Doc.Render.Terminal as NewT
+import qualified Data.Text.Prettyprint.Doc                 as New
+import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
 
 
 

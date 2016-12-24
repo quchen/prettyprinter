@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | A strict State/Writer monad used for rendering 'SimpleDoc's.
-module Data.Text.PrettyPrint.Doc.Render.RenderM (
+module Data.Text.Prettyprint.Doc.Render.RenderM (
     RenderM,
     execRenderM,
 

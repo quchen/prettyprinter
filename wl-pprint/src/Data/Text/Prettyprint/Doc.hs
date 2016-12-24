@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
--- Module      :  Data.Text.PrettyPrint.Doc
+-- Module      :  Data.Text.Prettyprint.Doc
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
 --                Max Bolingbroke (c) 2008, http://blog.omega-prime.co.uk
 --                David Luposchainsky (c) 2016, http://github.com/quchen
@@ -89,7 +89,7 @@
 --         -> Bool
 --         -> Char
 --         -> IO ()
-module Data.Text.PrettyPrint.Doc (
+module Data.Text.Prettyprint.Doc (
     -- * Documents
     Doc,
 
@@ -239,7 +239,7 @@ infixr 6 <>
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.IO as T
--- >>> import Data.Text.PrettyPrint.Doc.Render.Text
+-- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Test.QuickCheck.Modifiers
 -- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty 1.0 w doc)
 
@@ -336,12 +336,12 @@ class Pretty a where
     -- function is used.
     --
     -- >>> putDoc (prettyList [1, 23, 456])
-    -- [1,23,456]
+    -- [1, 23, 456]
     prettyList :: [a] -> Doc
     prettyList = list . map pretty
 
 -- | >>> putDoc (pretty [1,2,3])
--- [1,2,3]
+-- [1, 2, 3]
 instance Pretty a => Pretty [a] where
     pretty = prettyList
 
@@ -367,7 +367,9 @@ instance Pretty () where
 -- | >>> putDoc (pretty True)
 -- True
 instance Pretty Bool where
-    pretty = unsafeText . T.pack . show
+    pretty = \case
+        True  -> "True"
+        False -> "False"
 
 -- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
 -- alternative.
@@ -382,45 +384,68 @@ instance Pretty Char where
 
     prettyList = (pretty :: Text -> Doc) . fromString
 
+-- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
+unsafeViaShow :: Show a => a -> Doc
+unsafeViaShow = unsafeText  . T.pack . show
+
 -- | >>> putDoc (pretty (123 :: Int))
 -- 123
 instance Pretty Int where
-    pretty = unsafeText . T.pack . show
+    pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (2^123 :: Integer))
 -- 10633823966279326983230456482242756608
 instance Pretty Integer where
-    pretty = unsafeText . T.pack . show
+    pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (pi :: Float))
 -- 3.1415927
 instance Pretty Float where
-    pretty = unsafeText . T.pack . show
+    pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (exp 1 :: Double))
 -- 2.718281828459045
 instance Pretty Double where
-    pretty = unsafeText . T.pack . show
+    pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (123, "hello"))
--- (123,hello)
+-- (123, hello)
 instance (Pretty a1, Pretty a2) => Pretty (a1,a2) where
     pretty (x1,x2) = tupled [pretty x1, pretty x2]
 
 -- | >>> putDoc (pretty (123, "hello", False))
--- (123,hello,False)
+-- (123, hello, False)
 instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
     pretty (x1,x2,x3) = tupled [pretty x1, pretty x2, pretty x3]
 
+-- | >>> putDoc (pretty (123, "hello", False, ()))
+-- (123, hello, False, ())
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4) => Pretty (a1,a2,a3,a4) where
     pretty (x1,x2,x3,x4) = tupled [pretty x1, pretty x2, pretty x3, pretty x4]
 
+-- | >>> putDoc (pretty (123, "hello", False, (), 3.14))
+-- (123, hello, False, (), 3.14)
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5) => Pretty (a1,a2,a3,a4,a5) where
     pretty (x1,x2,x3,x4,x5) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5]
 
+-- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71))
+-- ( 123
+-- , hello
+-- , False
+-- , ()
+-- , 3.14
+-- , 2.71 )
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6) => Pretty (a1,a2,a3,a4,a5,a6) where
     pretty (x1,x2,x3,x4,x5,x6) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6]
 
+-- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71, [1,2,3]))
+-- ( 123
+-- , hello
+-- , False
+-- , ()
+-- , 3.14
+-- , 2.71
+-- , [1, 2, 3] )
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6, Pretty a7) => Pretty (a1,a2,a3,a4,a5,a6,a7) where
     pretty (x1,x2,x3,x4,x5,x6,x7) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6, pretty x7]
 
@@ -432,10 +457,11 @@ instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6, Pret
 -- {}
 --
 -- >>> putDoc (pretty [Just 1, Nothing, Just 3, Nothing])
--- [1,3]
+-- [1, 3]
 instance Pretty a => Pretty (Maybe a) where
-    pretty Nothing = mempty
-    pretty (Just x) = pretty x
+    pretty = \case
+        Nothing -> mempty
+        Just x  -> pretty x
 
     prettyList = prettyList . catMaybes
 
@@ -815,21 +841,41 @@ encloseSep l r s ds = case ds of
     [d] -> l <> d <> r
     _   -> align (cat (zipWith (<>) (l : repeat s) ds) <> r)
 
--- | Haskell-inspired special case of 'encloseSep' with braces and 'comma' as
+-- | Haskell-inspired variant of 'encloseSep' with braces and comma as
 -- separator.
 --
--- >>> putDocW 80 (list (map pretty [1,20,300,4000]))
--- [1,20,300,4000]
-list :: [Doc] -> Doc
-list = encloseSep lbracket rbracket comma
-
--- | Haskell-inspired special case of 'encloseSep' with parentheses and 'comma'
--- as separator.
+-- >>> let doc = list (map pretty [1,20,300,4000])
 --
--- >>> putDocW 80 (tupled (map pretty [1,20,300,4000]))
--- (1,20,300,4000)
+-- >>> putDocW 80 doc
+-- [1, 20, 300, 4000]
+--
+-- >>> putDocW 10 doc
+-- [ 1
+-- , 20
+-- , 300
+-- , 4000 ]
+list :: [Doc] -> Doc
+list xs = group (encloseSep (flatAlt "[ " "[")
+                         (flatAlt " ]" "]")
+                         ", " xs)
+
+-- | Haskell-inspired variant of 'encloseSep' with parentheses and comma as
+-- separator.
+--
+-- >>> let doc = tupled (map pretty [1,20,300,4000])
+--
+-- >>> putDocW 80 doc
+-- (1, 20, 300, 4000)
+--
+-- >>> putDocW 10 doc
+-- ( 1
+-- , 20
+-- , 300
+-- , 4000 )
 tupled :: [Doc] -> Doc
-tupled = encloseSep lparen rparen comma
+tupled xs = group (encloseSep (flatAlt "( " "(")
+                              (flatAlt " )" ")")
+                              ", " xs)
 
 
 
@@ -864,8 +910,8 @@ x <+> y = x <> space <> y
 --
 -- This is also useful to define customized joiners,
 --
--- >>> concatWith (\x y -> x <> dot <> y) ["Data", "Text", "PrettyPrint", "Doc"]
--- Data.Text.PrettyPrint.Doc
+-- >>> concatWith (\x y -> x <> dot <> y) ["Data", "Text", "Prettyprint", "Doc"]
+-- Data.Text.Prettyprint.Doc
 concatWith :: Foldable t => (Doc -> Doc -> Doc) -> t Doc -> Doc
 concatWith f ds
 #if __GLASGOW_HASKELL__ < 710

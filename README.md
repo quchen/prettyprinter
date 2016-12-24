@@ -69,8 +69,8 @@ import Prelude hiding (words)
 import           Data.Text                             (Text)
 import qualified Data.Text                             as T
 import qualified Data.Text.IO                          as T
-import           Data.Text.PrettyPrint.Doc
-import           Data.Text.PrettyPrint.Doc.Render.Text
+import           Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc.Render.Text
 
 
 

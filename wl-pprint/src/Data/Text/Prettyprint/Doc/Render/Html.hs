@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Render 'SimpleDoc' as 'HTML' encoded as 'Text'.
-module Data.Text.PrettyPrint.Doc.Render.Html (
+module Data.Text.Prettyprint.Doc.Render.Html (
     -- * Conversion to HTML-infused 'Text'
     renderLazy,
     renderStrict,
@@ -31,8 +31,8 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO              (Handle, stdout)
 
-import Data.Text.PrettyPrint.Doc
-import Data.Text.PrettyPrint.Doc.Render.RenderM
+import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.RenderM
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
