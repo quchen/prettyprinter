@@ -405,12 +405,12 @@ instance Pretty Double where
 -- | >>> putDoc (pretty (123, "hello"))
 -- (123,hello)
 instance (Pretty a, Pretty b) => Pretty (a,b) where
-            pretty (x,y) = tupled [pretty x, pretty y]
+    pretty (x,y) = tupled [pretty x, pretty y]
 
 -- | >>> putDoc (pretty (123, "hello", False))
 -- (123,hello,False)
 instance (Pretty a, Pretty b, Pretty c) => Pretty (a,b,c) where
-                pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
+    pretty (x,y,z)= tupled [pretty x, pretty y, pretty z]
 
 -- | Ignore 'Nothing's, print 'Just' contents.
 --
@@ -509,13 +509,13 @@ data SimpleDoc =
 -- | @(unsafeText s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
--- invariant of the 'Text' constructor. If you're not sure, use the safer
--- 'text'.
+-- invariant of the 'Text' constructor.
 unsafeText :: Text -> Doc
 unsafeText t = case T.length t of
     0 -> Empty
-    1 -> pretty (T.head t)
+    1 -> Char (T.head t)
     n -> Text n t
+
 
 -- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
@@ -1552,12 +1552,12 @@ fuse depth = go
 --   - width in which to fit the first line
 newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
 
--- List of nesting level/document pairs yet to be rendered. Saves one
+-- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
-data Docs =
+data LayoutPipeline =
       Nil
-    | Cons !Int Doc Docs
-    | UndoStyle Docs -- Remove one previously applied style.
+    | Cons !Int Doc LayoutPipeline
+    | UndoStyle LayoutPipeline -- Remove one previously applied style.
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ layouts document @x@ with a
@@ -1677,9 +1677,9 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
     best
-        :: Int -- ^ Current nesting level
-        -> Int -- ^ Current column, i.e. "where the cursor is"
-        -> Docs -- ^ Documents remaining to be handled (in order)
+        :: Int -- Current nesting level
+        -> Int -- Current column, i.e. "where the cursor is"
+        -> LayoutPipeline -- Documents remaining to be handled (in order)
         -> SimpleDoc
     best _ _ Nil = SEmpty
     best !nl !cc (UndoStyle ds) = SStylePop (best nl cc ds)
