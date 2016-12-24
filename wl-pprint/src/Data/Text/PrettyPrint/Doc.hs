@@ -178,6 +178,8 @@ module Data.Text.PrettyPrint.Doc (
     plain,
 
     -- * Optimization
+    --
+    -- Render documents faster
     fuse, FusionDepth(..),
 
     -- * Layout
@@ -238,6 +240,7 @@ infixr 6 <>
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.PrettyPrint.Doc.Render.Text
+-- >>> import Test.QuickCheck.Modifiers
 -- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty 1.0 w doc)
 
 
@@ -544,8 +547,7 @@ nest
     :: Int -- ^ Change of nesting level
     -> Doc
     -> Doc
-nest 0 = id
-nest i = Nest i
+nest = Nest
 
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
@@ -1165,8 +1167,19 @@ fillBreak f x = width x (\w ->
 
 -- | Insert a number of spaces.
 spaces :: Int -> Doc
-spaces n | n <= 0    = mempty
-         | otherwise = unsafeText (T.replicate n " ")
+spaces n = unsafeText (T.replicate n " ")
+
+-- $
+-- prop> \(NonNegative n) -> length (show (spaces n)) == n
+--
+--
+-- >>> case spaces 1 of Char ' ' -> True; _ -> False
+-- True
+--
+-- >>> case spaces 0 of Empty -> True; _ -> False
+-- True
+--
+-- prop> \(Positive n) -> case (spaces (-n)) of Empty -> True; _ -> False
 
 
 
