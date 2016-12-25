@@ -14,9 +14,13 @@ homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
 tested-with:         GHC==8.0.1, GHC==7.10.3, GHC==7.10.2, GHC==7.8.4
 
+
+
 source-repository head
   type: git
   location: git://github.com/quchen/prettyprinter.git
+
+
 
 library
     exposed-modules: Data.Text.Prettyprint.Doc
@@ -45,6 +49,8 @@ library
     if impl (ghc < 7.10)
         build-depends: void
 
+
+
 executable readme-generator
     main-is: app/GenerateReadme.hs
     build-depends:
@@ -56,6 +62,8 @@ executable readme-generator
     if impl (ghc < 7.10)
         buildable: False
 
+
+
 test-suite doctest
     type: exitcode-stdio-1.0
     hs-source-dirs: test/Doctest
@@ -63,12 +71,29 @@ test-suite doctest
     build-depends:
           base < 127
         , doctest >= 0.9
-        , QuickCheck >= 2.8
+        , QuickCheck >= 2.7
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
     if impl (ghc < 7.10)
         buildable: False
-        -- Doctest cannot search folders in old versions it seems :-(
+        -- Doctest does not support searching through directories in old versions
+
+test-suite testsuite
+    type:                exitcode-stdio-1.0
+    hs-source-dirs:      test/Testsuite
+    main-is:             Main.hs
+    build-depends:       base
+                       , wl-pprint
+
+                       , pgp-wordlist
+                       , bytestring
+                       , tasty
+                       , tasty-quickcheck
+                       , text
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+    default-language:    Haskell2010
+
+
 
 benchmark bench
     type:           exitcode-stdio-1.0
