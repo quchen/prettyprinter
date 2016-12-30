@@ -146,12 +146,12 @@ module Data.Text.Prettyprint.Doc (
     -- * General convenience
     --
     -- | Useful helper functions.
-    plural,
+    plural, enclose,
 
     -- * Bracketing functions
     --
     -- | Enclose documents in common ways.
-    enclose, squotes, dquotes, parens, angles, brackets, braces,
+    squotes, dquotes, parens, angles, brackets, braces,
 
     -- * Named characters
     --
@@ -252,9 +252,7 @@ infixr 6 <>
 -- possible layouts of a document. The layout functions select one of these
 -- possibilities.
 --
--- The simplest layouter is via the 'Show' class. @('show' doc)@ pretty prints
--- document @doc@ with a page width of 80 characters and a ribbon width of 32
--- characters.
+-- The simplest way to display a 'Doc' is via the 'Show' class.
 --
 -- >>> putStrLn (show (vsep ["hello", "world"]))
 -- hello
@@ -322,6 +320,9 @@ instance Semi.Semigroup Doc where
 -- | >>> putDoc "hello\nworld"
 -- hello
 -- world
+--
+-- This instance uses the 'Pretty' 'Doc' instance, and uses the same newline
+-- conversion to 'line'.
 instance IsString Doc where
     fromString = pretty . T.pack
 
@@ -1226,13 +1227,12 @@ fillBreak f x = width x (\w ->
         then nest f line'
         else spaces (f - w))
 
--- | Insert a number of spaces.
+-- | Insert a number of spaces. Negative values count as 0.
 spaces :: Int -> Doc
 spaces n = unsafeText (T.replicate n " ")
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
---
 --
 -- >>> case spaces 1 of Char ' ' -> True; _ -> False
 -- True
@@ -1261,8 +1261,6 @@ plural n one many
     | n == 1    = one
     | otherwise = many
 
-
-
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.
 --
@@ -1278,6 +1276,8 @@ enclose
     -> Doc -- ^ x
     -> Doc -- ^ LxR
 enclose l r x = l <> x <> r
+
+
 
 -- | >>> putDoc (squotes "·")
 -- '·'
@@ -1817,6 +1817,9 @@ layoutCompact doc = scan 0 [doc]
         Nesting f     -> scan k (f 0:ds)
         StylePush _ x -> scan k (x:ds)
 
+
+-- | @('show' doc)@ pretty prints document @doc@ with a page width of 80
+-- characters and a ribbon width of 32 characters.
 instance Show Doc where
     showsPrec _ doc = displayString (layoutPretty 0.4 80 doc)
 
