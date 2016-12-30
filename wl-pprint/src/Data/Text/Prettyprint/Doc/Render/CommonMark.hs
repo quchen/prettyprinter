@@ -51,7 +51,7 @@ import Control.Applicative
 -- Colorization is not supported by CommonMark, so these directives are simply
 -- ignored,
 --
--- >>> pprint (red doc)
+-- >>> pprint (color SRed doc)
 -- This text *is emphasized **even stronger**!*
 renderLazy :: SimpleDoc -> LT.Text
 renderLazy doc

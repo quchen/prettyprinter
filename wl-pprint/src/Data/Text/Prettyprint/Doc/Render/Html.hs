@@ -51,7 +51,7 @@ import Control.Applicative
 -- significant whitespace, which HTML rendering swallows. This can be avoided by
 -- putting the result in a @<pre>@ environment.
 --
--- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), dullred "out"]))
+-- >>> let doc = "some" <+> align (vsep ([bold "text", "to", italics ("nicely" <+> bold "lay"), colorDull SRed "out"]))
 -- >>> putDoc (plain doc)
 -- some text
 --      to

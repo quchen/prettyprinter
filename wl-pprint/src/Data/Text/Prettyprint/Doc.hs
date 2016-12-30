@@ -164,13 +164,10 @@ module Data.Text.Prettyprint.Doc (
     Style(..), SColor(..), SIntensity(..), SLayer(..),
 
     -- ** Font color
-    black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
-    dullgreen, dullyellow, dullblue, dullmagenta, dullcyan, dullwhite,
-
+    color, colorDull,
+    --
     -- ** Background color
-    onblack, onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite,
-    ondullblack, ondullred, ondullgreen, ondullyellow, ondullblue,
-    ondullmagenta, ondullcyan, ondullwhite,
+    bgColor, bgColorDull,
 
     -- ** Font style
     bold, italics, underline,
@@ -1410,71 +1407,21 @@ pipe = "|"
 
 
 
-black :: Doc -> Doc
-black = StylePush (SColor SForeground SVivid SBlack)
-red :: Doc -> Doc
-red = StylePush (SColor SForeground SVivid SRed)
-green :: Doc -> Doc
-green = StylePush (SColor SForeground SVivid SGreen)
-yellow :: Doc -> Doc
-yellow = StylePush (SColor SForeground SVivid SYellow)
-blue :: Doc -> Doc
-blue = StylePush (SColor SForeground SVivid SBlue)
-magenta :: Doc -> Doc
-magenta = StylePush (SColor SForeground SVivid SMagenta)
-cyan :: Doc -> Doc
-cyan = StylePush (SColor SForeground SVivid SCyan)
-white :: Doc -> Doc
-white = StylePush (SColor SForeground SVivid SWhite)
-dullblack :: Doc -> Doc
-dullblack = StylePush (SColor SForeground SDull SBlack)
-dullred :: Doc -> Doc
-dullred = StylePush (SColor SForeground SDull SRed)
-dullgreen :: Doc -> Doc
-dullgreen = StylePush (SColor SForeground SDull SGreen)
-dullyellow :: Doc -> Doc
-dullyellow = StylePush (SColor SForeground SDull SYellow)
-dullblue :: Doc -> Doc
-dullblue = StylePush (SColor SForeground SDull SBlue)
-dullmagenta :: Doc -> Doc
-dullmagenta = StylePush (SColor SForeground SDull SMagenta)
-dullcyan :: Doc -> Doc
-dullcyan = StylePush (SColor SForeground SDull SCyan)
-dullwhite :: Doc -> Doc
-dullwhite = StylePush (SColor SForeground SDull SWhite)
+-- | Style the foreground with a vivid color.
+color :: SColor -> Doc -> Doc
+color c = StylePush (SColor SForeground SVivid c)
 
-onblack :: Doc -> Doc
-onblack = StylePush (SColor SBackground SVivid SBlack)
-onred :: Doc -> Doc
-onred = StylePush (SColor SBackground SVivid SRed)
-ongreen :: Doc -> Doc
-ongreen = StylePush (SColor SBackground SVivid SGreen)
-onyellow :: Doc -> Doc
-onyellow = StylePush (SColor SBackground SVivid SYellow)
-onblue :: Doc -> Doc
-onblue = StylePush (SColor SBackground SVivid SBlue)
-onmagenta :: Doc -> Doc
-onmagenta = StylePush (SColor SBackground SVivid SMagenta)
-oncyan :: Doc -> Doc
-oncyan = StylePush (SColor SBackground SVivid SCyan)
-onwhite :: Doc -> Doc
-onwhite = StylePush (SColor SBackground SVivid SWhite)
-ondullblack :: Doc -> Doc
-ondullblack = StylePush (SColor SBackground SDull SBlack)
-ondullred :: Doc -> Doc
-ondullred = StylePush (SColor SBackground SDull SRed)
-ondullgreen :: Doc -> Doc
-ondullgreen = StylePush (SColor SBackground SDull SGreen)
-ondullyellow :: Doc -> Doc
-ondullyellow = StylePush (SColor SBackground SDull SYellow)
-ondullblue :: Doc -> Doc
-ondullblue = StylePush (SColor SBackground SDull SBlue)
-ondullmagenta :: Doc -> Doc
-ondullmagenta = StylePush (SColor SBackground SDull SMagenta)
-ondullcyan :: Doc -> Doc
-ondullcyan = StylePush (SColor SBackground SDull SCyan)
-ondullwhite :: Doc -> Doc
-ondullwhite = StylePush (SColor SBackground SDull SWhite)
+-- | Style the background with a vivid color.
+bgColor :: SColor -> Doc -> Doc
+bgColor c = StylePush (SColor SBackground SVivid c)
+
+-- | Style the foreground with a dull color.
+colorDull :: SColor -> Doc -> Doc
+colorDull c = StylePush (SColor SForeground SDull c)
+
+-- | Style the background with a dull color.
+bgColorDull :: SColor -> Doc -> Doc
+bgColorDull c = StylePush (SColor SBackground SDull c)
 
 -- | Render the enclosed document in __bold__.
 bold :: Doc -> Doc
@@ -1848,6 +1795,9 @@ displayString = \case
 --   - If you need 'String' output, use 'T.unpack' on the generated renderings.
 --   - The /display/ functions are moved to the rendering submodules.
 --   - The /render/ functions are called /layout/ functions.
+--   - Instead of providing an own colorization function for each
+--     color\/intensity\/layer combination, they have been combined in 'color',
+--     'colorDull', 'bgColor', and 'bgColorDull' functions.
 
 
 

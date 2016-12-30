@@ -57,7 +57,7 @@ import Control.Applicative
 -- that would render colored in an ANSI terminal:
 --
 -- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty 0.4 80
--- >>> let doc = red ("red" <+> align (vsep [blue ("blue" <+> bold "bold" <+> "blue"), "red"]))
+-- >>> let doc = color SRed ("red" <+> align (vsep [color SBlue ("blue" <+> bold "bold" <+> "blue"), "red"]))
 -- >>> render (plain doc)
 -- red blue bold blue
 --     red
@@ -127,8 +127,8 @@ emptyStyle = CombinedStyle Nothing Nothing False False False
 stylesToSgrs :: CombinedStyle -> [SGR]
 stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
     [ Just Reset
-    , fmap (\(intensity, color) -> SetColor Foreground (convertIntensity intensity) (convertColor color)) m'fg
-    , fmap (\(intensity, color) -> SetColor Background (convertIntensity intensity) (convertColor color)) m'bg
+    , fmap (\(intensity, c) -> SetColor Foreground (convertIntensity intensity) (convertColor c)) m'fg
+    , fmap (\(intensity, c) -> SetColor Background (convertIntensity intensity) (convertColor c)) m'bg
     , guard b $> SetConsoleIntensity BoldIntensity
     , guard i $> SetItalicized True
     , guard u $> SetUnderlining SingleUnderline

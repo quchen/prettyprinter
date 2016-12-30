@@ -43,7 +43,7 @@ import Data.Text.Prettyprint.Doc
 -- you are looking for.
 --
 -- >>> let render = LT.putStrLn . renderLazy . layoutPretty 0.4 80
--- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens (red "styles are ignored"), "sit amet"])
+-- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens (color SRed "styles are ignored"), "sit amet"])
 -- >>> render doc
 -- lorem ipsum dolor
 --       (styles are ignored)

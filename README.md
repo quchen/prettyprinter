@@ -38,6 +38,11 @@ The most significant changes are:
   4. Use of `Text` instead of `String`.
   5. An `optimize` function to fuse text together before rendering for
      efficiency.
+  6. Instead of providing an own colorization function for each
+     color/intensity/layer combination, they have been combined in 'color',
+     'colorDull', 'bgColor', and 'bgColorDull' functions.
+
+
 
 Migration guide
 ---------------
@@ -50,6 +55,8 @@ compatibility modules available:
 
   - Old wl-pprint: wl-pprint-compat-old
   - Old wl-pprint-ansi: wl-pprint-compat-old-ansi
+
+
 
 Code that generated this
 ------------------------
