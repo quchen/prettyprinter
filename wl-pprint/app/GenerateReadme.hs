@@ -55,10 +55,13 @@ readmeContents selfSource = mconcat
     , line <> line
     , (indent 2 . orderedList . map paragraph)
         [ "`(<$>)` is removed as an operator, since it clashes with the common alias for `fmap`."
-        , "All but the essential `<>` and `<+>` operators were replaced by ordinary names."
+        , "All but the essential `<>` and `<+>` operators were removed or replaced by ordinary names."
         , "Everything extensively documented, with references to other functions and runnable code examples."
         , "Use of `Text` instead of `String`."
-        , "An `optimize` function to fuse text together before rendering for efficiency."
+        , "A `fuse` function to optimize often-used documents before rendering for efficiency."
+        , "Instead of providing an own colorization function for each\
+          \ color/intensity/layer combination, they have been combined in 'color'\
+          \ 'colorDull', 'bgColor', and 'bgColorDull' functions."
         ]
 
 

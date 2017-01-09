@@ -31,18 +31,16 @@ The most significant changes are:
 
   1. `(<$>)` is removed as an operator, since it clashes with the common alias
      for `fmap`.
-  2. All but the essential `<>` and `<+>` operators were replaced by ordinary
-     names.
+  2. All but the essential `<>` and `<+>` operators were removed or replaced by
+     ordinary names.
   3. Everything extensively documented, with references to other functions and
      runnable code examples.
   4. Use of `Text` instead of `String`.
-  5. An `optimize` function to fuse text together before rendering for
+  5. A `fuse` function to optimize often-used documents before rendering for
      efficiency.
   6. Instead of providing an own colorization function for each
-     color/intensity/layer combination, they have been combined in 'color',
+     color/intensity/layer combination, they have been combined in 'color'
      'colorDull', 'bgColor', and 'bgColorDull' functions.
-
-
 
 Migration guide
 ---------------
@@ -55,8 +53,6 @@ compatibility modules available:
 
   - Old wl-pprint: wl-pprint-compat-old
   - Old wl-pprint-ansi: wl-pprint-compat-old-ansi
-
-
 
 Code that generated this
 ------------------------
@@ -122,10 +118,13 @@ readmeContents selfSource = mconcat
     , line <> line
     , (indent 2 . orderedList . map paragraph)
         [ "`(<$>)` is removed as an operator, since it clashes with the common alias for `fmap`."
-        , "All but the essential `<>` and `<+>` operators were replaced by ordinary names."
+        , "All but the essential `<>` and `<+>` operators were removed or replaced by ordinary names."
         , "Everything extensively documented, with references to other functions and runnable code examples."
         , "Use of `Text` instead of `String`."
-        , "An `optimize` function to fuse text together before rendering for efficiency."
+        , "A `fuse` function to optimize often-used documents before rendering for efficiency."
+        , "Instead of providing an own colorization function for each\
+          \ color/intensity/layer combination, they have been combined in 'color'\
+          \ 'colorDull', 'bgColor', and 'bgColorDull' functions."
         ]
 
 
