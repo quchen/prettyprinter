@@ -51,7 +51,7 @@ library
 
 
 
-executable readme-generator
+executable generate_readme
     main-is: app/GenerateReadme.hs
     build-depends:
           base < 127

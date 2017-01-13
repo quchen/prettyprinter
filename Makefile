@@ -1,8 +1,6 @@
 readme :
-	stack build wl-pprint:exe:readme-generator
-	stack exec readme-generator
+	./scripts/generate_readme
 bench :
-	mkdir -p generated
-	stack bench wl-pprint --benchmark-arguments "--output ../generated/wl-pprint-benchmark.html"
+	./scripts/run_benchmark
 doc :
 	stack haddock --open wl-pprint
