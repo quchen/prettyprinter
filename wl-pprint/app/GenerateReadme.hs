@@ -15,7 +15,7 @@ import           Data.Text.Prettyprint.Doc.Render.Text
 
 
 main :: IO ()
-main = (T.putStrLn . renderStrict . layoutPretty 1 80) readmeContents
+main = (T.putStrLn . renderStrict . layoutPretty (RibbonFraction 1) (PageWidth 80)) readmeContents
 
 readmeContents :: Doc
 readmeContents = mconcat

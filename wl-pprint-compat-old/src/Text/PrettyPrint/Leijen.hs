@@ -157,7 +157,8 @@ rational :: Rational -> Doc
 rational = New.pretty . show
 
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
-renderPretty = New.layoutPretty
+renderPretty ribbonFraction pageWidth
+    = New.layoutPretty (New.RibbonFraction (realToFrac ribbonFraction)) (New.PageWidth pageWidth)
 
 renderCompact :: Doc -> SimpleDoc
 renderCompact = New.layoutCompact

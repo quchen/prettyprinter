@@ -147,7 +147,7 @@ htmlTag tag attrs openClose = case openClose of
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
--- >>> renderIO System.IO.stdout defaultHtmlColors (layoutPretty 1 80 "hello\nworld")
+-- >>> renderIO System.IO.stdout defaultHtmlColors (layoutPretty (RibbonFraction 1) (PageWidth 80) "hello\nworld")
 -- hello
 -- world
 renderIO :: Handle -> HtmlColors -> SimpleDoc -> IO ()
@@ -175,7 +175,7 @@ putDoc = hPutDoc stdout
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty 0.4 80 doc)
+hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
 
 
 

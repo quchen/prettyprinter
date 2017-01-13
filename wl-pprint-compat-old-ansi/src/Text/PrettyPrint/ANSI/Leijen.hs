@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for users of ansi-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
@@ -72,7 +74,8 @@ flatAlt :: Doc -> Doc -> Doc
 flatAlt = New.flatAlt
 
 renderSmart :: Float -> Int -> Doc -> SimpleDoc
-renderSmart = New.layoutSmart
+renderSmart ribbonFraction pageWidth
+    = New.layoutSmart (New.RibbonFraction (realToFrac ribbonFraction)) (New.PageWidth pageWidth)
 
 align :: Doc -> Doc
 align = New.align
@@ -218,7 +221,8 @@ rational :: Rational -> Doc
 rational = New.pretty . show
 
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
-renderPretty = New.layoutPretty
+renderPretty ribbonFraction pageWidth
+    = New.layoutSmart (New.RibbonFraction (realToFrac ribbonFraction)) (New.PageWidth pageWidth)
 
 renderCompact :: Doc -> SimpleDoc
 renderCompact = New.layoutCompact
@@ -238,7 +242,7 @@ column :: (Int -> Doc) -> Doc
 column = New.column
 
 columns :: (Maybe Int -> Doc) -> Doc
-columns = New.pageWidth
+columns f = New.pageWidth (f . fmap (\(New.PageWidth w) -> w))
 
 nesting :: (Int -> Doc) -> Doc
 nesting = New.nesting

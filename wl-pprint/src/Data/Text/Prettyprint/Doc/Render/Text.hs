@@ -42,7 +42,7 @@ import Data.Text.Prettyprint.Doc
 -- functions in "Data.Text.Prettyprint.Doc.Render.Terminal" are closer to what
 -- you are looking for.
 --
--- >>> let render = LT.putStrLn . renderLazy . layoutPretty 0.4 80
+-- >>> let render = LT.putStrLn . renderLazy . layoutPretty (RibbonFraction 1) (PageWidth 80)
 -- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens (color SRed "styles are ignored"), "sit amet"])
 -- >>> render doc
 -- lorem ipsum dolor
@@ -69,7 +69,7 @@ renderStrict = LT.toStrict . renderLazy
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
--- >>> renderIO System.IO.stdout (layoutPretty 1 80 "hello\nworld")
+-- >>> renderIO System.IO.stdout (layoutPretty (RibbonFraction 1) (PageWidth 80) "hello\nworld")
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc -> IO ()
@@ -99,4 +99,4 @@ putDoc = hPutDoc stdout
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = renderIO h (layoutPretty 0.4 80 doc)
+hPutDoc h doc = renderIO h (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)

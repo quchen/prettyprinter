@@ -186,6 +186,7 @@ module Data.Text.Prettyprint.Doc (
     -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
     -- fits these constraints the best.
     SimpleDoc(..),
+    PageWidth(..), RibbonFraction(..),
     layoutPretty, layoutCompact, layoutSmart,
 
     -- * Notes
@@ -239,7 +240,7 @@ infixr 6 <>
 -- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Test.QuickCheck.Modifiers
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty 1.0 w doc)
+-- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (RibbonFraction 1) (PageWidth w) doc)
 
 
 
@@ -293,7 +294,7 @@ data Doc =
     | Column (Int -> Doc)
 
     -- | React on the document's width, see 'pageWidth'
-    | PageWidth (Maybe Int -> Doc)
+    | WithPageWidth (Maybe PageWidth -> Doc)
 
     -- | React on the current nesting level, see 'nesting'
     | Nesting (Int -> Doc)
@@ -685,15 +686,15 @@ group x = Union (flatten x) x
 -- @FlatAlt@s.
 flatten :: Doc -> Doc
 flatten = \case
-    FlatAlt _ y   -> flatten y
-    Cat x y       -> Cat (flatten x) (flatten y)
-    Nest i x      -> Nest i (flatten x)
-    Line          -> Fail
-    Union x _     -> flatten x
-    Column f      -> Column (flatten . f)
-    PageWidth f   -> PageWidth (flatten . f)
-    Nesting f     -> Nesting (flatten . f)
-    StylePush s x -> StylePush s (flatten x)
+    FlatAlt _ y     -> flatten y
+    Cat x y         -> Cat (flatten x) (flatten y)
+    Nest i x        -> Nest i (flatten x)
+    Line            -> Fail
+    Union x _       -> flatten x
+    Column f        -> Column (flatten . f)
+    WithPageWidth f -> WithPageWidth (flatten . f)
+    Nesting f       -> Nesting (flatten . f)
+    StylePush s x   -> StylePush s (flatten x)
 
     x@Fail       -> x
     x@Empty      -> x
@@ -1170,7 +1171,7 @@ width doc f
 
 -- | Layout a document depending on the page width, if one has been specified.
 --
--- >>> let doc = "prefix" <+> pageWidth (\l -> brackets ("Width:" <+> pretty l))
+-- >>> let doc = "prefix" <+> pageWidth (\(Just (PageWidth l)) -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
 -- prefix [Width: 32]
 --     prefix [Width: 32]
@@ -1179,8 +1180,8 @@ width doc f
 -- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
 -- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
-pageWidth :: (Maybe Int -> Doc) -> Doc
-pageWidth = PageWidth
+pageWidth :: (Maybe PageWidth -> Doc) -> Doc
+pageWidth = WithPageWidth
 
 
 
@@ -1448,14 +1449,14 @@ underline = StylePush SUnderlined
 -- before producing a layout.
 plain :: Doc -> Doc
 plain = \case
-    FlatAlt x y   -> FlatAlt (plain x) (plain y)
-    Cat x y       -> Cat (plain x) (plain y)
-    Nest i x      -> Nest i (plain x)
-    Union x y     -> Union (plain x) (plain y)
-    Column f      -> Column (plain . f)
-    PageWidth f   -> PageWidth (plain . f)
-    Nesting f     -> Nesting (plain . f)
-    StylePush _ x -> plain x
+    FlatAlt x y     -> FlatAlt (plain x) (plain y)
+    Cat x y         -> Cat (plain x) (plain y)
+    Nest i x        -> Nest i (plain x)
+    Union x y       -> Union (plain x) (plain y)
+    Column f        -> Column (plain . f)
+    WithPageWidth f -> WithPageWidth (plain . f)
+    Nesting f       -> Nesting (plain . f)
+    StylePush _ x   -> plain x
 
     x@Fail{}  -> x
     x@Empty{} -> x
@@ -1547,9 +1548,9 @@ fuse depth = go
 
         other | depth == Shallow -> other
 
-        Column f      -> Column (go . f)
-        PageWidth f   -> PageWidth (go . f)
-        Nesting f     -> Nesting (go . f)
+        Column f        -> Column (go . f)
+        WithPageWidth f -> WithPageWidth (go . f)
+        Nesting f       -> Nesting (go . f)
 
         other -> other
 
@@ -1559,7 +1560,7 @@ fuse depth = go
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line
-newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
+newtype FittingPredicate = FP (PageWidth -> Int -> Int -> SimpleDoc -> Bool)
 
 -- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
@@ -1567,6 +1568,15 @@ data LayoutPipeline =
       Nil
     | Cons !Int Doc LayoutPipeline
     | UndoStyle LayoutPipeline -- Remove one previously applied style.
+
+-- | Maximum number of characters that fit in one line. 80 is a typical value.
+newtype PageWidth = PageWidth Int
+    deriving (Eq, Ord, Show)
+
+-- | Fraction of the total page width that can be printed on. This allows
+-- limiting the length of printable text per line.
+newtype RibbonFraction = RibbonFraction Double
+    deriving (Eq, Ord, Show)
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ layouts document @x@ with a
@@ -1576,8 +1586,8 @@ data LayoutPipeline =
 -- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
 -- respectively.
 layoutPretty
-    :: Float -- ^ Ribbon width as fraction of page width
-    -> Int -- ^ Page width in characters
+    :: RibbonFraction
+    -> PageWidth
     -> Doc
     -> SimpleDoc
 layoutPretty = layoutFits fits1
@@ -1637,8 +1647,8 @@ layoutPretty = layoutFits fits1
 --
 -- This fits within the 20 character boundary.
 layoutSmart
-    :: Float -- ^ Ribbon width as fraction of page width
-    -> Int -- ^ Page width in characters
+    :: RibbonFraction
+    -> PageWidth
     -> Doc
     -> SimpleDoc
 layoutSmart = layoutFits fitsR
@@ -1654,7 +1664,7 @@ layoutSmart = layoutFits fitsR
     fitsR :: FittingPredicate
     fitsR = FP go
       where
-        go :: Int -- ^ Page width
+        go :: PageWidth
            -> Int -- ^ Minimum nesting level to fit in
            -> Int -- ^ Width in which to fit the first line
            -> SimpleDoc
@@ -1665,8 +1675,8 @@ layoutSmart = layoutFits fitsR
         go _ _ _ SEmpty           = True
         go p m w (SChar _ x)      = go p m (w - 1) x
         go p m w (SText l _t x)   = go p m (w - l) x
-        go p m _ (SLine i x)
-          | m < i                 = go p m (p - i) x
+        go p@(PageWidth pw) m _ (SLine i x)
+          | m < i                 = go p m (pw - i) x
           | otherwise             = True
         go p m w (SStylePush _ x) = go p m w x
         go p m w (SStylePop x)    = go p m w x
@@ -1675,13 +1685,16 @@ layoutSmart = layoutFits fitsR
 
 layoutFits
     :: FittingPredicate
-    -> Float -- ^ Ribbon width as fraction of page width
-    -> Int   -- ^ Page width in characters
+    -> RibbonFraction
+    -> PageWidth
     -> Doc
     -> SimpleDoc
-layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
+layoutFits (FP fits) (RibbonFraction rfrac) maxColumns doc
+  = best 0 0 (Cons 0 doc Nil)
   where
-    ribbonWidth = max 0 (min maxColumns (round (fromIntegral maxColumns * rfrac)))
+    ribbonWidth :: Int
+    ribbonWidth = let PageWidth pw = maxColumns
+                  in max 0 (min pw (round (fromIntegral pw * rfrac)))
 
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
@@ -1693,21 +1706,21 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
     best _ _ Nil = SEmpty
     best !nl !cc (UndoStyle ds) = SStylePop (best nl cc ds)
     best !nl !cc (Cons !i d ds) = case d of
-        Fail          -> SFail
-        Empty         -> best nl cc ds
-        Char c        -> let !cc' = cc+1 in SChar c (best nl cc' ds)
-        Text l t      -> let !cc' = cc+l in SText l t (best nl cc' ds)
-        Line          -> SLine i (best i i ds)
-        FlatAlt x _   -> best nl cc (Cons i x ds)
-        Cat x y       -> best nl cc (Cons i x (Cons i y ds))
-        Nest j x      -> let !ij = i+j in best nl cc (Cons ij x ds)
-        Union x y     -> let x' = best nl cc (Cons i x ds)
-                             y' = best nl cc (Cons i y ds)
-                         in selectNicer nl cc x' y'
-        Column f      -> best nl cc (Cons i (f cc) ds)
-        PageWidth f   -> best nl cc (Cons i (f (Just maxColumns)) ds)
-        Nesting f     -> best nl cc (Cons i (f i) ds)
-        StylePush s x -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
+        Fail            -> SFail
+        Empty           -> best nl cc ds
+        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
+        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
+        Line            -> SLine i (best i i ds)
+        FlatAlt x _     -> best nl cc (Cons i x ds)
+        Cat x y         -> best nl cc (Cons i x (Cons i y ds))
+        Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
+        Union x y       -> let x' = best nl cc (Cons i x ds)
+                               y' = best nl cc (Cons i y ds)
+                           in selectNicer nl cc x' y'
+        Column f        -> best nl cc (Cons i (f cc) ds)
+        WithPageWidth f -> best nl cc (Cons i (f (Just maxColumns)) ds)
+        Nesting f       -> best nl cc (Cons i (f i) ds)
+        StylePush s x   -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
 
     selectNicer
         :: Int       -- ^ Current nesting level
@@ -1722,7 +1735,8 @@ layoutFits (FP fits) rfrac maxColumns doc = best 0 0 (Cons 0 doc Nil)
       where
         minNestingLevel = min lineIndent currentColumn
         availableWidth
-          = let columnsLeftInLine   = maxColumns - currentColumn
+          = let columnsLeftInLine = let PageWidth pw = maxColumns
+                                    in pw - currentColumn
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
 
@@ -1751,25 +1765,25 @@ layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
     scan !k (d:ds) = case d of
-        Fail          -> SFail
-        Empty         -> scan k ds
-        Char c        -> SChar c (scan (k+1) ds)
-        Text l t      -> let !k' = k+l in SText l t (scan k' ds)
-        FlatAlt x _   -> scan k (x:ds)
-        Line          -> SLine 0 (scan 0 ds)
-        Cat x y       -> scan k (x:y:ds)
-        Nest _ x      -> scan k (x:ds)
-        Union _ y     -> scan k (y:ds)
-        Column f      -> scan k (f k:ds)
-        PageWidth f   -> scan k (f Nothing:ds)
-        Nesting f     -> scan k (f 0:ds)
-        StylePush _ x -> scan k (x:ds)
+        Fail            -> SFail
+        Empty           -> scan k ds
+        Char c          -> SChar c (scan (k+1) ds)
+        Text l t        -> let !k' = k+l in SText l t (scan k' ds)
+        FlatAlt x _     -> scan k (x:ds)
+        Line            -> SLine 0 (scan 0 ds)
+        Cat x y         -> scan k (x:y:ds)
+        Nest _ x        -> scan k (x:ds)
+        Union _ y       -> scan k (y:ds)
+        Column f        -> scan k (f k:ds)
+        WithPageWidth f -> scan k (f Nothing:ds)
+        Nesting f       -> scan k (f 0:ds)
+        StylePush _ x   -> scan k (x:ds)
 
 
 -- | @('show' doc)@ pretty prints document @doc@ with a page width of 80
 -- characters and a ribbon width of 32 characters.
 instance Show Doc where
-    showsPrec _ doc = displayString (layoutPretty 0.4 80 doc)
+    showsPrec _ doc = displayString (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case
