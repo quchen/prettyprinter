@@ -1542,10 +1542,11 @@ fuse depth = go
 
         StylePush _ Empty -> Empty
 
-        other | depth == Shallow -> other
-
         FlatAlt x1 x2 -> FlatAlt (go x1) (go x2)
         Union x1 x2   -> Union (go x1) (go x2)
+
+        other | depth == Shallow -> other
+
         Column f      -> Column (go . f)
         PageWidth f   -> PageWidth (go . f)
         Nesting f     -> Nesting (go . f)
