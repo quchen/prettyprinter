@@ -67,22 +67,22 @@ build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
     SChar c x -> do
-        writeResult (TLB.singleton c)
+        writeOutput (TLB.singleton c)
         build x
     SText _l t x -> do
-        writeResult (TLB.fromText t)
+        writeOutput (TLB.fromText t)
         build x
     SLine i x -> do
-        writeResult (TLB.singleton '\n' )
-        writeResult (TLB.fromText (T.replicate i " "))
+        writeOutput (TLB.singleton '\n' )
+        writeOutput (TLB.fromText (T.replicate i " "))
         build x
     SStylePush s x -> do
         pushStyle s
-        writeResult (styleToMarker s)
+        writeOutput (styleToMarker s)
         build x
     SStylePop x -> do
         s <- unsafePopStyle
-        writeResult (styleToMarker s)
+        writeOutput (styleToMarker s)
         build x
 
 styleToMarker :: Style -> TLB.Builder
@@ -124,7 +124,7 @@ putDoc = hPutDoc stdout
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' (RibbonFraction 0.4) (PageWidth 80) doc)
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)

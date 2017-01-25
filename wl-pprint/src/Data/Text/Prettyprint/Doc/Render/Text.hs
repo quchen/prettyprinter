@@ -96,7 +96,7 @@ putDoc = hPutDoc stdout
 -- @
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)

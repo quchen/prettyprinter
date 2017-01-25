@@ -246,7 +246,7 @@ infixr 6 <>
 
 -- | The abstract data type @'Doc'@ represents pretty documents.
 --
--- More specifically, a value of type @Doc@ represents a non-empty set of
+-- More specifically, a value of type @'Doc'@ represents a non-empty set of
 -- possible layouts of a document. The layout functions select one of these
 -- possibilities.
 --
@@ -459,10 +459,7 @@ instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6, Pret
 -- >>> putDoc (pretty [Just 1, Nothing, Just 3, Nothing])
 -- [1, 3]
 instance Pretty a => Pretty (Maybe a) where
-    pretty = \case
-        Nothing -> mempty
-        Just x  -> pretty x
-
+    pretty = maybe mempty pretty
     prettyList = prettyList . catMaybes
 
 -- | Automatically converts all newlines to @'line'@.
@@ -554,7 +551,6 @@ unsafeText t = case T.length t of
     1 -> Char (T.head t)
     n -> Text n t
 
-
 -- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
 -- inside e.g. 'vcat', where we get an empty line of output from it ('angles'
@@ -569,7 +565,7 @@ unsafeText t = case T.length t of
 emptyDoc :: Doc
 emptyDoc = Empty
 
--- | @('nest' i x)@ layouts document @x@ with the current indentation level
+-- | @('nest' i x)@ lays out the document @x@ with the current indentation level
 -- increased by @i@. Negative values are allowed, and decrease the nesting level
 -- accordingly.
 --
@@ -696,10 +692,10 @@ flatten = \case
     Nesting f       -> Nesting (flatten . f)
     StylePush s x   -> StylePush s (flatten x)
 
-    x@Fail       -> x
-    x@Empty      -> x
-    x@Char{}     -> x
-    x@Text{}     -> x
+    x@Fail   -> x
+    x@Empty  -> x
+    x@Char{} -> x
+    x@Text{} -> x
 
 
 
@@ -743,7 +739,7 @@ flatAlt = FlatAlt
 
 
 
--- | @('align' x)@ layouts document @x@ with the nesting level set to the
+-- | @('align' x)@ lays out the document @x@ with the nesting level set to the
 -- current column. It is used for example to implement 'hang'.
 --
 -- As an example, we will put a document right above another one, regardless of
@@ -763,7 +759,7 @@ flatAlt = FlatAlt
 align :: Doc -> Doc
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
--- | @('hang' i x)@ layouts document @x@ with a nesting level set to the
+-- | @('hang' i x)@ lays out the document @x@ with a nesting level set to the
 -- /current column/ plus @i@. Negative values are allowed, and decrease the
 -- nesting level accordingly.
 --
@@ -1185,8 +1181,8 @@ pageWidth = WithPageWidth
 
 
 
--- | @('fill' i x)@ layouts document @x@. It then appends @space@s until the
--- width is equal to @i@. If the width of @x@ is already larger, nothing is
+-- | @('fill' i x)@ lays out the document @x@. It then appends @space@s until
+-- the width is equal to @i@. If the width of @x@ is already larger, nothing is
 -- appended.
 --
 -- This function is quite useful in practice to output a list of bindings:
@@ -1203,7 +1199,7 @@ fill
     -> Doc
 fill f doc = width doc (\w -> spaces (f - w))
 
--- | @('fillBreak' i x)@ first layouts document @x@. It then appends @space@s
+-- | @('fillBreak' i x)@ first lays out the document @x@. It then appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
 -- @i@, the nesting level is increased by @i@ and a @line@ is appended. When we
 -- redefine @ptype@ in the example given in 'fill' to use @'fillBreak'@, we get
@@ -1242,7 +1238,7 @@ spaces n = unsafeText (T.replicate n " ")
 
 
 
--- | @('plural n one many')@ is @one@ if @n@ is @1@, and @many@ otherwise. A
+-- | @('plural' n one many)@ is @one@ if @n@ is @1@, and @many@ otherwise. A
 -- typical use case is  adding a plural "s".
 --
 -- >>> let things = [True]
@@ -1554,7 +1550,6 @@ fuse depth = go
 
         other -> other
 
-
 -- | Decide whether a 'SimpleDoc' fits the constraints given, namely
 --
 --   - page width
@@ -1579,8 +1574,8 @@ newtype RibbonFraction = RibbonFraction Double
     deriving (Eq, Ord, Show)
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
--- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ layouts document @x@ with a
--- page width of @width@ and a ribbon width of @(ribbonfrac * width)@
+-- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ lays out the document @x@ with
+-- a page width of @width@ and a ribbon width of @(ribbonfrac * width)@
 -- characters. The ribbon width is the maximal amount of non-indentation
 -- characters on a line. The parameter @ribbonfrac@ should be between @0.0@ and
 -- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
@@ -1740,10 +1735,10 @@ layoutFits (FP fits) (RibbonFraction rfrac) maxColumns doc
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
 
--- | @(layoutCompact x)@ layouts document @x@ without adding any indentation.
--- Since no \'pretty\' printing is involved, this layouter is very fast. The
--- resulting output contains fewer characters than a pretty printed version and
--- can be used for output that is read by other programs.
+-- | @(layoutCompact x)@ lays out the document @x@ without adding any
+-- indentation. Since no \'pretty\' printing is involved, this layouter is very
+-- fast. The resulting output contains fewer characters than a pretty printed
+-- version and can be used for output that is read by other programs.
 --
 -- This layout function does not add any colorisation information.
 --
@@ -1778,7 +1773,6 @@ layoutCompact doc = scan 0 [doc]
         WithPageWidth f -> scan k (f Nothing:ds)
         Nesting f       -> scan k (f 0:ds)
         StylePush _ x   -> scan k (x:ds)
-
 
 -- | @('show' doc)@ pretty prints document @doc@ with a page width of 80
 -- characters and a ribbon width of 32 characters.

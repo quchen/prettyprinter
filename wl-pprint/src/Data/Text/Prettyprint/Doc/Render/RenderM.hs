@@ -11,7 +11,7 @@ module Data.Text.Prettyprint.Doc.Render.RenderM (
     pushStyle,
     unsafePopStyle,
     unsafePeekStyle,
-    writeResult,
+    writeOutput,
 ) where
 
 
@@ -24,19 +24,18 @@ import Control.Applicative
 
 
 
-
--- | @WriterT write StateT [style] a@, but with a strict Writer value.
+-- | @WriterT output StateT [style] a@, but with a strict Writer value.
 --
--- The @write@ type is used to append data chunks to, the @style@ is the member
+-- The @output@ type is used to append data chunks to, the @style@ is the member
 -- of a stack of styles to model nested styles with.
-newtype RenderM write style a = RenderM ([style] -> (a, write, [style]))
+newtype RenderM output style a = RenderM ([style] -> (a, output, [style]))
 
-instance Functor (RenderM write style) where
+instance Functor (RenderM output style) where
     fmap f (RenderM r) = RenderM (\s ->
         let (x1, w1, s1) = r s
         in (f x1, w1, s1))
 
-instance Monoid write => Applicative (RenderM write style) where
+instance Monoid output => Applicative (RenderM output style) where
     pure x = RenderM (\s -> (x, mempty, s))
     RenderM f <*> RenderM x = RenderM (\s ->
         let (f1, w1, s1) = f s
@@ -44,7 +43,7 @@ instance Monoid write => Applicative (RenderM write style) where
             !w12 = w1 <> w2
         in (f1 x2, w12, s2))
 
-instance Monoid write => Monad (RenderM write style) where
+instance Monoid output => Monad (RenderM output style) where
 #if __GLASGOW_HASKELL__ < 710
     return = pure
 #endif
@@ -56,13 +55,13 @@ instance Monoid write => Monad (RenderM write style) where
         in (x2, w12, s2))
 
 -- | Add a new style to the style stack.
-pushStyle :: Monoid write => style -> RenderM write style ()
+pushStyle :: Monoid output => style -> RenderM output style ()
 pushStyle style = RenderM (\styles -> ((), mempty, style : styles))
 
 -- | Get the topmost style.
 --
 -- If the stack is empty, this raises an 'error'.
-unsafePopStyle :: Monoid write => RenderM write style style
+unsafePopStyle :: Monoid output => RenderM output style style
 unsafePopStyle = RenderM (\case
     x:xs -> (x, mempty, xs)
     [] -> error "Popped an empty style stack! Please report this as a bug.")
@@ -70,14 +69,14 @@ unsafePopStyle = RenderM (\case
 -- | View the topmost style, but do not modify the stack.
 --
 -- If the stack is empty, this raises an 'error'.
-unsafePeekStyle :: Monoid write => RenderM write style style
+unsafePeekStyle :: Monoid output => RenderM output style style
 unsafePeekStyle = RenderM (\styles -> case styles of
     x:_ -> (x, mempty, styles)
     [] -> error "Peeked an empty style stack! Please report this as a bug.")
 
--- | Append a value to the write end.
-writeResult :: write -> RenderM write style ()
-writeResult w = RenderM (\styles -> ((), w, styles))
+-- | Append a value to the output end.
+writeOutput :: output -> RenderM output style ()
+writeOutput w = RenderM (\styles -> ((), w, styles))
 
 -- | Run the renderer and retrive the writing end
 execRenderM :: [styles] -> RenderM write styles a -> (write, [styles])

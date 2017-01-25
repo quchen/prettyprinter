@@ -78,22 +78,22 @@ build colors = go
         SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
         SEmpty -> pure ()
         SChar c x -> do
-            writeResult (TLB.singleton c)
+            writeOutput (TLB.singleton c)
             go x
         SText _l t x -> do
-            writeResult (TLB.fromText t)
+            writeOutput (TLB.fromText t)
             go x
         SLine i x -> do
-            writeResult (TLB.singleton '\n' )
-            writeResult (TLB.fromText (T.replicate i " "))
+            writeOutput (TLB.singleton '\n' )
+            writeOutput (TLB.fromText (T.replicate i " "))
             go x
         SStylePush style x -> do
             pushStyle style
-            writeResult (htmlTagFor colors style Opening)
+            writeOutput (htmlTagFor colors style Opening)
             go x
         SStylePop x -> do
             style <- unsafePopStyle
-            writeResult (htmlTagFor colors style Closing)
+            writeOutput (htmlTagFor colors style Closing)
             go x
 
 -- | Strict 'Text' version of 'renderLazy'.
@@ -136,7 +136,7 @@ htmlTag
     :: TLB.Builder
         -- ^ Tag name, e.g. @span@; attributes,
     -> Maybe TLB.Builder
-        -- ^ HTML attributes, e.g. @style="text-decoration: underline"@
+        -- ^ HTML attributes, e.g. @style="text-decoration: underline"@.
     -> OpenClose
     -> TLB.Builder
 htmlTag tag attrs openClose = case openClose of
@@ -172,7 +172,7 @@ putDoc = hPutDoc stdout
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 0.4 80 doc)
+-- 'hPutDoc' h doc = 'renderIO' h 'defaultHtmlColors' ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
 hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
@@ -202,9 +202,11 @@ data HtmlColors = HtmlColors
     , _dullwhite   :: TLB.Builder
     }
 
+-- | Highly saturated colors. Not very easy on the eyes, but useful to tell
+-- colors apart during development.
 defaultHtmlColors :: HtmlColors
 defaultHtmlColors = HtmlColors
-    { _black       = "rgb(127, 127, 127)"
+    { _black       = "rgb(0, 0, 0)"
     , _red         = "rgb(255, 0, 0)"
     , _green       = "rgb(0, 255, 0)"
     , _yellow      = "rgb(255, 255, 0)"
@@ -213,7 +215,7 @@ defaultHtmlColors = HtmlColors
     , _cyan        = "rgb(0, 255, 255)"
     , _white       = "rgb(255, 255, 255)"
 
-    , _dullblack   = "rgb(0, 0, 0)"
+    , _dullblack   = "rgb(127, 127, 127)"
     , _dullred     = "rgb(205, 0, 0)"
     , _dullgreen   = "rgb(0, 205, 0)"
     , _dullyellow  = "rgb(205, 205, 0)"
