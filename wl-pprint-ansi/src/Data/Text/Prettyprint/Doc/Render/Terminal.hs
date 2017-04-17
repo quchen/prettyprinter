@@ -56,7 +56,7 @@ import Control.Applicative
 -- With a bit of trickery to make the ANSI codes printable, here is an example
 -- that would render colored in an ANSI terminal:
 --
--- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty (RibbonFraction 0.4) (PageWidth 80)
+-- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> let doc = color SRed ("red" <+> align (vsep [color SBlue ("blue" <+> bold "bold" <+> "blue"), "red"]))
 -- >>> render (plain doc)
 -- red blue bold blue
@@ -161,7 +161,7 @@ renderStrict = LT.toStrict . renderLazy
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
--- >>> renderIO System.IO.stdout (layoutPretty (RibbonFraction 1) (PageWidth 80) "hello\nworld")
+-- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc -> IO ()
@@ -186,7 +186,7 @@ putDoc = hPutDoc stdout
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = renderIO h (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
+hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)

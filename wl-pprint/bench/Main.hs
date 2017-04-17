@@ -33,9 +33,9 @@ benchOptimize = env randomShortWords benchmark
     benchmark = \shortWords ->
         let doc = hsep (map pretty shortWords)
         in bgroup "Many small words"
-            [ bench "Unoptimized"     (nf renderLazy (layoutPretty (RibbonFraction 0.4) (PageWidth 80)               doc))
-            , bench "Shallowly fused" (nf renderLazy (layoutPretty (RibbonFraction 0.4) (PageWidth 80) (fuse Shallow doc)))
-            , bench "Deeply fused"    (nf renderLazy (layoutPretty (RibbonFraction 0.4) (PageWidth 80) (fuse Deep    doc)))
+            [ bench "Unoptimized"     (nf renderLazy (layoutPretty defaultLayoutOptions               doc))
+            , bench "Shallowly fused" (nf renderLazy (layoutPretty defaultLayoutOptions (fuse Shallow doc)))
+            , bench "Deeply fused"    (nf renderLazy (layoutPretty defaultLayoutOptions (fuse Deep    doc)))
             ]
 
     randomShortWords :: Applicative m => m [Text]
@@ -56,15 +56,15 @@ benchOptimize = env randomShortWords benchmark
 benchWLComparison :: Benchmark
 benchWLComparison = bgroup "vs. other libs"
     [ bgroup "renderPretty"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutPretty (RibbonFraction 0.4) (PageWidth 80))               doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutPretty (RibbonFraction 0.4) (PageWidth 80)) (fuse Shallow doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutPretty (RibbonFraction 0.4) (PageWidth 80)) (fuse Deep    doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutPretty defaultLayoutOptions)               doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutPretty defaultLayoutOptions) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutPretty defaultLayoutOptions) (fuse Deep    doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart (RibbonFraction 0.4) (PageWidth 80))                doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart (RibbonFraction 0.4) (PageWidth 80)) (fuse Shallow  doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart (RibbonFraction 0.4) (PageWidth 80)) (fuse Deep     doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart defaultLayoutOptions)                doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Shallow  doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Deep     doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"

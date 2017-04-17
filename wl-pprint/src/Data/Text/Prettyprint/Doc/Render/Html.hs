@@ -147,7 +147,7 @@ htmlTag tag attrs openClose = case openClose of
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
--- >>> renderIO System.IO.stdout defaultHtmlColors (layoutPretty (RibbonFraction 1) (PageWidth 80) "hello\nworld")
+-- >>> renderIO System.IO.stdout defaultHtmlColors (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
 renderIO :: Handle -> HtmlColors -> SimpleDoc -> IO ()
@@ -172,10 +172,10 @@ putDoc = hPutDoc stdout
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h 'defaultHtmlColors' ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
+-- 'hPutDoc' h doc = 'renderIO' h 'defaultHtmlColors' ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
+hPutDoc h doc = renderIO h defaultHtmlColors (layoutPretty defaultLayoutOptions doc)
 
 
 

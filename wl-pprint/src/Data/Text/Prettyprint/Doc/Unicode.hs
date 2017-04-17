@@ -49,7 +49,8 @@ import Data.Text.Prettyprint.Doc
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (RibbonFraction 1.0) (PageWidth w) doc)
+-- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = w }
+-- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
 
 
 

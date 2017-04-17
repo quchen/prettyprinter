@@ -186,7 +186,7 @@ module Data.Text.Prettyprint.Doc (
     -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
     -- fits these constraints the best.
     SimpleDoc(..),
-    PageWidth(..), RibbonFraction(..),
+    LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
 
     -- * Notes
@@ -240,7 +240,8 @@ infixr 6 <>
 -- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Test.QuickCheck.Modifiers
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (RibbonFraction 1) (PageWidth w) doc)
+-- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = w }
+-- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
 
 
 
@@ -294,7 +295,7 @@ data Doc =
     | Column (Int -> Doc)
 
     -- | React on the document's width, see 'pageWidth'
-    | WithPageWidth (Maybe PageWidth -> Doc)
+    | WithPageWidth (Maybe Int -> Doc)
 
     -- | React on the current nesting level, see 'nesting'
     | Nesting (Int -> Doc)
@@ -1167,7 +1168,7 @@ width doc f
 
 -- | Layout a document depending on the page width, if one has been specified.
 --
--- >>> let doc = "prefix" <+> pageWidth (\(Just (PageWidth l)) -> brackets ("Width:" <+> pretty l))
+-- >>> let doc = "prefix" <+> pageWidth (\(Just l) -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
 -- prefix [Width: 32]
 --     prefix [Width: 32]
@@ -1176,7 +1177,7 @@ width doc f
 -- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
 -- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
-pageWidth :: (Maybe PageWidth -> Doc) -> Doc
+pageWidth :: (Maybe Int -> Doc) -> Doc
 pageWidth = WithPageWidth
 
 
@@ -1555,7 +1556,7 @@ fuse depth = go
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line
-newtype FittingPredicate = FP (PageWidth -> Int -> Int -> SimpleDoc -> Bool)
+newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
 
 -- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
@@ -1564,14 +1565,26 @@ data LayoutPipeline =
     | Cons !Int Doc LayoutPipeline
     | UndoStyle LayoutPipeline -- Remove one previously applied style.
 
--- | Maximum number of characters that fit in one line. 80 is a typical value.
-newtype PageWidth = PageWidth Int
-    deriving (Eq, Ord, Show)
+data LayoutOptions = LayoutOptions
+    { -- | Maximum number of characters that fit in one line. 80 is a typical value.
+      layoutPageWidth :: Int
 
--- | Fraction of the total page width that can be printed on. This allows
--- limiting the length of printable text per line.
-newtype RibbonFraction = RibbonFraction Double
-    deriving (Eq, Ord, Show)
+    -- | Fraction of the total page width that can be printed on. This allows
+    -- limiting the length of printable text per line.
+    , layoutRibbonFraction :: Double
+    } deriving (Eq, Ord, Show)
+
+-- The default layout options, suitable when you just want some output, and
+-- don’t particularly care about the details. Used by the 'Show' instance, for
+-- example.
+--
+-- >>> show defaultLayoutOptions
+-- LayoutOptions { layoutPageWidth = 80, layoutRibbonFraction = 0.4 }
+defaultLayoutOptions :: LayoutOptions
+defaultLayoutOptions = LayoutOptions
+    { layoutPageWidth = 80
+    , layoutRibbonFraction = 0.4
+    }
 
 -- | This is the default pretty printer which is used by 'show', 'putDoc' and
 -- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ lays out the document @x@ with
@@ -1581,8 +1594,7 @@ newtype RibbonFraction = RibbonFraction Double
 -- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
 -- respectively.
 layoutPretty
-    :: RibbonFraction
-    -> PageWidth
+    :: LayoutOptions
     -> Doc
     -> SimpleDoc
 layoutPretty = layoutFits fits1
@@ -1642,8 +1654,7 @@ layoutPretty = layoutFits fits1
 --
 -- This fits within the 20 character boundary.
 layoutSmart
-    :: RibbonFraction
-    -> PageWidth
+    :: LayoutOptions
     -> Doc
     -> SimpleDoc
 layoutSmart = layoutFits fitsR
@@ -1659,7 +1670,7 @@ layoutSmart = layoutFits fitsR
     fitsR :: FittingPredicate
     fitsR = FP go
       where
-        go :: PageWidth
+        go :: Int -- ^ Page width
            -> Int -- ^ Minimum nesting level to fit in
            -> Int -- ^ Width in which to fit the first line
            -> SimpleDoc
@@ -1668,28 +1679,29 @@ layoutSmart = layoutFits fitsR
           | w < 0                 = False
         go _ _ _ SFail            = False
         go _ _ _ SEmpty           = True
-        go p m w (SChar _ x)      = go p m (w - 1) x
-        go p m w (SText l _t x)   = go p m (w - l) x
-        go p@(PageWidth pw) m _ (SLine i x)
-          | m < i                 = go p m (pw - i) x
+        go pw m w (SChar _ x)      = go pw m (w - 1) x
+        go pw m w (SText l _t x)   = go pw m (w - l) x
+        go pw m _ (SLine i x)
+          | m < i                 = go pw m (pw - i) x
           | otherwise             = True
-        go p m w (SStylePush _ x) = go p m w x
-        go p m w (SStylePop x)    = go p m w x
+        go pw m w (SStylePush _ x) = go pw m w x
+        go pw m w (SStylePop x)    = go pw m w x
 
 
 
 layoutFits
     :: FittingPredicate
-    -> RibbonFraction
-    -> PageWidth
+    -> LayoutOptions
     -> Doc
     -> SimpleDoc
-layoutFits (FP fits) (RibbonFraction rfrac) maxColumns doc
+layoutFits (FP fits) layoutOptions doc
   = best 0 0 (Cons 0 doc Nil)
   where
+    LayoutOptions { layoutPageWidth = pWidth, layoutRibbonFraction = ribbonFraction }
+      = layoutOptions
+
     ribbonWidth :: Int
-    ribbonWidth = let PageWidth pw = maxColumns
-                  in max 0 (min pw (round (fromIntegral pw * rfrac)))
+    ribbonWidth = max 0 (min pWidth (round (fromIntegral pWidth * ribbonFraction)))
 
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
@@ -1713,7 +1725,7 @@ layoutFits (FP fits) (RibbonFraction rfrac) maxColumns doc
                                y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc (Cons i (f (Just maxColumns)) ds)
+        WithPageWidth f -> best nl cc (Cons i (f (Just pWidth)) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         StylePush s x   -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
 
@@ -1725,12 +1737,12 @@ layoutFits (FP fits) (RibbonFraction rfrac) maxColumns doc
         -> SimpleDoc -- ^ The nicer one among A and B, depending on which one
                      --   fits better.
     selectNicer lineIndent currentColumn x y
-      | fits maxColumns minNestingLevel availableWidth x = x
+      | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
       where
         minNestingLevel = min lineIndent currentColumn
         availableWidth
-          = let columnsLeftInLine = let PageWidth pw = maxColumns
+          = let columnsLeftInLine = let pw = layoutPageWidth layoutOptions
                                     in pw - currentColumn
                 columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
             in min columnsLeftInLine columnsLeftInRibbon
@@ -1777,7 +1789,7 @@ layoutCompact doc = scan 0 [doc]
 -- | @('show' doc)@ pretty prints document @doc@ with a page width of 80
 -- characters and a ribbon width of 32 characters.
 instance Show Doc where
-    showsPrec _ doc = displayString (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
+    showsPrec _ doc = displayString (layoutPretty defaultLayoutOptions doc)
 
 displayString :: SimpleDoc -> ShowS
 displayString = \case

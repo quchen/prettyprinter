@@ -42,7 +42,7 @@ fusionDoesNotChangeRendering depth
         in counterexample (mkCounterexample rendered renderedFused)
                           (render doc == render (fuse depth doc)) )
   where
-    render = renderStrict . layoutPretty (RibbonFraction 0.4) (PageWidth 80)
+    render = renderStrict . layoutPretty defaultLayoutOptions
     mkCounterexample rendered renderedFused
       = (T.unpack . render . vsep)
             [ "Unfused and fused documents render differently!"

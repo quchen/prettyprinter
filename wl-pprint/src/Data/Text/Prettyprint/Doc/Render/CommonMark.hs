@@ -44,7 +44,7 @@ import Control.Applicative
 -- | Add Markdown-style markers for emphasis and strong emphasis.
 --
 -- >>> let doc = "This text" <+> italics ("is emphasized" <+> bold "even stronger" <> "!")
--- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty (RibbonFraction 0.4) (PageWidth 40)
+-- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> pprint doc
 -- This text *is emphasized **even stronger**!*
 --
@@ -99,7 +99,7 @@ renderStrict = LT.toStrict . renderLazy
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
--- >>> renderIO System.IO.stdout (layoutPretty (RibbonFraction 1) (PageWidth 80) "hello\nworld")
+-- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc -> IO ()
@@ -124,7 +124,7 @@ putDoc = hPutDoc stdout
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
--- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' ('RibbonFraction' 0.4) ('PageWidth' 80) doc)
+-- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
 hPutDoc :: Handle -> Doc -> IO ()
-hPutDoc h doc = renderIO h (layoutPretty (RibbonFraction 0.4) (PageWidth 80) doc)
+hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)
