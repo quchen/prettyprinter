@@ -1244,15 +1244,15 @@ spaces n = unsafeText (T.replicate n " ")
 --
 -- >>> let things = [True]
 -- >>> let amount = length things
--- >>> putDoc ("The list has" <+> pretty amount <+> plural amount "entry" "entries")
+-- >>> putDoc ("The list has" <+> pretty amount <+> plural "entry" "entries" amount)
 -- The list has 1 entry
 plural
     :: (Num amount, Eq amount)
-    => amount
-    -> doc -- ^ @1@ case
+    => doc -- ^ @1@ case
     -> doc -- ^ other cases
+    -> amount
     -> doc
-plural n one many
+plural one many n
     | n == 1    = one
     | otherwise = many
 
