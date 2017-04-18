@@ -77,7 +77,7 @@ renderSmart :: Float -> Int -> Doc -> SimpleDoc
 renderSmart ribbonFraction pageWidth
     = New.layoutSmart New.LayoutOptions
         { New.layoutRibbonFraction = realToFrac ribbonFraction
-        , New.layoutPageWidth = pageWidth }
+        , New.layoutPageWidth = New.CharsPerLine pageWidth }
 
 align :: Doc -> Doc
 align = New.align
@@ -226,7 +226,7 @@ renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty ribbonFraction pageWidth
     = New.layoutSmart New.LayoutOptions
         { New.layoutRibbonFraction = realToFrac ribbonFraction
-        , New.layoutPageWidth = pageWidth }
+        , New.layoutPageWidth = New.CharsPerLine pageWidth }
 
 renderCompact :: Doc -> SimpleDoc
 renderCompact = New.layoutCompact
@@ -246,7 +246,11 @@ column :: (Int -> Doc) -> Doc
 column = New.column
 
 columns :: (Maybe Int -> Doc) -> Doc
-columns = New.pageWidth
+columns f = New.pageWidth (f . toMaybeInt)
+  where
+    toMaybeInt :: New.PageWidth -> Maybe Int
+    toMaybeInt (New.CharsPerLine cpl) = Just cpl
+    toMaybeInt New.Unbounded = Nothing
 
 nesting :: (Int -> Doc) -> Doc
 nesting = New.nesting

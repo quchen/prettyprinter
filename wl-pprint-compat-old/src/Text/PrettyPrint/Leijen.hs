@@ -160,7 +160,7 @@ renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty ribbonFraction pageWidth
     = New.layoutPretty New.LayoutOptions
         { New.layoutRibbonFraction = realToFrac ribbonFraction
-        , New.layoutPageWidth = pageWidth }
+        , New.layoutPageWidth = New.CharsPerLine pageWidth }
 
 renderCompact :: Doc -> SimpleDoc
 renderCompact = New.layoutCompact

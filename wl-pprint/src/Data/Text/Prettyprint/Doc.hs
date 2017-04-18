@@ -186,7 +186,7 @@ module Data.Text.Prettyprint.Doc (
     -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
     -- fits these constraints the best.
     SimpleDoc(..),
-    LayoutOptions(..), defaultLayoutOptions,
+    PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
 
     -- * Notes
@@ -240,7 +240,7 @@ infixr 6 <>
 -- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Test.QuickCheck.Modifiers
--- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = w }
+-- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = CharsPerLine w }
 -- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
 
 
@@ -279,7 +279,8 @@ data Doc =
     -- | Line break
     | Line
 
-    -- | Layout the first doc, but when flattened (via group), layout the second.
+    -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
+    -- the second.
     | FlatAlt Doc Doc
 
     -- | Concatenation of two documents
@@ -288,14 +289,14 @@ data Doc =
     -- | Document indented by a number of columns
     | Nest !Int Doc
 
-    -- | invariant: first lines of first doc longer than the first lines of the second doc
+    -- | Invariant: first lines of first 'Doc' longer than the first lines of the second one
     | Union Doc Doc
 
     -- | React on the current cursor position, see 'column'
     | Column (Int -> Doc)
 
     -- | React on the document's width, see 'pageWidth'
-    | WithPageWidth (Maybe Int -> Doc)
+    | WithPageWidth (PageWidth -> Doc)
 
     -- | React on the current nesting level, see 'nesting'
     | Nesting (Int -> Doc)
@@ -1150,8 +1151,8 @@ column = Column
 nesting :: (Int -> Doc) -> Doc
 nesting = Nesting
 
--- | @('width' doc f)@ layouts the document 'doc', and makes the column width of
--- it available to a function.
+-- | @('width' doc f)@ lays out the document 'doc', and makes the column width
+-- of it available to a function.
 --
 -- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
 -- >>> putDoc (align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]])))
@@ -1168,7 +1169,7 @@ width doc f
 
 -- | Layout a document depending on the page width, if one has been specified.
 --
--- >>> let doc = "prefix" <+> pageWidth (\(Just l) -> brackets ("Width:" <+> pretty l))
+-- >>> let doc = "prefix" <+> pageWidth (\(CharsPerLine l) -> brackets ("Width:" <+> pretty l))
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
 -- prefix [Width: 32]
 --     prefix [Width: 32]
@@ -1177,7 +1178,7 @@ width doc f
 -- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
 -- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
-pageWidth :: (Maybe Int -> Doc) -> Doc
+pageWidth :: (PageWidth -> Doc) -> Doc
 pageWidth = WithPageWidth
 
 
@@ -1555,8 +1556,8 @@ fuse depth = go
 --
 --   - page width
 --   - minimum nesting level to fit in
---   - width in which to fit the first line
-newtype FittingPredicate = FP (Int -> Int -> Int -> SimpleDoc -> Bool)
+--   - width in which to fit the first line; Nothing is unbounded
+newtype FittingPredicate = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc -> Bool)
 
 -- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
@@ -1565,24 +1566,35 @@ data LayoutPipeline =
     | Cons !Int Doc LayoutPipeline
     | UndoStyle LayoutPipeline -- Remove one previously applied style.
 
+-- | Maximum number of characters that fit in one line. The layout algorithms
+-- will try not to exceed the set limit by inserting line breaks when applicable
+-- (e.g. via 'softline'').
+data PageWidth = CharsPerLine Int | Unbounded
+    deriving (Eq, Ord, Show)
+
+-- $ Test to avoid surprising behaviour
+-- >>> Unbounded > CharsPerLine maxBound
+-- True
+
 data LayoutOptions = LayoutOptions
-    { -- | Maximum number of characters that fit in one line. 80 is a typical value.
-      layoutPageWidth :: Int
+    { -- | Maximum number of characters that fit in one line. 80 is a typical
+      -- value.
+      layoutPageWidth :: PageWidth
 
     -- | Fraction of the total page width that can be printed on. This allows
     -- limiting the length of printable text per line.
     , layoutRibbonFraction :: Double
     } deriving (Eq, Ord, Show)
 
--- The default layout options, suitable when you just want some output, and
+-- | The default layout options, suitable when you just want some output, and
 -- don’t particularly care about the details. Used by the 'Show' instance, for
 -- example.
 --
--- >>> show defaultLayoutOptions
--- LayoutOptions { layoutPageWidth = 80, layoutRibbonFraction = 0.4 }
+-- >>> defaultLayoutOptions
+-- LayoutOptions {layoutPageWidth = CharsPerLine 80, layoutRibbonFraction = 0.4}
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions
-    { layoutPageWidth = 80
+    { layoutPageWidth = CharsPerLine 80
     , layoutRibbonFraction = 0.4
     }
 
@@ -1603,17 +1615,18 @@ layoutPretty = layoutFits fits1
     fits1 :: FittingPredicate
     fits1 = FP (\_p _m w -> go w)
       where
-        go :: Int -- ^ Width in which to fit the first line
+        go :: Maybe Int -- ^ Width in which to fit the first line; Nothing is infinite
            -> SimpleDoc
            -> Bool
-        go w _ | w < 0        = False
-        go _ SFail            = False
-        go _ SEmpty           = True
-        go w (SChar _ x)      = go (w - 1) x
-        go w (SText l _t x)   = go (w - l) x
-        go _ SLine{}          = True
-        go w (SStylePush _ x) = go w x
-        go w (SStylePop x)    = go w x
+        go Nothing _                 = True
+        go (Just w) _ | w < 0        = False
+        go _ SFail                   = False
+        go _ SEmpty                  = True
+        go (Just w) (SChar _ x)      = go (Just (w - 1)) x
+        go (Just w) (SText l _t x)   = go (Just (w - l)) x
+        go _ SLine{}                 = True
+        go (Just w) (SStylePush _ x) = go (Just w) x
+        go (Just w) (SStylePop x)    = go (Just w) x
 
 -- | A slightly smarter layout algorithm with more lookahead. It provides
 -- earlier breaking on deeply nested structures. For example, consider this
@@ -1670,22 +1683,22 @@ layoutSmart = layoutFits fitsR
     fitsR :: FittingPredicate
     fitsR = FP go
       where
-        go :: Int -- ^ Page width
-           -> Int -- ^ Minimum nesting level to fit in
-           -> Int -- ^ Width in which to fit the first line
+        go :: PageWidth
+           -> Int       -- ^ Minimum nesting level to fit in
+           -> Maybe Int -- ^ Width in which to fit the first line
            -> SimpleDoc
            -> Bool
-        go _ _ w _
-          | w < 0                 = False
-        go _ _ _ SFail            = False
-        go _ _ _ SEmpty           = True
-        go pw m w (SChar _ x)      = go pw m (w - 1) x
-        go pw m w (SText l _t x)   = go pw m (w - l) x
+        go _ _ Nothing _ = False
+        go _ _ (Just w) _ | w < 0                         = False
+        go _ _ _ SFail                    = False
+        go _ _ _ SEmpty                   = True
+        go pw m (Just w) (SChar _ x)             = go pw m (Just (w - 1)) x
+        go pw m (Just w) (SText l _t x)          = go pw m (Just (w - l)) x
         go pw m _ (SLine i x)
-          | m < i                 = go pw m (pw - i) x
-          | otherwise             = True
-        go pw m w (SStylePush _ x) = go pw m w x
-        go pw m w (SStylePop x)    = go pw m w x
+          | m < i, CharsPerLine cpl <- pw = go pw m (Just (cpl - i)) x
+          | otherwise                     = True
+        go pw m w (SStylePush _ x)        = go pw m w x
+        go pw m w (SStylePop x)           = go pw m w x
 
 
 
@@ -1694,14 +1707,19 @@ layoutFits
     -> LayoutOptions
     -> Doc
     -> SimpleDoc
-layoutFits (FP fits) layoutOptions doc
+layoutFits
+    (FP fits)
+    LayoutOptions
+        { layoutPageWidth = pWidth
+        , layoutRibbonFraction = ribbonFraction }
+    doc
   = best 0 0 (Cons 0 doc Nil)
   where
-    LayoutOptions { layoutPageWidth = pWidth, layoutRibbonFraction = ribbonFraction }
-      = layoutOptions
 
-    ribbonWidth :: Int
-    ribbonWidth = max 0 (min pWidth (round (fromIntegral pWidth * ribbonFraction)))
+    ribbonWidth :: Maybe Int
+    ribbonWidth = case pWidth of
+        CharsPerLine ll -> (Just . max 0 . min ll . round) (fromIntegral ll * ribbonFraction)
+        Unbounded -> Nothing
 
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
@@ -1725,7 +1743,7 @@ layoutFits (FP fits) layoutOptions doc
                                y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc (Cons i (f (Just pWidth)) ds)
+        WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         StylePush s x   -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
 
@@ -1741,11 +1759,16 @@ layoutFits (FP fits) layoutOptions doc
       | otherwise = y
       where
         minNestingLevel = min lineIndent currentColumn
-        availableWidth
-          = let columnsLeftInLine = let pw = layoutPageWidth layoutOptions
-                                    in pw - currentColumn
-                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
-            in min columnsLeftInLine columnsLeftInRibbon
+        availableWidth = do
+            columnsLeftInLine <- case pWidth of
+                CharsPerLine cpl -> Just (cpl - currentColumn)
+                Unbounded -> Nothing
+            columnsLeftInRibbon <- do
+                li <- Just lineIndent
+                rw <- ribbonWidth
+                cc <- Just currentColumn
+                Just (li + rw - cc)
+            Just (min columnsLeftInLine columnsLeftInRibbon)
 
 -- | @(layoutCompact x)@ lays out the document @x@ without adding any
 -- indentation. Since no \'pretty\' printing is involved, this layouter is very
@@ -1782,7 +1805,7 @@ layoutCompact doc = scan 0 [doc]
         Nest _ x        -> scan k (x:ds)
         Union _ y       -> scan k (y:ds)
         Column f        -> scan k (f k:ds)
-        WithPageWidth f -> scan k (f Nothing:ds)
+        WithPageWidth f -> scan k (f Unbounded : ds)
         Nesting f       -> scan k (f 0:ds)
         StylePush _ x   -> scan k (x:ds)
 
