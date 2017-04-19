@@ -10,7 +10,9 @@
 -- For a stable API, use the non-internal modules.
 --
 -- The purpose of this module is mostly fully exposing the 'Doc' type so other
--- libraries can write adaptors to and from this library.
+-- libraries can write adaptors to and from this library. This type, and only
+-- this type, has the usual stability guarantees despite being in an internal
+-- module.
 module Data.Text.Prettyprint.Doc.Internal where
 
 
