@@ -121,6 +121,9 @@ data Doc =
 -- 'mempty' = 'emptyDoc'
 -- 'mconcat' = 'hcat'
 -- @
+--
+-- >>> putDoc (mappend "hello" "world")
+-- helloworld
 instance Monoid Doc where
     mempty = emptyDoc
     mappend = (Semi.<>)
@@ -128,8 +131,11 @@ instance Monoid Doc where
 
 -- |
 -- @
--- ('Semi.<>') = 'hcat'
+-- x 'Semi.<>' y = 'hcat' [x, y]
 -- @
+--
+-- >>> putDoc ("hello" <> "world")
+-- helloworld
 instance Semi.Semigroup Doc where
     (<>) = Cat
 
