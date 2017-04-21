@@ -27,23 +27,33 @@ env:
     - >
       STACK_ARGS="--resolver lts-1 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-3 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-4"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-5"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
+      SKIP_BENCH_BUILD=1
     - >
       STACK_ARGS="--resolver lts-7"
+      STACK_BUILD_ARGS="--ghc-options -Werror"
+      SKIP_BENCH_BUILD=1
+    - >
+      STACK_ARGS="--resolver lts-8"
       STACK_BUILD_ARGS="--ghc-options -Werror"
     - >
       STACK_ARGS="--resolver lts"
@@ -87,9 +97,10 @@ script:
     - >
       travis_wait stack $STACK_ARGS --no-terminal haddock --no-haddock-deps
       $STACK_BUILD_ARGS
-    - >
-      travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks
-      $STACK_BUILD_ARGS
+    - |
+      if [[ -z "$SKIP_BENCH_BUILD" ]]; then
+          travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks $STACK_BUILD_ARGS
+      fi
     - stack $STACK_ARGS --no-terminal sdist
     - hlint wl-pprint*
 
