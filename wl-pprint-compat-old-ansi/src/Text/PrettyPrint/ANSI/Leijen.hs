@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for users of ansi-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
