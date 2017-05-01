@@ -17,30 +17,22 @@ module Data.Text.Prettyprint.Doc.Internal where
 
 
 
+import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Maybe
-import           Data.String (IsString (..))
-import           Data.Text   (Text)
-import qualified Data.Text   as T
+import           Data.String        (IsString (..))
+import           Data.Text          (Text)
+import qualified Data.Text          as T
 import           Data.Void
 
--- NB: if you import more from Data.Semigroup make sure the
---     build-depends version range is still accurate
--- NB2: if you consider re-exporting Semigroup((<>)) take into account
---      that only starting with semigroup-0.8 `infixr 6 <>` was used!
-import qualified Data.Semigroup as Semi (Semigroup ((<>)))
+-- Depending on the Cabal file, this might be from base, or for older builds,
+-- from the semigroups package.
+import Data.Semigroup
 
-#if __GLASGOW_HASKELL__ < 710
+-- Bse 4.8 introduced Foldable, Traversable and Monoid to the Prelude.
+#if !MIN_VERSION_base(4,8,0)
 import Data.Foldable (Foldable (..))
+import Data.Monoid   hiding ((<>))
 import Prelude       hiding (foldr, foldr1)
-#endif
-
-#if __GLASGOW_HASKELL__ >= 710
-import Data.Monoid ((<>))
-#elif __GLASGOW_HASKELL__ >= 704
-import Data.Monoid (Monoid, mappend, mconcat, mempty, (<>))
-#else
-import Data.Monoid (Monoid, mappend, mconcat, mempty)
-infixr 6 <>
 #endif
 
 
@@ -118,6 +110,17 @@ data Doc =
 
 -- |
 -- @
+-- x '<>' y = 'hcat' [x, y]
+-- @
+--
+-- >>> putDoc ("hello" <> "world")
+-- helloworld
+instance Semigroup Doc where
+    (<>) = Cat
+    sconcat (x :| xs) = hcat (x:xs)
+
+-- |
+-- @
 -- 'mempty' = 'emptyDoc'
 -- 'mconcat' = 'hcat'
 -- @
@@ -126,18 +129,8 @@ data Doc =
 -- helloworld
 instance Monoid Doc where
     mempty = emptyDoc
-    mappend = (Semi.<>)
+    mappend = (<>)
     mconcat = hcat
-
--- |
--- @
--- x 'Semi.<>' y = 'hcat' [x, y]
--- @
---
--- >>> putDoc ("hello" <> "world")
--- helloworld
-instance Semi.Semigroup Doc where
-    (<>) = Cat
 
 -- | >>> putDoc "hello\nworld"
 -- hello

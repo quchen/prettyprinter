@@ -28,22 +28,27 @@ env:
       STACK_ARGS="--resolver lts-1 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-3 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-4"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-5"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
@@ -102,7 +107,10 @@ script:
           travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks $STACK_BUILD_ARGS
       fi
     - stack $STACK_ARGS --no-terminal sdist
-    - hlint wl-pprint*
+    - |
+      if [[ -z "$SKIP_HLINT" ]]; then
+          hlint wl-pprint*
+      fi
 
 
 
