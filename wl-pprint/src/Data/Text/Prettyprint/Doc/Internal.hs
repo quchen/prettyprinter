@@ -708,7 +708,7 @@ x <+> y = x <> space <> y
 -- Data.Text.Prettyprint.Doc
 concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
     | foldr (\_ _ -> False) True ds = mempty
 #else
     | null ds = mempty
