@@ -18,12 +18,16 @@ module Data.Text.Prettyprint.Doc.Internal where
 
 
 
+import           Data.Int
 import           Data.List.NonEmpty (NonEmpty (..))
 import           Data.Maybe
 import           Data.String        (IsString (..))
 import           Data.Text          (Text)
 import qualified Data.Text          as T
+import qualified Data.Text.Lazy     as Lazy
 import           Data.Void
+import           Data.Word
+import           Numeric.Natural
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
 -- from the semigroups package.
@@ -165,6 +169,9 @@ class Pretty a where
 instance Pretty a => Pretty [a] where
     pretty = prettyList
 
+instance Pretty a => Pretty (NonEmpty a) where
+    pretty (x:|xs) = prettyList (x:xs)
+
 -- | Identity transformation. __Pitfall__: this un-annotates its argument, so
 -- nesting it means multiple traversals over the 'Doc'.
 --
@@ -211,13 +218,20 @@ unsafeViaShow = unsafeText  . T.pack . show
 
 -- | >>> putDoc (pretty (123 :: Int))
 -- 123
-instance Pretty Int where
-    pretty = unsafeViaShow
+instance Pretty Int where pretty = unsafeViaShow
+instance Pretty Int8 where pretty = unsafeViaShow
+instance Pretty Int16 where pretty = unsafeViaShow
+instance Pretty Int32 where pretty = unsafeViaShow
+instance Pretty Int64 where pretty = unsafeViaShow
+instance Pretty Word8 where pretty = unsafeViaShow
+instance Pretty Word16 where pretty = unsafeViaShow
+instance Pretty Word32 where pretty = unsafeViaShow
+instance Pretty Word64 where pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (2^123 :: Integer))
 -- 10633823966279326983230456482242756608
-instance Pretty Integer where
-    pretty = unsafeViaShow
+instance Pretty Integer where pretty = unsafeViaShow
+instance Pretty Natural where pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (pi :: Float))
 -- 3.1415927
@@ -295,8 +309,8 @@ instance Pretty a => Pretty (Maybe a) where
 -- hello world
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
-instance Pretty Text where
-    pretty = vsep . map unsafeText . T.splitOn "\n"
+instance Pretty Text where pretty = vsep . map unsafeText . T.splitOn "\n"
+instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 
 instance Pretty Void where
     pretty = absurd
