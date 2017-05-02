@@ -75,7 +75,7 @@ benchWLComparison = bgroup "vs. other libs"
         ]
     ]
   where
-    doc :: Doc
+    doc :: Doc ann
     doc = let fun x = "fun" <> parens (softline <> x)
               funnn = chain 10 fun
           in funnn (sep (take 48 (cycle ["hello", "world"])))
