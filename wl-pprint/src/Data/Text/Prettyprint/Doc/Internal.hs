@@ -1335,7 +1335,6 @@ data FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -
 data LayoutPipeline ann =
       Nil
     | Cons !Int (Doc ann) (LayoutPipeline ann)
-    | UndoStyle (LayoutPipeline ann)
     | UndoAnn (LayoutPipeline ann)
 
 -- | Maximum number of characters that fit in one line. The layout algorithms

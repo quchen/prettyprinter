@@ -59,12 +59,6 @@ italics = annotate Italics
 -- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> pprint doc
 -- This text *is emphasized **even stronger**!*
---
--- Colorization is not supported by CommonMark, so these directives are simply
--- ignored,
---
--- >>> pprint (color SRed doc)
--- This text *is emphasized **even stronger**!*
 renderLazy :: SimpleDoc Markdown -> LT.Text
 renderLazy doc
   = let (resultBuilder, remainingMarkdowns) = execRenderM [] (build doc)

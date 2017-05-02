@@ -38,15 +38,11 @@ import Data.Text.Prettyprint.Doc
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text.
 --
--- All styling information is discarded. If this is undesirable, maybe the
--- functions in "Data.Text.Prettyprint.Doc.Render.Terminal" are closer to what
--- you are looking for.
---
 -- >>> let render = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
--- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens (color SRed "styles are ignored"), "sit amet"])
+-- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens "foo bar", "sit amet"])
 -- >>> render doc
 -- lorem ipsum dolor
---       (styles are ignored)
+--       (foo bar)
 --       sit amet
 renderLazy :: SimpleDoc () -> LT.Text
 renderLazy = TLB.toLazyText . build
