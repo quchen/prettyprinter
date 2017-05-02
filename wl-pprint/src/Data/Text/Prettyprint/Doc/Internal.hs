@@ -109,7 +109,7 @@ data Doc ann =
     | WithPageWidth (PageWidth -> Doc ann)
 
     -- | React on the current nesting level, see 'nesting'
-    | Nesting (Int -> (Doc ann))
+    | Nesting (Int -> Doc ann)
 
     -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
     -- styling directives or alt texts that can then be used by the renderer.
@@ -1343,7 +1343,7 @@ fuse depth = go
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line; Nothing is unbounded
-data FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -> Bool)
+newtype FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -> Bool)
 
 -- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
