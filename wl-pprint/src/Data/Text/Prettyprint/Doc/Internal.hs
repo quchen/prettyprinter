@@ -331,6 +331,11 @@ data SLayer = SForeground | SBackground
 --
 -- To write your own Doc to X converter, it is therefore sufficient to convert
 -- from 'SimpleDoc'.
+--
+-- This package includes converters to various formatters that you can use by
+-- importing one of "Data.Text.Prettyprint.Doc.Render.CommonMark",
+-- "Data.Text.Prettyprint.Doc.Render.Html" and
+-- "Data.Text.Prettyprint.Doc.Render.Text".
 data SimpleDoc =
       SFail
     | SEmpty
