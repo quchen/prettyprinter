@@ -4,6 +4,9 @@
 
 -- | Render 'SimpleDoc' as common markdown AKA CommonMark in 'Text' format.
 module Data.Text.Prettyprint.Doc.Render.CommonMark (
+    italics,
+    bold,
+
     -- * Conversion to CommonMark-infused 'Text'
     renderLazy,
     renderStrict,
@@ -25,7 +28,7 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc                hiding (bold, italics)
 import Data.Text.Prettyprint.Doc.Render.RenderM
 
 #if __GLASGOW_HASKELL__ < 710
@@ -41,6 +44,15 @@ import Control.Applicative
 
 
 
+data Markdown = Bold | Italics
+    deriving (Eq, Ord, Show)
+
+bold, italics :: Doc Markdown -> Doc Markdown
+bold = annotate Bold
+italics = annotate Italics
+
+
+
 -- | Add Markdown-style markers for emphasis and strong emphasis.
 --
 -- >>> let doc = "This text" <+> italics ("is emphasized" <+> bold "even stronger" <> "!")
@@ -53,16 +65,16 @@ import Control.Applicative
 --
 -- >>> pprint (color SRed doc)
 -- This text *is emphasized **even stronger**!*
-renderLazy :: SimpleDoc -> LT.Text
+renderLazy :: SimpleDoc Markdown -> LT.Text
 renderLazy doc
-  = let (resultBuilder, remainingStyles) = execRenderM [] (build doc)
-    in if null remainingStyles
+  = let (resultBuilder, remainingMarkdowns) = execRenderM [] (build doc)
+    in if null remainingMarkdowns
         then TLB.toLazyText resultBuilder
         else error ("There are "
-                    <> show (length remainingStyles)
+                    <> show (length remainingMarkdowns)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: SimpleDoc -> RenderM TLB.Builder Style ()
+build :: SimpleDoc Markdown -> RenderM TLB.Builder Markdown ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()
@@ -76,23 +88,22 @@ build = \case
         writeOutput (TLB.singleton '\n' )
         writeOutput (TLB.fromText (T.replicate i " "))
         build x
-    SStylePush s x -> do
+    SAnnPush s x -> do
         pushStyle s
         writeOutput (styleToMarker s)
         build x
-    SStylePop x -> do
+    SAnnPop x -> do
         s <- unsafePopStyle
         writeOutput (styleToMarker s)
         build x
 
-styleToMarker :: Style -> TLB.Builder
+styleToMarker :: Markdown -> TLB.Builder
 styleToMarker = \case
-    SItalicized -> TLB.fromString "*"
-    SBold       -> TLB.fromString "**"
-    _other      -> mempty
+    Italics -> TLB.fromString "*"
+    Bold    -> TLB.fromString "**"
 
 -- | Strict version of 'renderLazy'.
-renderStrict :: SimpleDoc -> Text
+renderStrict :: SimpleDoc Markdown -> Text
 renderStrict = LT.toStrict . renderLazy
 
 
@@ -102,7 +113,7 @@ renderStrict = LT.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc -> IO ()
+renderIO :: Handle -> SimpleDoc Markdown -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a
@@ -114,7 +125,7 @@ renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 -- @
 -- 'putDoc' = 'hPutDoc' 'stdout'
 -- @
-putDoc :: Doc -> IO ()
+putDoc :: Doc Markdown -> IO ()
 putDoc = hPutDoc stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
@@ -126,5 +137,5 @@ putDoc = hPutDoc stdout
 -- @
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
-hPutDoc :: Handle -> Doc -> IO ()
+hPutDoc :: Handle -> Doc Markdown -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)

@@ -1,7 +1,8 @@
-{-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- | __Warning: internal module!__ This means that the API may change
 -- arbitrarily between versions without notice. Depending on this module may
@@ -58,7 +59,7 @@ import Prelude       hiding (foldr, foldr1)
 -- >>> putStrLn (show (vsep ["hello", "world"]))
 -- hello
 -- world
-data Doc =
+data Doc ann =
 
     -- | Occurs when flattening a line. The layouter will reject this document,
     -- choosing a more suitable rendering.
@@ -84,38 +85,41 @@ data Doc =
     -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
     -- the second. The flattened version should in general be higher and
     -- narrower than the fallback.
-    | FlatAlt Doc Doc
+    | FlatAlt (Doc ann) (Doc ann)
 
     -- | Concatenation of two documents
-    | Cat Doc Doc
+    | Cat (Doc ann) (Doc ann)
 
     -- | Document indented by a number of columns
-    | Nest !Int Doc
+    | Nest !Int (Doc ann)
 
-    -- | Invariant: first lines of first 'Doc' longer than the first lines of
+    -- | Invariant: first lines of first '(Doc ann)' longer than the first lines of
     -- the second one. Used to implement layout alternatives for 'group'.
-    | Union Doc Doc
+    | Union (Doc ann) (Doc ann)
 
     -- | React on the current cursor position, see 'column'
-    | Column (Int -> Doc)
+    | Column (Int -> Doc ann)
 
     -- | React on the document's width, see 'pageWidth'
-    | WithPageWidth (PageWidth -> Doc)
+    | WithPageWidth (PageWidth -> Doc ann)
 
     -- | React on the current nesting level, see 'nesting'
-    | Nesting (Int -> Doc)
+    | Nesting (Int -> (Doc ann))
 
     -- | Add 'Style' information to the enclosed 'Doc'
-    | StylePush Style Doc
+    | StylePush Style (Doc ann)
+
+    -- | Add an annotation to the enclosed 'Doc'
+    | AnnPush ann (Doc ann)
 
 -- |
 -- @
 -- x '<>' y = 'hcat' [x, y]
 -- @
 --
--- >>> putDoc ("hello" <> "world")
+-- >>> putDoc ann ("hello" <> "world")
 -- helloworld
-instance Semigroup Doc where
+instance Semigroup (Doc ann) where
     (<>) = Cat
     sconcat (x :| xs) = hcat (x:xs)
 
@@ -125,63 +129,64 @@ instance Semigroup Doc where
 -- 'mconcat' = 'hcat'
 -- @
 --
--- >>> putDoc (mappend "hello" "world")
+-- >>> putDoc ann (mappend "hello" "world")
 -- helloworld
-instance Monoid Doc where
+instance Monoid (Doc ann) where
     mempty = emptyDoc
     mappend = (<>)
     mconcat = hcat
 
--- | >>> putDoc "hello\nworld"
+-- | >>> putDoc ann "hello\nworld"
 -- hello
 -- world
 --
 -- This instance uses the 'Pretty' 'Doc' instance, and uses the same newline
 -- conversion to 'line'.
-instance IsString Doc where
+instance IsString (Doc ann) where
     fromString = pretty . T.pack
 
 -- | Overloaded conversion to 'Doc'.
 class Pretty a where
 
-    -- | >>> putDoc (pretty 1 <+> pretty "hello" <+> pretty 1.234)
+    -- | >>> putDoc ann (pretty 1 <+> pretty "hello" <+> pretty 1.234)
     -- 1 hello 1.234
-    pretty :: a -> Doc
+    pretty :: a -> Doc ann
 
     -- | @'prettyList'@ is only used to define the @instance
     -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
     -- function is used.
     --
-    -- >>> putDoc (prettyList [1, 23, 456])
+    -- >>> putDoc ann (prettyList [1, 23, 456])
     -- [1, 23, 456]
-    prettyList :: [a] -> Doc
+    prettyList :: [a] -> Doc ann
     prettyList = list . map pretty
 
--- | >>> putDoc (pretty [1,2,3])
+-- | >>> putDoc ann (pretty [1,2,3])
 -- [1, 2, 3]
 instance Pretty a => Pretty [a] where
     pretty = prettyList
 
--- | Identity transformation.
+-- | Identity transformation. __Pitfall__: this un-annotates its argument, so
+-- nesting it means multiple traversals over the 'Doc'.
 --
--- >>> putDoc (pretty 123)
+-- >>> putDoc ann (pretty 123)
 -- 123
--- >>> putDoc (pretty (pretty 123))
+-- >>> putDoc ann (pretty (pretty 123))
 -- 123
-instance Pretty Doc where
-    pretty = id
+instance Pretty (Doc ann) where
+    pretty = unAnnotate
 
--- | >>> putDoc (pretty ())
+-- | >>> putDoc ann (pretty ())
 -- ()
 --
 -- The argument is not used,
 --
--- >>> putDoc (pretty (error "Strict?" :: ()))
+-- >>> putDoc ann (pretty (error "Strict?" :: ()))
 -- ()
 instance Pretty () where
     pretty _ = "()"
 
--- | >>> putDoc (pretty True)
+-- | >>> putDoc ann (pretty True)
 -- True
 instance Pretty Bool where
     pretty = \case
@@ -191,61 +196,61 @@ instance Pretty Bool where
 -- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
 -- alternative.
 --
--- >>> putDoc (pretty 'f' <> pretty 'o' <> pretty 'o')
+-- >>> putDoc ann (pretty 'f' <> pretty 'o' <> pretty 'o')
 -- foo
--- >>> putDoc (pretty ("string" :: String))
+-- >>> putDoc ann (pretty ("string" :: String))
 -- string
 instance Pretty Char where
     pretty '\n' = line
     pretty c = Char c
 
-    prettyList = (pretty :: Text -> Doc) . fromString
+    prettyList = (pretty :: Text -> Doc ann) . fromString
 
 -- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
-unsafeViaShow :: Show a => a -> Doc
+unsafeViaShow :: Show a => a -> Doc ann
 unsafeViaShow = unsafeText  . T.pack . show
 
--- | >>> putDoc (pretty (123 :: Int))
+-- | >>> putDoc ann (pretty (123 :: Int))
 -- 123
 instance Pretty Int where
     pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (2^123 :: Integer))
+-- | >>> putDoc ann (pretty (2^123 :: Integer))
 -- 10633823966279326983230456482242756608
 instance Pretty Integer where
     pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (pi :: Float))
+-- | >>> putDoc ann (pretty (pi :: Float))
 -- 3.1415927
 instance Pretty Float where
     pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (exp 1 :: Double))
+-- | >>> putDoc ann (pretty (exp 1 :: Double))
 -- 2.718281828459045
 instance Pretty Double where
     pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (123, "hello"))
+-- | >>> putDoc ann (pretty (123, "hello"))
 -- (123, hello)
 instance (Pretty a1, Pretty a2) => Pretty (a1,a2) where
     pretty (x1,x2) = tupled [pretty x1, pretty x2]
 
--- | >>> putDoc (pretty (123, "hello", False))
+-- | >>> putDoc ann (pretty (123, "hello", False))
 -- (123, hello, False)
 instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
     pretty (x1,x2,x3) = tupled [pretty x1, pretty x2, pretty x3]
 
--- | >>> putDoc (pretty (123, "hello", False, ()))
+-- | >>> putDoc ann (pretty (123, "hello", False, ()))
 -- (123, hello, False, ())
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4) => Pretty (a1,a2,a3,a4) where
     pretty (x1,x2,x3,x4) = tupled [pretty x1, pretty x2, pretty x3, pretty x4]
 
--- | >>> putDoc (pretty (123, "hello", False, (), 3.14))
+-- | >>> putDoc ann (pretty (123, "hello", False, (), 3.14))
 -- (123, hello, False, (), 3.14)
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5) => Pretty (a1,a2,a3,a4,a5) where
     pretty (x1,x2,x3,x4,x5) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5]
 
--- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71))
+-- | >>> putDoc ann (pretty (123, "hello", False, (), 3.14, Just 2.71))
 -- ( 123
 -- , hello
 -- , False
@@ -255,7 +260,7 @@ instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5) => Pretty (a1,a
 instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6) => Pretty (a1,a2,a3,a4,a5,a6) where
     pretty (x1,x2,x3,x4,x5,x6) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6]
 
--- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71, [1,2,3]))
+-- | >>> putDoc ann (pretty (123, "hello", False, (), 3.14, Just 2.71, [1,2,3]))
 -- ( 123
 -- , hello
 -- , False
@@ -268,12 +273,12 @@ instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6, Pret
 
 -- | Ignore 'Nothing's, print 'Just' contents.
 --
--- >>> putDoc (pretty (Just True))
+-- >>> putDoc ann (pretty (Just True))
 -- True
--- >>> putDoc (braces (pretty (Nothing :: Maybe Bool)))
+-- >>> putDoc ann (braces (pretty (Nothing :: Maybe Bool)))
 -- {}
 --
--- >>> putDoc (pretty [Just 1, Nothing, Just 3, Nothing])
+-- >>> putDoc ann (pretty [Just 1, Nothing, Just 3, Nothing])
 -- [1, 3]
 instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
@@ -281,13 +286,13 @@ instance Pretty a => Pretty (Maybe a) where
 
 -- | Automatically converts all newlines to @'line'@.
 --
--- >>> putDoc (pretty ("hello\nworld" :: Text))
+-- >>> putDoc ann (pretty ("hello\nworld" :: Text))
 -- hello
 -- world
 --
 -- Note that  @'line'@ can be undone by @'group'@:
 --
--- >>> putDoc (group (pretty ("hello\nworld" :: Text)))
+-- >>> putDoc ann (group (pretty ("hello\nworld" :: Text)))
 -- hello world
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
@@ -329,12 +334,12 @@ data SLayer = SForeground | SBackground
 -- contained in 'Doc' resolved, making it very easy to convert it to other
 -- formats, such as plain text or terminal output.
 --
--- To write your own Doc to X converter, it is therefore sufficient to convert
+-- To write your own Doc ann to X converter, it is therefore sufficient to convert
 -- from 'SimpleDoc'.
-data SimpleDoc =
+data SimpleDoc ann =
       SFail
     | SEmpty
-    | SChar Char SimpleDoc
+    | SChar Char (SimpleDoc ann)
 
     -- | Since the frequently used 'T.length' of 'Text' is /O(n)/, we cache it
     -- in this constructor.
@@ -344,17 +349,20 @@ data SimpleDoc =
     -- merely wants to print it; however, the layout algorithms might retry
     -- generating certain sections of output multiple times in different ways to
     -- fit the layout constraints.
-    | SText !Int Text SimpleDoc
+    | SText !Int Text (SimpleDoc ann)
 
     -- | @Int@ = indentation level for the line
-    | SLine !Int SimpleDoc
+    | SLine !Int (SimpleDoc ann)
 
     -- | Apply a style to the remaining document. The display function should do
     -- this until it hits a 'SStylePop' entry.
-    | SStylePush Style SimpleDoc
+    | SStylePush Style (SimpleDoc ann)
 
     -- | Undo one previously set 'SStylePush'.
-    | SStylePop SimpleDoc
+    | SStylePop (SimpleDoc ann)
+
+    | SAnnPush ann (SimpleDoc ann)
+    | SAnnPop (SimpleDoc ann)
 
 
 
@@ -362,7 +370,7 @@ data SimpleDoc =
 --
 -- The string must not contain any newline characters, since this is an
 -- invariant of the 'Text' constructor.
-unsafeText :: Text -> Doc
+unsafeText :: Text -> Doc ann
 unsafeText t = case T.length t of
     0 -> Empty
     1 -> Char (T.head t)
@@ -373,20 +381,20 @@ unsafeText t = case T.length t of
 -- inside e.g. 'vcat', where we get an empty line of output from it ('angles'
 -- for visibility only):
 --
--- >>> putDoc (vsep ["hello", angles emptyDoc, "world"])
+-- >>> putDoc ann (vsep ["hello", angles emptyDoc, "world"])
 -- hello
 -- <>
 -- world
 --
 -- Together with '<>', 'emptyDoc' forms the 'Monoid' 'Doc'.
-emptyDoc :: Doc
+emptyDoc :: Doc ann
 emptyDoc = Empty
 
 -- | @('nest' i x)@ lays out the document @x@ with the current indentation level
 -- increased by @i@. Negative values are allowed, and decrease the nesting level
 -- accordingly.
 --
--- >>> putDoc (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
+-- >>> putDoc ann (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
 -- lorem
 --     ipsum
 --     dolor
@@ -396,35 +404,35 @@ emptyDoc = Empty
 -- See also 'hang', 'align' and 'indent'.
 nest
     :: Int -- ^ Change of nesting level
-    -> Doc
-    -> Doc
+    -> Doc ann
+    -> Doc ann
 nest = Nest
 
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
 --
 -- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
--- >>> putDoc doc
+-- >>> putDoc ann doc
 -- lorem ipsum
 -- dolor sit amet
 --
 -- @'line'@ behaves like @'space'@ if the line break is undone by 'group':
 --
--- >>> putDoc (group doc)
+-- >>> putDoc ann (group doc)
 -- lorem ipsum dolor sit amet
-line :: Doc
+line :: Doc ann
 line = FlatAlt Line space
 
 -- | @'line''@ is like @'line'@, but behaves like @'mempty'@ if the line break
 -- is undone by 'group' (instead of @'space'@).
 --
 -- >>> let doc = "lorem ipsum" <> line' <> "dolor sit amet"
--- >>> putDoc doc
+-- >>> putDoc ann doc
 -- lorem ipsum
 -- dolor sit amet
--- >>> putDoc (group doc)
+-- >>> putDoc ann (group doc)
 -- lorem ipsumdolor sit amet
-line' :: Doc
+line' :: Doc ann
 line' = FlatAlt Line mempty
 
 -- | @softline@ behaves like @'space'@ if the resulting output fits the page,
@@ -445,7 +453,7 @@ line' = FlatAlt Line mempty
 -- @
 -- 'softline' = 'group' 'line'
 -- @
-softline :: Doc
+softline :: Doc ann
 softline = group line
 
 -- | @'softline''@ is like @'softline'@, but behaves like @'mempty'@ if the
@@ -467,7 +475,7 @@ softline = group line
 -- @
 -- 'softline'' = 'group' 'line''
 -- @
-softline' :: Doc
+softline' :: Doc ann
 softline' = group line'
 
 -- | A @'hardline'@ is /always/ laid out as a line break, even when 'group'ed or
@@ -479,10 +487,10 @@ softline' = group line'
 -- lorem ipsum
 -- dolor sit amet
 --
--- >>> putDoc (group doc)
+-- >>> putDoc ann (group doc)
 -- lorem ipsum
 -- dolor sit amet
-hardline :: Doc
+hardline :: Doc ann
 hardline = Line
 
 -- | @('group' x)@ tries laying out @x@ into a single line by removing the
@@ -492,12 +500,12 @@ hardline = Line
 --
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
-group :: Doc -> Doc
+group :: Doc ann -> Doc ann
 group x = Union (flatten x) x
 
 -- Choose the first element of each @Union@, and discard the first field of all
 -- @FlatAlt@s.
-flatten :: Doc -> Doc
+flatten :: Doc ann -> Doc ann
 flatten = \case
     FlatAlt _ y     -> flatten y
     Cat x y         -> Cat (flatten x) (flatten y)
@@ -508,6 +516,7 @@ flatten = \case
     WithPageWidth f -> WithPageWidth (flatten . f)
     Nesting f       -> Nesting (flatten . f)
     StylePush s x   -> StylePush s (flatten x)
+    AnnPush ann x   -> AnnPush ann (flatten x)
 
     x@Fail   -> x
     x@Empty  -> x
@@ -549,9 +558,9 @@ flatten = \case
 --    let greet = "Hello, " <> name
 --    putStrLn greet
 flatAlt
-    :: Doc -- ^ Default
-    -> Doc -- ^ Fallback when 'group'ed
-    -> Doc
+    :: Doc ann -- ^ Default
+    -> Doc ann -- ^ Fallback when 'group'ed
+    -> Doc ann
 flatAlt = FlatAlt
 
 
@@ -563,17 +572,17 @@ flatAlt = FlatAlt
 -- the current nesting level. Without 'align'ment, the second line is put simply
 -- below everything we've had so far,
 --
--- >>> putDoc ("lorem" <+> vsep ["ipsum", "dolor"])
+-- >>> putDoc ann ("lorem" <+> vsep ["ipsum", "dolor"])
 -- lorem ipsum
 -- dolor
 --
 -- If we add an 'align' to the mix, the @'vsep'@'s contents all start in the
 -- same column,
 --
--- >>> putDoc ("lorem" <+> align (vsep ["ipsum", "dolor"]))
+-- >>> putDoc ann ("lorem" <+> align (vsep ["ipsum", "dolor"]))
 -- lorem ipsum
 --       dolor
-align :: Doc -> Doc
+align :: Doc ann -> Doc ann
 align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be negative!
 
 -- | @('hang' i x)@ lays out the document @x@ with a nesting level set to the
@@ -600,8 +609,8 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- @
 hang
     :: Int -- ^ Change of nesting level, relative to the start of the first line
-    -> Doc
-    -> Doc
+    -> Doc ann
+    -> Doc ann
 hang i d = align (nest i d)
 
 -- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
@@ -619,8 +628,8 @@ hang i d = align (nest i d)
 -- @
 indent
     :: Int -- ^ Number of spaces to increase indentation by
-    -> Doc
-    -> Doc
+    -> Doc ann
+    -> Doc ann
 indent i d = hang i (spaces i <> d)
 
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
@@ -644,11 +653,11 @@ indent i d = hang i (spaces i <> d)
 -- For putting separators at the end of entries instead, have a look at
 -- 'punctuate'.
 encloseSep
-    :: Doc   -- ^ left delimiter
-    -> Doc   -- ^ right delimiter
-    -> Doc   -- ^ separator
-    -> [Doc] -- ^ input documents
-    -> Doc
+    :: Doc ann   -- ^ left delimiter
+    -> Doc ann   -- ^ right delimiter
+    -> Doc ann   -- ^ separator
+    -> [Doc ann] -- ^ input documents
+    -> Doc ann
 encloseSep l r s ds = case ds of
     []  -> l <> r
     [d] -> l <> d <> r
@@ -667,7 +676,7 @@ encloseSep l r s ds = case ds of
 -- , 20
 -- , 300
 -- , 4000 ]
-list :: [Doc] -> Doc
+list :: [Doc ann] -> Doc ann
 list = group . encloseSep (flatAlt "[ " "[")
                           (flatAlt " ]" "]")
                           ", "
@@ -685,7 +694,7 @@ list = group . encloseSep (flatAlt "[ " "[")
 -- , 20
 -- , 300
 -- , 4000 )
-tupled :: [Doc] -> Doc
+tupled :: [Doc ann] -> Doc ann
 tupled = group . encloseSep (flatAlt "( " "(")
                             (flatAlt " )" ")")
                             ", "
@@ -695,13 +704,13 @@ tupled = group . encloseSep (flatAlt "( " "(")
 -- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @'space'@ in
 -- between.
 --
--- >>> putDoc ("hello" <+> "world")
+-- >>> putDoc ann ("hello" <+> "world")
 -- hello world
 --
 -- @
 -- x '<+>' y = x '<>' 'space' '<>' y
 -- @
-(<+>) :: Doc -> Doc -> Doc
+(<+>) :: Doc ann -> Doc ann -> Doc ann
 x <+> y = x <> space <> y
 
 
@@ -725,7 +734,7 @@ x <+> y = x <> space <> y
 --
 -- >>> concatWith (\x y -> x <> dot <> y) ["Data", "Text", "Prettyprint", "Doc"]
 -- Data.Text.Prettyprint.Doc
-concatWith :: Foldable t => (Doc -> Doc -> Doc) -> t Doc -> Doc
+concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
 #if __GLASGOW_HASKELL__ < 710
     | foldr (\_ _ -> False) True ds = mempty
@@ -740,7 +749,7 @@ concatWith f ds
 --
 -- >>> let docs = map pretty (T.words "lorem ipsum dolor sit amet")
 --
--- >>> putDoc (hsep docs)
+-- >>> putDoc ann (hsep docs)
 -- lorem ipsum dolor sit amet
 --
 -- @'hsep'@ does not introduce line breaks on its own, even when the page is too
@@ -750,7 +759,7 @@ concatWith f ds
 -- lorem ipsum dolor sit amet
 --
 -- For automatic line breaks, consider using 'fillSep' instead.
-hsep :: [Doc] -> Doc
+hsep :: [Doc ann] -> Doc ann
 hsep = concatWith (<+>)
 
 -- | @('vsep' xs)@ concatenates all documents @xs@ above each other. If a
@@ -759,7 +768,7 @@ hsep = concatWith (<+>)
 --
 -- Using 'vsep' alone yields
 --
--- >>> putDoc ("prefix" <+> vsep ["text", "to", "lay", "out"])
+-- >>> putDoc ann ("prefix" <+> vsep ["text", "to", "lay", "out"])
 -- prefix text
 -- to
 -- lay
@@ -772,7 +781,7 @@ hsep = concatWith (<+>)
 -- The 'align' function can be used to align the documents under their first
 -- element:
 --
--- >>> putDoc ("prefix" <+> align (vsep ["text", "to", "lay", "out"]))
+-- >>> putDoc ann ("prefix" <+> align (vsep ["text", "to", "lay", "out"]))
 -- prefix text
 --        to
 --        lay
@@ -780,7 +789,7 @@ hsep = concatWith (<+>)
 --
 -- Since 'group'ing a 'vsep' is rather common, 'sep' is a built-in for doing
 -- that.
-vsep :: [Doc] -> Doc
+vsep :: [Doc ann] -> Doc ann
 vsep = concatWith (\x y -> x <> line <> y)
 
 -- | @('fillSep' xs)@ concatenates the documents @xs@ horizontally with @'<+>'@
@@ -802,7 +811,7 @@ vsep = concatWith (\x y -> x <> line <> y)
 -- Docs: lorem ipsum dolor sit amet lorem
 -- ipsum dolor sit amet lorem ipsum dolor
 -- sit amet lorem ipsum dolor sit amet
-fillSep :: [Doc] -> Doc
+fillSep :: [Doc ann] -> Doc ann
 fillSep = concatWith (\x y -> x <> softline <> y)
 
 -- | @('sep' xs)@ tries laying out the documents @xs@ separated with 'space's,
@@ -825,7 +834,7 @@ fillSep = concatWith (\x y -> x <> softline <> y)
 -- @
 -- 'sep' = 'group' . 'vsep'
 -- @
-sep :: [Doc] -> Doc
+sep :: [Doc ann] -> Doc ann
 sep = group . vsep
 
 
@@ -836,9 +845,9 @@ sep = group . vsep
 -- It is provided only for consistency, since it is identical to 'mconcat'.
 --
 -- >>> let docs = map pretty (T.words "lorem ipsum dolor")
--- >>> putDoc (hcat docs)
+-- >>> putDoc ann (hcat docs)
 -- loremipsumdolor
-hcat :: [Doc] -> Doc
+hcat :: [Doc ann] -> Doc ann
 hcat = concatWith (<>)
 
 -- | @('vcat' xs)@ vertically concatenates the documents @xs@. If it is
@@ -848,14 +857,14 @@ hcat = concatWith (<>)
 -- replaced by 'space's.
 --
 -- >>> let docs = map pretty (T.words "lorem ipsum dolor")
--- >>> putDoc (vcat docs)
+-- >>> putDoc ann (vcat docs)
 -- lorem
 -- ipsum
 -- dolor
 --
 -- Since 'group'ing a 'vcat' is rather common, 'cat' is a built-in shortcut for
 -- it.
-vcat :: [Doc] -> Doc
+vcat :: [Doc ann] -> Doc ann
 vcat = concatWith (\x y -> x <> line' <> y)
 
 -- | @('fillCat' xs)@ concatenates documents @xs@ horizontally with @'<>'@ as
@@ -884,7 +893,7 @@ vcat = concatWith (\x y -> x <> line' <> y)
 -- Grouped: loremipsumdolorsitametlorem
 -- ipsumdolorsitametloremipsumdolorsitamet
 -- loremipsumdolorsitamet
-fillCat :: [Doc] -> Doc
+fillCat :: [Doc ann] -> Doc ann
 fillCat = concatWith (\x y -> x <> softline' <> y)
 
 -- | @('cat' xs)@ tries laying out the documents @xs@ separated with nothing,
@@ -906,7 +915,7 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 -- @
 -- 'cat' = 'group' . 'vcat'
 -- @
-cat :: [Doc] -> Doc
+cat :: [Doc ann] -> Doc ann
 cat = group . vcat
 
 
@@ -930,9 +939,9 @@ cat = group . vcat
 -- If you want put the commas in front of their elements instead of at the end,
 -- you should use 'tupled' or, in general, 'encloseSep'.
 punctuate
-    :: Doc -- ^ Punctuation, e.g. 'comma'
-    -> [Doc]
-    -> [Doc]
+    :: Doc ann -- ^ Punctuation, e.g. 'comma'
+    -> [Doc ann]
+    -> [Doc ann]
 punctuate p = go
   where
     go []     = []
@@ -944,39 +953,39 @@ punctuate p = go
 -- | Layout a document depending on which column it starts at. 'align' is
 -- implemented in terms of 'column'.
 --
--- >>> putDoc (column (\l -> "Columns are" <+> pretty l <> "-based."))
+-- >>> putDoc ann (column (\l -> "Columns are" <+> pretty l <> "-based."))
 -- Columns are 0-based.
 --
 -- >>> let doc = "prefix" <+> column (\l -> "| <- column" <+> pretty l)
--- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- >>> putDoc ann (vsep [indent n doc | n <- [0,4,8]])
 -- prefix | <- column 7
 --     prefix | <- column 11
 --         prefix | <- column 15
-column :: (Int -> Doc) -> Doc
+column :: (Int -> Doc ann) -> Doc ann
 column = Column
 
 -- | Layout a document depending on the current 'nest'ing level. 'align' is
 -- implemented in terms of 'nesting'.
 --
 -- >>> let doc = "prefix" <+> nesting (\l -> brackets ("Nested:" <+> pretty l))
--- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- >>> putDoc ann (vsep [indent n doc | n <- [0,4,8]])
 -- prefix [Nested: 0]
 --     prefix [Nested: 4]
 --         prefix [Nested: 8]
-nesting :: (Int -> Doc) -> Doc
+nesting :: (Int -> Doc ann) -> Doc ann
 nesting = Nesting
 
 -- | @('width' doc f)@ lays out the document 'doc', and makes the column width
 -- of it available to a function.
 --
 -- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
--- >>> putDoc (align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]])))
+-- >>> putDoc ann (align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]])))
 -- [---] <- width: 5
 -- [------] <- width: 8
 -- [   ---] <- width: 8
 -- [---
 --     ---] <- width: 8
-width :: Doc -> (Int -> Doc) -> Doc
+width :: Doc ann -> (Int -> Doc ann) -> Doc ann
 width doc f
   = column (\colStart ->
         doc <> column (\colEnd ->
@@ -993,7 +1002,7 @@ width doc f
 -- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
 -- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
 -- @'Just' <pagewidth>@.
-pageWidth :: (PageWidth -> Doc) -> Doc
+pageWidth :: (PageWidth -> Doc ann) -> Doc ann
 pageWidth = WithPageWidth
 
 
@@ -1004,16 +1013,16 @@ pageWidth = WithPageWidth
 --
 -- This function is quite useful in practice to output a list of bindings:
 --
--- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc ann -> Doc ann"), ("fillSep","[Doc ann] -> Doc ann")]
 -- >>> let ptype (name, tp) = fill 5 (pretty name) <+> "::" <+> pretty tp
--- >>> putDoc ("let" <+> align (vcat (map ptype types)))
--- let empty :: Doc
---     nest  :: Int -> Doc -> Doc
---     fillSep :: [Doc] -> Doc
+-- >>> putDoc ann ("let" <+> align (vcat (map ptype types)))
+-- let empty :: Doc ann
+--     nest  :: Int -> Doc ann -> Doc ann
+--     fillSep :: [Doc ann] -> Doc ann
 fill
     :: Int -- ^ Append spaces until the document is at least this wide
-    -> Doc
-    -> Doc
+    -> Doc ann
+    -> Doc ann
 fill f doc = width doc (\w -> spaces (f - w))
 
 -- | @('fillBreak' i x)@ first lays out the document @x@. It then appends @space@s
@@ -1022,24 +1031,24 @@ fill f doc = width doc (\w -> spaces (f - w))
 -- redefine @ptype@ in the example given in 'fill' to use @'fillBreak'@, we get
 -- a useful variation of the output:
 --
--- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
+-- >>> let types = [("empty","Doc"), ("nest","Int -> Doc ann -> Doc ann"), ("fillSep","[Doc ann] -> Doc ann")]
 -- >>> let ptype (name, tp) = fillBreak 5 (pretty name) <+> "::" <+> pretty tp
--- >>> putDoc ("let" <+> align (vcat (map ptype types)))
--- let empty :: Doc
---     nest  :: Int -> Doc -> Doc
+-- >>> putDoc ann ("let" <+> align (vcat (map ptype types)))
+-- let empty :: Doc ann
+--     nest  :: Int -> Doc ann -> Doc ann
 --     fillSep
---           :: [Doc] -> Doc
+--           :: [Doc ann] -> Doc ann
 fillBreak
     :: Int -- ^ Append spaces until the document is at least this wide
-    -> Doc
-    -> Doc
+    -> Doc ann
+    -> Doc ann
 fillBreak f x = width x (\w ->
     if w > f
         then nest f line'
         else spaces (f - w))
 
 -- | Insert a number of spaces. Negative values count as 0.
-spaces :: Int -> Doc
+spaces :: Int -> Doc ann
 spaces n = unsafeText (T.replicate n " ")
 
 -- $
@@ -1060,7 +1069,7 @@ spaces n = unsafeText (T.replicate n " ")
 --
 -- >>> let things = [True]
 -- >>> let amount = length things
--- >>> putDoc ("The list has" <+> pretty amount <+> plural "entry" "entries" amount)
+-- >>> putDoc ann ("The list has" <+> pretty amount <+> plural "entry" "entries" amount)
 -- The list has 1 entry
 plural
     :: (Num amount, Eq amount)
@@ -1075,181 +1084,184 @@ plural one many n
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.
 --
--- >>> putDoc (enclose "A" "Z" "·")
+-- >>> putDoc ann (enclose "A" "Z" "·")
 -- A·Z
 --
 -- @
 -- 'enclose' l r x = l '<>' x '<>' r
 -- @
 enclose
-    :: Doc -- ^ L
-    -> Doc -- ^ R
-    -> Doc -- ^ x
-    -> Doc -- ^ LxR
+    :: Doc ann -- ^ L
+    -> Doc ann -- ^ R
+    -> Doc ann -- ^ x
+    -> Doc ann -- ^ LxR
 enclose l r x = l <> x <> r
 
 
 
--- | >>> putDoc (squotes "·")
+-- | >>> putDoc ann (squotes "·")
 -- '·'
-squotes :: Doc -> Doc
+squotes :: Doc ann -> Doc ann
 squotes = enclose squote squote
 
--- | >>> putDoc (dquotes "·")
+-- | >>> putDoc ann (dquotes "·")
 -- "·"
-dquotes :: Doc -> Doc
+dquotes :: Doc ann -> Doc ann
 dquotes = enclose dquote dquote
 
--- | >>> putDoc (parens "·")
+-- | >>> putDoc ann (parens "·")
 -- (·)
-parens :: Doc -> Doc
+parens :: Doc ann -> Doc ann
 parens = enclose lparen rparen
 
--- | >>> putDoc (angles "·")
+-- | >>> putDoc ann (angles "·")
 -- <·>
-angles :: Doc -> Doc
+angles :: Doc ann -> Doc ann
 angles = enclose langle rangle
 
--- | >>> putDoc (brackets "·")
+-- | >>> putDoc ann (brackets "·")
 -- [·]
-brackets :: Doc -> Doc
+brackets :: Doc ann -> Doc ann
 brackets = enclose lbracket rbracket
 
--- | >>> putDoc (braces "·")
+-- | >>> putDoc ann (braces "·")
 -- {·}
-braces :: Doc -> Doc
+braces :: Doc ann -> Doc ann
 braces = enclose lbrace rbrace
 
--- | >>> putDoc squote
+-- | >>> putDoc ann squote
 -- '
-squote :: Doc
+squote :: Doc ann
 squote = "'"
 
--- | >>> putDoc dquote
+-- | >>> putDoc ann dquote
 -- "
-dquote :: Doc
+dquote :: Doc ann
 dquote = "\""
 
--- | >>> putDoc lparen
+-- | >>> putDoc ann lparen
 -- (
-lparen :: Doc
+lparen :: Doc ann
 lparen = "("
 
--- | >>> putDoc rparen
+-- | >>> putDoc ann rparen
 -- )
-rparen :: Doc
+rparen :: Doc ann
 rparen = ")"
 
--- | >>> putDoc langle
+-- | >>> putDoc ann langle
 -- <
-langle :: Doc
+langle :: Doc ann
 langle = "<"
 
--- | >>> putDoc rangle
+-- | >>> putDoc ann rangle
 -- >
-rangle :: Doc
+rangle :: Doc ann
 rangle = ">"
 
--- | >>> putDoc lbracket
+-- | >>> putDoc ann lbracket
 -- [
-lbracket :: Doc
+lbracket :: Doc ann
 lbracket = "["
--- | >>> putDoc rbracket
+-- | >>> putDoc ann rbracket
 -- ]
-rbracket :: Doc
+rbracket :: Doc ann
 rbracket = "]"
 
--- | >>> putDoc lbrace
+-- | >>> putDoc ann lbrace
 -- {
-lbrace :: Doc
+lbrace :: Doc ann
 lbrace = "{"
--- | >>> putDoc rbrace
+-- | >>> putDoc ann rbrace
 -- }
-rbrace :: Doc
+rbrace :: Doc ann
 rbrace = "}"
 
--- | >>> putDoc semi
+-- | >>> putDoc ann semi
 -- ;
-semi :: Doc
+semi :: Doc ann
 semi = ";"
 
--- | >>> putDoc colon
+-- | >>> putDoc ann colon
 -- :
-colon :: Doc
+colon :: Doc ann
 colon = ":"
 
--- | >>> putDoc comma
+-- | >>> putDoc ann comma
 -- ,
-comma :: Doc
+comma :: Doc ann
 comma = ","
 
--- | >>> putDoc ("a" <> space <> "b")
+-- | >>> putDoc ann ("a" <> space <> "b")
 -- a b
 --
 -- This is mostly used via @'<+>'@,
 --
--- >>> putDoc ("a" <+> "b")
+-- >>> putDoc ann ("a" <+> "b")
 -- a b
-space :: Doc
+space :: Doc ann
 space = " "
 
--- | >>> putDoc dot
+-- | >>> putDoc ann dot
 -- .
-dot :: Doc
+dot :: Doc ann
 dot = "."
 
--- | >>> putDoc slash
+-- | >>> putDoc ann slash
 -- /
-slash :: Doc
+slash :: Doc ann
 slash = "/"
 
--- | >>> putDoc backslash
+-- | >>> putDoc ann backslash
 -- \\
 
-backslash :: Doc
+backslash :: Doc ann
 backslash = "\\"
 
--- | >>> putDoc equals
+-- | >>> putDoc ann equals
 -- =
-equals :: Doc
+equals :: Doc ann
 equals = "="
 
--- | >>> putDoc pipe
+-- | >>> putDoc ann pipe
 -- |
-pipe :: Doc
+pipe :: Doc ann
 pipe = "|"
 
 
 
 -- | Style the foreground with a vivid color.
-color :: SColor -> Doc -> Doc
+color :: SColor -> Doc ann -> Doc ann
 color c = StylePush (SColor SForeground SVivid c)
 
 -- | Style the background with a vivid color.
-bgColor :: SColor -> Doc -> Doc
+bgColor :: SColor -> Doc ann -> Doc ann
 bgColor c = StylePush (SColor SBackground SVivid c)
 
 -- | Style the foreground with a dull color.
-colorDull :: SColor -> Doc -> Doc
+colorDull :: SColor -> Doc ann -> Doc ann
 colorDull c = StylePush (SColor SForeground SDull c)
 
 -- | Style the background with a dull color.
-bgColorDull :: SColor -> Doc -> Doc
+bgColorDull :: SColor -> Doc ann -> Doc ann
 bgColorDull c = StylePush (SColor SBackground SDull c)
 
 -- | Render the enclosed document in __bold__.
-bold :: Doc -> Doc
+bold :: Doc ann -> Doc ann
 bold = StylePush SBold
 
 -- | Render the enclosed document in /italics/.
-italics :: Doc -> Doc
+italics :: Doc ann -> Doc ann
 italics = StylePush SItalicized
 
 -- | Render the enclosed document underlined.
-underline :: Doc -> Doc
+underline :: Doc ann -> Doc ann
 underline = StylePush SUnderlined
 
--- | Remove all styling information.
+annotate :: ann -> Doc ann -> Doc ann
+annotate = AnnPush
+
+-- | Remove all annotations.
 --
 -- Although 'plain' is idempotent,
 --
@@ -1260,22 +1272,23 @@ underline = StylePush SUnderlined
 -- it should not be used without caution, for each invocation traverses the
 -- entire contained document. The most common place to use 'plain' is just
 -- before producing a layout.
-plain :: Doc -> Doc
-plain = \case
-    FlatAlt x y     -> FlatAlt (plain x) (plain y)
-    Cat x y         -> Cat (plain x) (plain y)
-    Nest i x        -> Nest i (plain x)
-    Union x y       -> Union (plain x) (plain y)
-    Column f        -> Column (plain . f)
-    WithPageWidth f -> WithPageWidth (plain . f)
-    Nesting f       -> Nesting (plain . f)
-    StylePush _ x   -> plain x
+unAnnotate :: Doc ann -> Doc xxx
+unAnnotate = \case
+    Fail            -> Fail
+    Empty           -> Empty
+    Char c          -> Char c
+    Text l t        -> Text l t
+    Line            -> Line
 
-    x@Fail{}  -> x
-    x@Empty{} -> x
-    x@Char{}  -> x
-    x@Text{}  -> x
-    x@Line{}  -> x
+    FlatAlt x y     -> FlatAlt (unAnnotate x) (unAnnotate y)
+    Cat x y         -> Cat (unAnnotate x) (unAnnotate y)
+    Nest i x        -> Nest i (unAnnotate x)
+    Union x y       -> Union (unAnnotate x) (unAnnotate y)
+    Column f        -> Column (unAnnotate . f)
+    WithPageWidth f -> WithPageWidth (unAnnotate . f)
+    Nesting f       -> Nesting (unAnnotate . f)
+    StylePush _ x   -> unAnnotate x
+    AnnPush _ x     -> unAnnotate x
 
 
 
@@ -1308,13 +1321,13 @@ data FusionDepth =
 --
 -- For example
 --
--- >>> putDoc ("a" <> "b" <> pretty 'c' <> "d")
+-- >>> putDoc ann ("a" <> "b" <> pretty 'c' <> "d")
 -- abcd
 --
 -- results in a chain of four entries in a 'SimpleDoc', although this is fully
 -- equivalent to the tightly packed
 --
--- >>> putDoc "abcd"
+-- >>> putDoc ann "abcd"
 -- abcd
 --
 -- which is only a single 'SimpleDoc' entry, and can be processed faster.
@@ -1323,9 +1336,9 @@ data FusionDepth =
 -- strings that are used many times,
 --
 -- >>> let oftenUsed = fuse Shallow ("a" <> "b" <> pretty 'c' <> "d")
--- >>> putDoc (hsep (replicate 5 oftenUsed))
+-- >>> putDoc ann (hsep (replicate 5 oftenUsed))
 -- abcd abcd abcd abcd abcd
-fuse :: FusionDepth -> Doc -> Doc
+fuse :: FusionDepth -> Doc ann -> Doc ann
 fuse depth = go
   where
     go = \case
@@ -1372,14 +1385,15 @@ fuse depth = go
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line; Nothing is unbounded
-newtype FittingPredicate = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc -> Bool)
+data FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -> Bool)
 
 -- List of nesting level/document pairs yet to be laid out. Saves one
 -- indirection over [(Int, Doc)].
-data LayoutPipeline =
+data LayoutPipeline ann =
       Nil
-    | Cons !Int Doc LayoutPipeline
-    | UndoStyle LayoutPipeline -- Remove one previously applied style.
+    | Cons !Int (Doc ann) (LayoutPipeline ann)
+    | UndoStyle (LayoutPipeline ann)
+    | UndoAnn (LayoutPipeline ann)
 
 -- | Maximum number of characters that fit in one line. The layout algorithms
 -- will try not to exceed the set limit by inserting line breaks when applicable
@@ -1422,16 +1436,16 @@ defaultLayoutOptions = LayoutOptions
 -- respectively.
 layoutPretty
     :: LayoutOptions
-    -> Doc
-    -> SimpleDoc
+    -> Doc ann
+    -> SimpleDoc ann
 layoutPretty = layoutFits fits1
   where
     -- | @fits1@ does 1 line lookahead.
-    fits1 :: FittingPredicate
+    fits1 :: FittingPredicate ann
     fits1 = FP (\_p _m w -> go w)
       where
         go :: Maybe Int -- ^ Width in which to fit the first line; Nothing is infinite
-           -> SimpleDoc
+           -> SimpleDoc ann
            -> Bool
         go Nothing _                 = True
         go (Just w) _ | w < 0        = False
@@ -1442,10 +1456,12 @@ layoutPretty = layoutFits fits1
         go _ SLine{}                 = True
         go (Just w) (SStylePush _ x) = go (Just w) x
         go (Just w) (SStylePop x)    = go (Just w) x
+        go (Just w) (SAnnPush _ x)   = go (Just w) x
+        go (Just w) (SAnnPop x)      = go (Just w) x
 
 -- | A slightly smarter layout algorithm with more lookahead. It provides
--- earlier breaking on deeply nested structures. For example, consider this
 -- python-ish pseudocode:
+-- earlier breaking on deeply nested structures. For example, consider this
 --
 -- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
 --
@@ -1483,8 +1499,8 @@ layoutPretty = layoutFits fits1
 -- This fits within the 20 character boundary.
 layoutSmart
     :: LayoutOptions
-    -> Doc
-    -> SimpleDoc
+    -> Doc ann
+    -> SimpleDoc ann
 layoutSmart = layoutFits fitsR
   where
     -- @fitsR@ has a little more lookahead: assuming that nesting roughly
@@ -1495,13 +1511,13 @@ layoutSmart = layoutFits fitsR
     -- also the rest of the document, which would be slightly more intelligent
     -- but would have exponential runtime (and is prohibitively expensive in
     -- practice).
-    fitsR :: FittingPredicate
+    fitsR :: FittingPredicate ann
     fitsR = FP go
       where
         go :: PageWidth
            -> Int       -- ^ Minimum nesting level to fit in
            -> Maybe Int -- ^ Width in which to fit the first line
-           -> SimpleDoc
+           -> SimpleDoc ann
            -> Bool
         go _ _ Nothing _ = False
         go _ _ (Just w) _ | w < 0                         = False
@@ -1514,16 +1530,18 @@ layoutSmart = layoutFits fitsR
           | otherwise                     = True
         go pw m w (SStylePush _ x)        = go pw m w x
         go pw m w (SStylePop x)           = go pw m w x
+        go pw m w (SAnnPush _ x)          = go pw m w x
+        go pw m w (SAnnPop x)             = go pw m w x
 
 
 
 layoutFits
-    :: FittingPredicate
+    :: forall ann. FittingPredicate ann
     -> LayoutOptions
-    -> Doc
-    -> SimpleDoc
+    -> Doc ann
+    -> SimpleDoc ann
 layoutFits
-    (FP fits)
+    fittingPredicate
     LayoutOptions
         { layoutPageWidth = pWidth
         , layoutRibbonFraction = ribbonFraction }
@@ -1541,10 +1559,11 @@ layoutFits
     best
         :: Int -- Current nesting level
         -> Int -- Current column, i.e. "where the cursor is"
-        -> LayoutPipeline -- Documents remaining to be handled (in order)
-        -> SimpleDoc
-    best _ _ Nil = SEmpty
+        -> LayoutPipeline ann -- Documents remaining to be handled (in order)
+        -> SimpleDoc ann
+    best _ _ Nil                = SEmpty
     best !nl !cc (UndoStyle ds) = SStylePop (best nl cc ds)
+    best !nl !cc (UndoAnn ds)   = SAnnPop (best nl cc ds)
     best !nl !cc (Cons !i d ds) = case d of
         Fail            -> SFail
         Empty           -> best nl cc ds
@@ -1556,20 +1575,22 @@ layoutFits
         Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
         Union x y       -> let x' = best nl cc (Cons i x ds)
                                y' = best nl cc (Cons i y ds)
-                           in selectNicer nl cc x' y'
+                           in selectNicer fittingPredicate nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
         WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         StylePush s x   -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
+        AnnPush ann x   -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
     selectNicer
-        :: Int       -- ^ Current nesting level
-        -> Int       -- ^ Current column
-        -> SimpleDoc -- ^ Choice A. Invariant: first lines should not be longer than B's.
-        -> SimpleDoc -- ^ Choice B.
-        -> SimpleDoc -- ^ The nicer one among A and B, depending on which one
-                     --   fits better.
-    selectNicer lineIndent currentColumn x y
+        :: FittingPredicate ann
+        -> Int           -- ^ Current nesting level
+        -> Int           -- ^ Current column
+        -> SimpleDoc ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
+        -> SimpleDoc ann -- ^ Choice B.
+        -> SimpleDoc ann -- ^ The nicer one among A and B, depending on which
+                         --   one fits better.
+    selectNicer (FP fits) lineIndent currentColumn x y
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
       where
@@ -1593,7 +1614,7 @@ layoutFits
 -- This layout function does not add any colorisation information.
 --
 -- >>> let doc = hang 4 (vsep ["lorem", "ipsum", hang 4 (vsep ["dolor", "sit"])])
--- >>> putDoc doc
+-- >>> putDoc ann doc
 -- lorem
 --     ipsum
 --     dolor
@@ -1605,7 +1626,7 @@ layoutFits
 -- ipsum
 -- dolor
 -- sit
-layoutCompact :: Doc -> SimpleDoc
+layoutCompact :: Doc ann -> SimpleDoc ann
 layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
@@ -1623,12 +1644,13 @@ layoutCompact doc = scan 0 [doc]
         WithPageWidth f -> scan k (f Unbounded : ds)
         Nesting f       -> scan k (f 0:ds)
         StylePush _ x   -> scan k (x:ds)
+        AnnPush _ x     -> scan k (x:ds)
 
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions'.
-instance Show Doc where
+instance Show (Doc ann) where
     showsPrec _ doc = displayString (layoutPretty defaultLayoutOptions doc)
 
-displayString :: SimpleDoc -> ShowS
+displayString :: SimpleDoc ann -> ShowS
 displayString = \case
     SFail          -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
     SEmpty         -> id
@@ -1637,3 +1659,5 @@ displayString = \case
     SLine i x      -> showString ('\n':replicate i ' ') . displayString x
     SStylePush _ x -> displayString x
     SStylePop x    -> displayString x
+    SAnnPush _ x   -> displayString x
+    SAnnPop x      -> displayString x

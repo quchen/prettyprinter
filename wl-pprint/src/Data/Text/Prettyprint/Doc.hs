@@ -168,8 +168,9 @@ module Data.Text.Prettyprint.Doc (
     -- ** Font style
     bold, italics, underline,
 
-    -- ** Remove formatting
-    plain,
+    -- ** Annotations
+    annotate,
+    unAnnotate,
 
     -- * Optimization
     --

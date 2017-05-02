@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Render 'SimpleDoc' as plain 'Text'.
+-- | Render 'SimpleDoc' as plain 'Text', ignoring all annotations.
 module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
@@ -48,7 +48,7 @@ import Data.Text.Prettyprint.Doc
 -- lorem ipsum dolor
 --       (styles are ignored)
 --       sit amet
-renderLazy :: SimpleDoc -> LT.Text
+renderLazy :: SimpleDoc ann -> LT.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
@@ -59,10 +59,12 @@ renderLazy = TLB.toLazyText . build
         SLine i x      -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> build x
         SStylePush _ x -> build x
         SStylePop x    -> build x
+        SAnnPush _ x   -> build x
+        SAnnPop x      -> build x
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc -> Text
+renderStrict :: SimpleDoc ann -> Text
 renderStrict = LT.toStrict . renderLazy
 
 
@@ -72,7 +74,7 @@ renderStrict = LT.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc -> IO ()
+renderIO :: Handle -> SimpleDoc ann -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
@@ -84,7 +86,7 @@ renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 -- @
 -- 'putDoc' = 'hPutDoc' 'stdout'
 -- @
-putDoc :: Doc -> IO ()
+putDoc :: Doc ann -> IO ()
 putDoc = hPutDoc stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
@@ -98,5 +100,5 @@ putDoc = hPutDoc stdout
 -- @
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
-hPutDoc :: Handle -> Doc -> IO ()
+hPutDoc :: Handle -> Doc ann -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)
