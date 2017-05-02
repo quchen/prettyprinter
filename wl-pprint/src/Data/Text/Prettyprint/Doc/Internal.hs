@@ -27,14 +27,16 @@ import qualified Data.Text          as T
 import qualified Data.Text.Lazy     as Lazy
 import           Data.Void
 import           Data.Word
-import           Numeric.Natural
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
 -- from the semigroups package.
 import Data.Semigroup
 
--- Bse 4.8 introduced Foldable, Traversable and Monoid to the Prelude.
-#if !MIN_VERSION_base(4,8,0)
+-- Base 4.8 introduced Foldable, Traversable and Monoid to the Prelude, and
+-- Natural to Base.
+#if MIN_VERSION_base(4,8,0)
+import Numeric.Natural
+#else
 import Data.Foldable (Foldable (..))
 import Data.Monoid   hiding ((<>))
 import Prelude       hiding (foldr, foldr1)
@@ -231,7 +233,10 @@ instance Pretty Word64 where pretty = unsafeViaShow
 -- | >>> putDoc (pretty (2^123 :: Integer))
 -- 10633823966279326983230456482242756608
 instance Pretty Integer where pretty = unsafeViaShow
+
+#if MIN_VERSION_base(4,8,0)
 instance Pretty Natural where pretty = unsafeViaShow
+#endif
 
 -- | >>> putDoc (pretty (pi :: Float))
 -- 3.1415927
