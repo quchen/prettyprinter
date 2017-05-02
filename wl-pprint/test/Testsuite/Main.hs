@@ -51,12 +51,12 @@ fusionDoesNotChangeRendering depth
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
 
-newtype RandomDoc = RandomDoc Doc
+newtype RandomDoc ann = RandomDoc (Doc ann)
 
-instance Arbitrary RandomDoc where
+instance Arbitrary (RandomDoc ann) where
     arbitrary = fmap RandomDoc document
 
-document :: Gen Doc
+document :: Gen (Doc ann)
 document = (dampen . frequency)
     [ (20, content)
     , (1, newlines)
@@ -67,7 +67,7 @@ document = (dampen . frequency)
     , (1, enclosingOfOne)
     , (1, enclosingOfMany) ]
 
-content :: Gen Doc
+content :: Gen (Doc ann)
 content = frequency
     [ (1, pure emptyDoc)
     , (10, do word <- choose (minBound, maxBound :: Word8)
@@ -80,7 +80,7 @@ content = frequency
               , "…_[]^!<>=&@:-()?*}{/\\#$|~`+%\"';" ] )
     ]
 
-newlines :: Gen Doc
+newlines :: Gen (Doc ann)
 newlines = frequency
     [ (1, pure line)
     , (1, pure line')
@@ -88,24 +88,24 @@ newlines = frequency
     , (1, pure softline')
     , (1, pure hardline) ]
 
-nestingAndAlignment :: Gen Doc
+nestingAndAlignment :: Gen (Doc ann)
 nestingAndAlignment = frequency
     [ (1, nest   <$> arbitrary <*> concatenationOfMany)
     , (1, group  <$> document)
     , (1, hang   <$> arbitrary <*> concatenationOfMany)
     , (1, indent <$> arbitrary <*> concatenationOfMany) ]
 
-grouping :: Gen Doc
+grouping :: Gen (Doc ann)
 grouping = frequency
     [ (1, align  <$> document)
     , (1, flatAlt <$> document <*> document) ]
 
-concatenationOfTwo :: Gen Doc
+concatenationOfTwo :: Gen (Doc ann)
 concatenationOfTwo = frequency
     [ (1, (<>) <$> document <*> document)
     , (1, (<+>) <$> document <*> document) ]
 
-concatenationOfMany :: Gen Doc
+concatenationOfMany :: Gen (Doc ann)
 concatenationOfMany = frequency
     [ (1, hsep    <$> listOf document)
     , (1, vsep    <$> listOf document)
@@ -116,7 +116,7 @@ concatenationOfMany = frequency
     , (1, fillCat <$> listOf document)
     , (1, cat     <$> listOf document) ]
 
-enclosingOfOne :: Gen Doc
+enclosingOfOne :: Gen (Doc ann)
 enclosingOfOne = frequency
     [ (1, squotes  <$> document)
     , (1, dquotes  <$> document)
@@ -125,7 +125,7 @@ enclosingOfOne = frequency
     , (1, brackets <$> document)
     , (1, braces   <$> document) ]
 
-enclosingOfMany :: Gen Doc
+enclosingOfMany :: Gen (Doc ann)
 enclosingOfMany = frequency
     [ (1, encloseSep <$> document <*> document <*> pure ", " <*> listOf document)
     , (1, list       <$> listOf document)

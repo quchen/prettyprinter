@@ -61,154 +61,154 @@ import Data.Text.Prettyprint.Doc
 --
 -- >>> putDoc (d9966quotes "·")
 -- „·“
-d9966quotes :: Doc -> Doc
+d9966quotes :: Doc ann -> Doc ann
 d9966quotes = enclose b99dquote t66dquote
 
 -- | Double „66-99“ quotes, as used in English typography.
 --
 -- >>> putDoc (d6699quotes "·")
 -- “·”
-d6699quotes :: Doc -> Doc
+d6699quotes :: Doc ann -> Doc ann
 d6699quotes = enclose t66dquote t99dquote
 
 -- | Single „9-6“ quotes, as used in German typography.
 --
 -- >>> putDoc (s96quotes "·")
 -- ‚·‘
-s96quotes :: Doc -> Doc
+s96quotes :: Doc ann -> Doc ann
 s96quotes = enclose b9quote t6quote
 
 -- | Single „6-9“ quotes, as used in English typography.
 --
 -- >>> putDoc (s69quotes "·")
 -- ‘·’
-s69quotes :: Doc -> Doc
+s69quotes :: Doc ann -> Doc ann
 s69quotes = enclose t6quote t9quote
 
 -- | Double guillemets, pointing outwards (without adding any spacing).
 --
 -- >>> putDoc (dGuillemetsOut "·")
 -- «·»
-dGuillemetsOut :: Doc -> Doc
+dGuillemetsOut :: Doc ann -> Doc ann
 dGuillemetsOut = enclose ldGuillemet rdGuillemet
 
 -- | Double guillemets, pointing inwards (without adding any spacing).
 --
 -- >>> putDoc (dGuillemetsIn "·")
 -- »·«
-dGuillemetsIn :: Doc -> Doc
+dGuillemetsIn :: Doc ann -> Doc ann
 dGuillemetsIn = enclose rdGuillemet ldGuillemet
 
 -- | Single guillemets, pointing outwards (without adding any spacing).
 --
 -- >>> putDoc (sGuillemetsOut "·")
 -- ‹·›
-sGuillemetsOut :: Doc -> Doc
+sGuillemetsOut :: Doc ann -> Doc ann
 sGuillemetsOut = enclose lsGuillemet rsGuillemet
 
 -- | Single guillemets, pointing inwards (without adding any spacing).
 --
 -- >>> putDoc (sGuillemetsIn "·")
 -- ›·‹
-sGuillemetsIn :: Doc -> Doc
+sGuillemetsIn :: Doc ann -> Doc ann
 sGuillemetsIn = enclose rsGuillemet lsGuillemet
 
 -- | Bottom “99” style double quotes.
 --
 -- >>> putDoc b99dquote
 -- „
-b99dquote :: Doc
+b99dquote :: Doc ann
 b99dquote = "„"
 
 -- | Top “66” style double quotes.
 --
 -- >>> putDoc t66dquote
 -- “
-t66dquote :: Doc
+t66dquote :: Doc ann
 t66dquote = "“"
 
 -- | Top “99” style double quotes.
 --
 -- >>> putDoc t99dquote
 -- ”
-t99dquote :: Doc
+t99dquote :: Doc ann
 t99dquote = "”"
 
 -- | Bottom “9” style single quote.
 --
 -- >>> putDoc b9quote
 -- ‚
-b9quote :: Doc
+b9quote :: Doc ann
 b9quote = "‚"
 
 -- | Top “66” style single quote.
 --
 -- >>> putDoc t6quote
 -- ‘
-t6quote :: Doc
+t6quote :: Doc ann
 t6quote = "‘"
 
 -- | Top “9” style single quote.
 --
 -- >>> putDoc t9quote
 -- ’
-t9quote :: Doc
+t9quote :: Doc ann
 t9quote = "’"
 
 -- | Right-pointing double guillemets
 --
 -- >>> putDoc rdGuillemet
 -- »
-rdGuillemet :: Doc
+rdGuillemet :: Doc ann
 rdGuillemet = "»"
 
 -- | Left-pointing double guillemets
 --
 -- >>> putDoc ldGuillemet
 -- «
-ldGuillemet :: Doc
+ldGuillemet :: Doc ann
 ldGuillemet = "«"
 
 -- | Right-pointing single guillemets
 --
 -- >>> putDoc rsGuillemet
 -- ›
-rsGuillemet :: Doc
+rsGuillemet :: Doc ann
 rsGuillemet = "›"
 
 -- | Left-pointing single guillemets
 --
 -- >>> putDoc lsGuillemet
 -- ‹
-lsGuillemet :: Doc
+lsGuillemet :: Doc ann
 lsGuillemet = "‹"
 
 -- | >>> putDoc bullet
 -- •
-bullet :: Doc
+bullet :: Doc ann
 bullet = "•"
 
 -- | >>> putDoc endash
 -- –
-endash :: Doc
+endash :: Doc ann
 endash = "–"
 
 -- | >>> putDoc euro
 -- €
-euro :: Doc
+euro :: Doc ann
 euro = "€"
 
 -- | >>> putDoc cent
 -- ¢
-cent :: Doc
+cent :: Doc ann
 cent = "¢"
 
 -- | >>> putDoc yen
 -- ¥
-yen :: Doc
+yen :: Doc ann
 yen = "¥"
 
 -- | >>> putDoc pound
 -- £
-pound :: Doc
+pound :: Doc ann
 pound = "£"
