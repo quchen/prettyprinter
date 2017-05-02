@@ -48,7 +48,8 @@ import Prelude       hiding (foldr, foldr1)
 
 
 
--- | The abstract data type @'Doc'@ represents pretty documents.
+-- | The abstract data type @'Doc ann'@ represents pretty documents that have
+-- been annotated with data of type @ann@.
 --
 -- More specifically, a value of type @'Doc'@ represents a non-empty set of
 -- possible layouts of a document. The layout functions select one of these
