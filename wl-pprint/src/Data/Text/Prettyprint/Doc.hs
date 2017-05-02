@@ -155,19 +155,6 @@ module Data.Text.Prettyprint.Doc (
     lparen, rparen, langle, rangle, lbrace, rbrace, lbracket, rbracket, squote,
     dquote, semi, colon, comma, space, dot, slash, backslash, equals, pipe,
 
-    -- * Styling
-
-    Style(..), SColor(..), SIntensity(..), SLayer(..),
-
-    -- ** Font color
-    color, colorDull,
-    --
-    -- ** Background color
-    bgColor, bgColorDull,
-
-    -- ** Font style
-    bold, italics, underline,
-
     -- ** Annotations
     annotate,
     unAnnotate,

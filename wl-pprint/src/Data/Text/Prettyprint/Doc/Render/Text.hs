@@ -57,8 +57,6 @@ renderLazy = TLB.toLazyText . build
         SChar c x      -> TLB.singleton c <> build x
         SText _l t x   -> TLB.fromText t <> build x
         SLine i x      -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> build x
-        SStylePush _ x -> build x
-        SStylePop x    -> build x
         SAnnPush _ x   -> build x
         SAnnPop x      -> build x
 

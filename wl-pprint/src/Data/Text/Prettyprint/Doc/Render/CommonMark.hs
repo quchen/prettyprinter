@@ -28,7 +28,7 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as LT
 import           System.IO
 
-import Data.Text.Prettyprint.Doc                hiding (bold, italics)
+import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.RenderM
 
 #if __GLASGOW_HASKELL__ < 710

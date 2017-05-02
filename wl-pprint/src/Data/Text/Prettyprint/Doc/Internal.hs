@@ -106,11 +106,9 @@ data Doc ann =
     -- | React on the current nesting level, see 'nesting'
     | Nesting (Int -> (Doc ann))
 
-    -- | Add 'Style' information to the enclosed 'Doc'
-    | StylePush Style (Doc ann)
-
-    -- | Add an annotation to the enclosed 'Doc'
-    | AnnPush ann (Doc ann)
+    -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
+    -- styling directives or alt texts that can then be used by the renderer.
+    | Annotated ann (Doc ann)
 
 -- |
 -- @
@@ -304,28 +302,6 @@ instance Pretty Void where
 
 
 
--- | A general style to be applied to some text. How these turn out in the final
--- text depends on the layouter, for example a terminal backend might create
--- ANSI escape codes for each color.
-data Style =
-      SItalicized
-    | SBold
-    | SUnderlined
-    | SColor SLayer SIntensity SColor
-    deriving (Eq, Ord, Show)
-
--- | 8 different colors, so that all can be displayed in an ANSI terminal.
-data SColor = SBlack | SRed | SGreen | SYellow | SBlue | SMagenta | SCyan | SWhite
-    deriving (Eq, Ord, Show)
-
--- | Dull or vivid coloring, as supported by ANSI terminals.
-data SIntensity = SVivid | SDull
-    deriving (Eq, Ord, Show)
-
--- | Foreground (text) or background (paper) color
-data SLayer = SForeground | SBackground
-    deriving (Eq, Ord, Show)
-
 -- | The data type @SimpleDoc@ represents laid out documents and is used by the
 -- display functions.
 --
@@ -354,14 +330,10 @@ data SimpleDoc ann =
     -- | @Int@ = indentation level for the line
     | SLine !Int (SimpleDoc ann)
 
-    -- | Apply a style to the remaining document. The display function should do
-    -- this until it hits a 'SStylePop' entry.
-    | SStylePush Style (SimpleDoc ann)
-
-    -- | Undo one previously set 'SStylePush'.
-    | SStylePop (SimpleDoc ann)
-
+    -- | Add an annotation to the remaining document.
     | SAnnPush ann (SimpleDoc ann)
+
+    -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDoc ann)
 
 
@@ -515,8 +487,7 @@ flatten = \case
     Column f        -> Column (flatten . f)
     WithPageWidth f -> WithPageWidth (flatten . f)
     Nesting f       -> Nesting (flatten . f)
-    StylePush s x   -> StylePush s (flatten x)
-    AnnPush ann x   -> AnnPush ann (flatten x)
+    Annotated ann x -> Annotated ann (flatten x)
 
     x@Fail   -> x
     x@Empty  -> x
@@ -1230,36 +1201,9 @@ pipe = "|"
 
 
 
--- | Style the foreground with a vivid color.
-color :: SColor -> Doc ann -> Doc ann
-color c = StylePush (SColor SForeground SVivid c)
-
--- | Style the background with a vivid color.
-bgColor :: SColor -> Doc ann -> Doc ann
-bgColor c = StylePush (SColor SBackground SVivid c)
-
--- | Style the foreground with a dull color.
-colorDull :: SColor -> Doc ann -> Doc ann
-colorDull c = StylePush (SColor SForeground SDull c)
-
--- | Style the background with a dull color.
-bgColorDull :: SColor -> Doc ann -> Doc ann
-bgColorDull c = StylePush (SColor SBackground SDull c)
-
--- | Render the enclosed document in __bold__.
-bold :: Doc ann -> Doc ann
-bold = StylePush SBold
-
--- | Render the enclosed document in /italics/.
-italics :: Doc ann -> Doc ann
-italics = StylePush SItalicized
-
--- | Render the enclosed document underlined.
-underline :: Doc ann -> Doc ann
-underline = StylePush SUnderlined
 
 annotate :: ann -> Doc ann -> Doc ann
-annotate = AnnPush
+annotate = Annotated
 
 -- | Remove all annotations.
 --
@@ -1287,8 +1231,7 @@ unAnnotate = \case
     Column f        -> Column (unAnnotate . f)
     WithPageWidth f -> WithPageWidth (unAnnotate . f)
     Nesting f       -> Nesting (unAnnotate . f)
-    StylePush _ x   -> unAnnotate x
-    AnnPush _ x     -> unAnnotate x
+    Annotated _ x   -> unAnnotate x
 
 
 
@@ -1367,7 +1310,7 @@ fuse depth = go
         Nest 0 x          -> go x
         Nest i x          -> Nest i (go x)
 
-        StylePush _ Empty -> Empty
+        Annotated _ Empty -> Empty
 
         FlatAlt x1 x2 -> FlatAlt (go x1) (go x2)
         Union x1 x2   -> Union (go x1) (go x2)
@@ -1447,17 +1390,15 @@ layoutPretty = layoutFits fits1
         go :: Maybe Int -- ^ Width in which to fit the first line; Nothing is infinite
            -> SimpleDoc ann
            -> Bool
-        go Nothing _                 = True
-        go (Just w) _ | w < 0        = False
-        go _ SFail                   = False
-        go _ SEmpty                  = True
-        go (Just w) (SChar _ x)      = go (Just (w - 1)) x
-        go (Just w) (SText l _t x)   = go (Just (w - l)) x
-        go _ SLine{}                 = True
-        go (Just w) (SStylePush _ x) = go (Just w) x
-        go (Just w) (SStylePop x)    = go (Just w) x
-        go (Just w) (SAnnPush _ x)   = go (Just w) x
-        go (Just w) (SAnnPop x)      = go (Just w) x
+        go Nothing _               = True
+        go (Just w) _ | w < 0      = False
+        go _ SFail                 = False
+        go _ SEmpty                = True
+        go (Just w) (SChar _ x)    = go (Just (w - 1)) x
+        go (Just w) (SText l _t x) = go (Just (w - l)) x
+        go _ SLine{}               = True
+        go (Just w) (SAnnPush _ x) = go (Just w) x
+        go (Just w) (SAnnPop x)    = go (Just w) x
 
 -- | A slightly smarter layout algorithm with more lookahead. It provides
 -- python-ish pseudocode:
@@ -1519,17 +1460,15 @@ layoutSmart = layoutFits fitsR
            -> Maybe Int -- ^ Width in which to fit the first line
            -> SimpleDoc ann
            -> Bool
-        go _ _ Nothing _ = False
-        go _ _ (Just w) _ | w < 0                         = False
+        go _ _ Nothing _                  = False
+        go _ _ (Just w) _ | w < 0         = False
         go _ _ _ SFail                    = False
         go _ _ _ SEmpty                   = True
-        go pw m (Just w) (SChar _ x)             = go pw m (Just (w - 1)) x
-        go pw m (Just w) (SText l _t x)          = go pw m (Just (w - l)) x
+        go pw m (Just w) (SChar _ x)      = go pw m (Just (w - 1)) x
+        go pw m (Just w) (SText l _t x)   = go pw m (Just (w - l)) x
         go pw m _ (SLine i x)
           | m < i, CharsPerLine cpl <- pw = go pw m (Just (cpl - i)) x
           | otherwise                     = True
-        go pw m w (SStylePush _ x)        = go pw m w x
-        go pw m w (SStylePop x)           = go pw m w x
         go pw m w (SAnnPush _ x)          = go pw m w x
         go pw m w (SAnnPop x)             = go pw m w x
 
@@ -1562,7 +1501,6 @@ layoutFits
         -> LayoutPipeline ann -- Documents remaining to be handled (in order)
         -> SimpleDoc ann
     best _ _ Nil                = SEmpty
-    best !nl !cc (UndoStyle ds) = SStylePop (best nl cc ds)
     best !nl !cc (UndoAnn ds)   = SAnnPop (best nl cc ds)
     best !nl !cc (Cons !i d ds) = case d of
         Fail            -> SFail
@@ -1579,8 +1517,7 @@ layoutFits
         Column f        -> best nl cc (Cons i (f cc) ds)
         WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
-        StylePush s x   -> SStylePush s (best nl cc (Cons i x (UndoStyle ds)))
-        AnnPush ann x   -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
+        Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
     selectNicer
         :: FittingPredicate ann
@@ -1643,8 +1580,7 @@ layoutCompact doc = scan 0 [doc]
         Column f        -> scan k (f k:ds)
         WithPageWidth f -> scan k (f Unbounded : ds)
         Nesting f       -> scan k (f 0:ds)
-        StylePush _ x   -> scan k (x:ds)
-        AnnPush _ x     -> scan k (x:ds)
+        Annotated _ x   -> scan k (x:ds)
 
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions'.
 instance Show (Doc ann) where
@@ -1652,12 +1588,10 @@ instance Show (Doc ann) where
 
 displayString :: SimpleDoc ann -> ShowS
 displayString = \case
-    SFail          -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
-    SEmpty         -> id
-    SChar c x      -> showChar c . displayString x
-    SText _l t x   -> showString (T.unpack t) . displayString x
-    SLine i x      -> showString ('\n':replicate i ' ') . displayString x
-    SStylePush _ x -> displayString x
-    SStylePop x    -> displayString x
-    SAnnPush _ x   -> displayString x
-    SAnnPop x      -> displayString x
+    SFail        -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
+    SEmpty       -> id
+    SChar c x    -> showChar c . displayString x
+    SText _l t x -> showString (T.unpack t) . displayString x
+    SLine i x    -> showString ('\n':replicate i ' ') . displayString x
+    SAnnPush _ x -> displayString x
+    SAnnPop x    -> displayString x
