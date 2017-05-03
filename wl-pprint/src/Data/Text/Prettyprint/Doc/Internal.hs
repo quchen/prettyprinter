@@ -54,7 +54,7 @@ import Prelude       hiding (foldr, foldr1)
 
 
 
--- | The abstract data type @'Doc ann'@ represents pretty documents that have
+-- | The abstract data type @'Doc' ann@ represents pretty documents that have
 -- been annotated with data of type @ann@.
 --
 -- More specifically, a value of type @'Doc'@ represents a non-empty set of
@@ -315,10 +315,12 @@ instance Pretty a => Pretty (Maybe a) where
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
 instance Pretty Text where pretty = vsep . map unsafeText . T.splitOn "\n"
+
+-- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 
-instance Pretty Void where
-    pretty = absurd
+-- | I tried finding a good example to show here but could not find one
+instance Pretty Void where pretty = absurd
 
 
 
