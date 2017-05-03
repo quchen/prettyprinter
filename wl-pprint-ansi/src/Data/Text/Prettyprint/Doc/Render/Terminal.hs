@@ -5,7 +5,7 @@
 -- | Render 'SimpleDoc' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
-    AnsiTerminal(..), Color(..), Intensity(..), Layer(..),
+    AnsiTerminal, Color(..),
 
     -- ** Font color
     color, colorDull,
@@ -57,7 +57,8 @@ import Control.Applicative
 
 
 
--- | A general ANSI style.
+-- | A general ANSI style. Use e.g. 'color' or 'bold' to apply a style to a
+-- 'Doc'ument.
 data AnsiTerminal =
       Italicized
     | Bold

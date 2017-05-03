@@ -4,6 +4,7 @@
 
 -- | Render 'SimpleDoc' as common markdown AKA CommonMark in 'Text' format.
 module Data.Text.Prettyprint.Doc.Render.CommonMark (
+    Markdown,
     italics,
     bold,
 
@@ -44,11 +45,16 @@ import Control.Applicative
 
 
 
+-- | Styles supported by markdown documents
 data Markdown = Bold | Italics
     deriving (Eq, Ord, Show)
 
-bold, italics :: Doc Markdown -> Doc Markdown
+-- | Render a document bold by enclosing it in @**@.
+bold :: Doc Markdown -> Doc Markdown
 bold = annotate Bold
+
+-- | Render a document in italics by enclosing it in @*@.
+italics :: Doc Markdown -> Doc Markdown
 italics = annotate Italics
 
 
