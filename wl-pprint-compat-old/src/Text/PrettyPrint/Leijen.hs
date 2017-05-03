@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
@@ -7,7 +9,7 @@ module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of
     dquotes, parens, angles, braces, brackets, lparen, rparen, langle, rangle,
     lbrace, rbrace, lbracket, rbracket, squote, dquote, semi, colon, comma,
     space, dot, backslash, equals, string, int, integer, float, double,
-    rational, Pretty(..), SimpleDoc(..), renderPretty, renderCompact, displayS,
+    rational, Pretty(..), SimpleDoc, renderPretty, renderCompact, displayS,
     displayIO , bool , column, nesting, width
 
 ) where
@@ -20,10 +22,15 @@ import           Data.Monoid
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
-import           Data.Text.Prettyprint.Doc
-    (Doc, Pretty (..), SimpleDoc (..))
-import qualified Data.Text.Prettyprint.Doc                 as New
-import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
+import           Data.Text.Prettyprint.Doc             (Pretty (..))
+import qualified Data.Text.Prettyprint.Doc             as Doc
+import qualified Data.Text.Prettyprint.Doc             as New
+import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
+
+
+
+type Doc = Doc.Doc ()
+type SimpleDoc = Doc.SimpleDoc ()
 
 
 

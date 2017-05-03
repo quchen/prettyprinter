@@ -27,7 +27,6 @@ library
           Data.Text.Prettyprint.Doc
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Render.CommonMark
-        , Data.Text.Prettyprint.Doc.Render.Html
         , Data.Text.Prettyprint.Doc.Render.RenderM
         , Data.Text.Prettyprint.Doc.Render.Text
         , Data.Text.Prettyprint.Doc.Unicode

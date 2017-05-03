@@ -28,4 +28,3 @@ library
           base < 127
         , text
         , wl-pprint
-        , wl-pprint-ansi

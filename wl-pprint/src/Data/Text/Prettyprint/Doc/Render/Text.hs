@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Render 'SimpleDoc' as plain 'Text'.
+-- | Render an unannotated 'SimpleDoc' as plain 'Text'.
 module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
@@ -38,17 +38,13 @@ import Data.Text.Prettyprint.Doc
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text.
 --
--- All styling information is discarded. If this is undesirable, maybe the
--- functions in "Data.Text.Prettyprint.Doc.Render.Terminal" are closer to what
--- you are looking for.
---
 -- >>> let render = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
--- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens (color SRed "styles are ignored"), "sit amet"])
+-- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens "foo bar", "sit amet"])
 -- >>> render doc
 -- lorem ipsum dolor
---       (styles are ignored)
+--       (foo bar)
 --       sit amet
-renderLazy :: SimpleDoc -> LT.Text
+renderLazy :: SimpleDoc () -> LT.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
@@ -57,12 +53,12 @@ renderLazy = TLB.toLazyText . build
         SChar c x      -> TLB.singleton c <> build x
         SText _l t x   -> TLB.fromText t <> build x
         SLine i x      -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> build x
-        SStylePush _ x -> build x
-        SStylePop x    -> build x
+        SAnnPush _ x   -> build x
+        SAnnPop x      -> build x
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc -> Text
+renderStrict :: SimpleDoc () -> Text
 renderStrict = LT.toStrict . renderLazy
 
 
@@ -72,7 +68,7 @@ renderStrict = LT.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc -> IO ()
+renderIO :: Handle -> SimpleDoc () -> IO ()
 renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
@@ -84,7 +80,7 @@ renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
 -- @
 -- 'putDoc' = 'hPutDoc' 'stdout'
 -- @
-putDoc :: Doc -> IO ()
+putDoc :: Doc () -> IO ()
 putDoc = hPutDoc stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
@@ -98,5 +94,5 @@ putDoc = hPutDoc stdout
 -- @
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
-hPutDoc :: Handle -> Doc -> IO ()
+hPutDoc :: Handle -> Doc () -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)

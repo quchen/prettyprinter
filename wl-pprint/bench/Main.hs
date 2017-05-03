@@ -16,7 +16,7 @@ import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Render.Text
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 #endif
 
@@ -75,7 +75,7 @@ benchWLComparison = bgroup "vs. other libs"
         ]
     ]
   where
-    doc :: Doc
+    doc :: Doc ann
     doc = let fun x = "fun" <> parens (softline <> x)
               funnn = chain 10 fun
           in funnn (sep (take 48 (cycle ["hello", "world"])))

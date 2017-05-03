@@ -12,7 +12,7 @@ module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for use
     ongreen, onyellow, onblue, onmagenta, oncyan, onwhite, ondullblack,
     ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan,
     ondullwhite, bold, debold, underline, deunderline, plain, string, int,
-    integer, float, double, rational, Pretty(..), SimpleDoc(..), renderPretty,
+    integer, float, double, rational, Pretty(..), SimpleDoc, renderPretty,
     renderCompact, displayS, displayIO, bool, column, columns, nesting, width
 
 ) where
@@ -25,10 +25,15 @@ import           Data.Monoid
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
-import           Data.Text.Prettyprint.Doc
-    (Doc, Pretty (..), SimpleDoc (..))
+import           Data.Text.Prettyprint.Doc                 (Pretty (..))
+import qualified Data.Text.Prettyprint.Doc                 as Doc
 import qualified Data.Text.Prettyprint.Doc                 as New
 import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
+
+
+
+type Doc = Doc.Doc NewT.AnsiTerminal
+type SimpleDoc = Doc.SimpleDoc NewT.AnsiTerminal
 
 
 
@@ -160,47 +165,47 @@ black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
     onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite, ondullblack,
     ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan,
     ondullwhite, bold, debold, underline, deunderline :: Doc -> Doc
-black         = New.color       New.SBlack
-red           = New.color       New.SRed
-green         = New.color       New.SGreen
-yellow        = New.color       New.SYellow
-blue          = New.color       New.SBlue
-magenta       = New.color       New.SMagenta
-cyan          = New.color       New.SCyan
-white         = New.color       New.SWhite
-dullblack     = New.colorDull   New.SBlack
-dullred       = New.colorDull   New.SRed
-dullgreen     = New.colorDull   New.SGreen
-dullyellow    = New.colorDull   New.SYellow
-dullblue      = New.colorDull   New.SBlue
-dullmagenta   = New.colorDull   New.SMagenta
-dullcyan      = New.colorDull   New.SCyan
-dullwhite     = New.colorDull   New.SWhite
-onblack       = New.bgColor     New.SBlack
-onred         = New.bgColor     New.SRed
-ongreen       = New.bgColor     New.SGreen
-onyellow      = New.bgColor     New.SYellow
-onblue        = New.bgColor     New.SBlue
-onmagenta     = New.bgColor     New.SMagenta
-oncyan        = New.bgColor     New.SCyan
-onwhite       = New.bgColor     New.SWhite
-ondullblack   = New.bgColorDull New.SBlack
-ondullred     = New.bgColorDull New.SRed
-ondullgreen   = New.bgColorDull New.SGreen
-ondullyellow  = New.bgColorDull New.SYellow
-ondullblue    = New.bgColorDull New.SBlue
-ondullmagenta = New.bgColorDull New.SMagenta
-ondullcyan    = New.bgColorDull New.SCyan
-ondullwhite   = New.bgColorDull New.SWhite
-bold = New.bold
+black         = NewT.color       NewT.Black
+red           = NewT.color       NewT.Red
+green         = NewT.color       NewT.Green
+yellow        = NewT.color       NewT.Yellow
+blue          = NewT.color       NewT.Blue
+magenta       = NewT.color       NewT.Magenta
+cyan          = NewT.color       NewT.Cyan
+white         = NewT.color       NewT.White
+dullblack     = NewT.colorDull   NewT.Black
+dullred       = NewT.colorDull   NewT.Red
+dullgreen     = NewT.colorDull   NewT.Green
+dullyellow    = NewT.colorDull   NewT.Yellow
+dullblue      = NewT.colorDull   NewT.Blue
+dullmagenta   = NewT.colorDull   NewT.Magenta
+dullcyan      = NewT.colorDull   NewT.Cyan
+dullwhite     = NewT.colorDull   NewT.White
+onblack       = NewT.bgColor     NewT.Black
+onred         = NewT.bgColor     NewT.Red
+ongreen       = NewT.bgColor     NewT.Green
+onyellow      = NewT.bgColor     NewT.Yellow
+onblue        = NewT.bgColor     NewT.Blue
+onmagenta     = NewT.bgColor     NewT.Magenta
+oncyan        = NewT.bgColor     NewT.Cyan
+onwhite       = NewT.bgColor     NewT.White
+ondullblack   = NewT.bgColorDull NewT.Black
+ondullred     = NewT.bgColorDull NewT.Red
+ondullgreen   = NewT.bgColorDull NewT.Green
+ondullyellow  = NewT.bgColorDull NewT.Yellow
+ondullblue    = NewT.bgColorDull NewT.Blue
+ondullmagenta = NewT.bgColorDull NewT.Magenta
+ondullcyan    = NewT.bgColorDull NewT.Cyan
+ondullwhite   = NewT.bgColorDull NewT.White
+bold = NewT.bold
 debold = id
 {-# WARNING debold "Debold does not do anything" #-}
-underline = New.underline
+underline = NewT.underline
 deunderline = id
 {-# WARNING deunderline "Debold does not do anything" #-}
 
 plain :: Doc -> Doc
-plain = New.plain
+plain = New.unAnnotate
 
 string :: String -> Doc
 string = New.pretty

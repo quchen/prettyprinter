@@ -18,7 +18,7 @@ module Data.Text.Prettyprint.Doc.Render.RenderM (
 
 import Data.Monoid
 
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
 #endif
 
@@ -44,7 +44,7 @@ instance Monoid output => Applicative (RenderM output style) where
         in (f1 x2, w12, s2))
 
 instance Monoid output => Monad (RenderM output style) where
-#if __GLASGOW_HASKELL__ < 710
+#if !MIN_VERSION_base(4,8,0)
     return = pure
 #endif
     RenderM r >>= f = RenderM (\s ->
