@@ -168,9 +168,9 @@ module Data.Text.Prettyprint.Doc (
     --
     -- | Laying a 'Doc'ument out produces a straightforward 'SimpleDoc' based on
     -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
-    -- fits these constraints the best. There are various ways to render a 'SimpleDoc'.
-    -- For the common case of rendering a 'SimpleDoc' as plain 'Text' take a look
-    -- at "Data.Text.Prettyprint.Doc.Render.Text".
+    -- fits these constraints the best. There are various ways to render a
+    -- 'SimpleDoc'. For the common case of rendering a 'SimpleDoc' as plain
+    -- 'Text' take a look at "Data.Text.Prettyprint.Doc.Render.Text".
     SimpleDoc(..),
     PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,

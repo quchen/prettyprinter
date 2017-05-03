@@ -330,8 +330,12 @@ instance Pretty Void where
 -- contained in 'Doc' resolved, making it very easy to convert it to other
 -- formats, such as plain text or terminal output.
 --
--- To write your own Doc ann to X converter, it is therefore sufficient to convert
--- from 'SimpleDoc'.
+-- To write your own @'Doc'@ to X converter, it is therefore sufficient to
+-- convert from @'SimpleDoc'@.
+--
+-- This package includes converters to a couple of formatters that you can use
+-- by importing one of "Data.Text.Prettyprint.Doc.Render.CommonMark" or
+-- "Data.Text.Prettyprint.Doc.Render.Text".
 data SimpleDoc ann =
       SFail
     | SEmpty
