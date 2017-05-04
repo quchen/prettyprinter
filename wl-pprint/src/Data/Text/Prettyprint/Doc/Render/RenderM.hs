@@ -3,7 +3,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | A strict State/Writer monad used for rendering 'SimpleDoc's.
+-- | A strict State/Writer monad to implement a stack machine for rendering
+-- 'SimpleDoc's.
 module Data.Text.Prettyprint.Doc.Render.RenderM (
     RenderM,
     execRenderM,
