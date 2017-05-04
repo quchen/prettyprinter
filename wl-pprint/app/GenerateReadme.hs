@@ -26,7 +26,11 @@ readmeContents = (mconcat . L.intersperse vspace)
 
     , h1 "Prettyprinter à la Wadler/Leijen"
 
-    , "Master build: [![status](https://travis-ci.org/quchen/prettyprinter.svg?branch=master)](https://travis-ci.org/quchen/prettyprinter)"
+    , cat
+        [ "[![status](https://img.shields.io/github/release/quchen/prettyprinter.svg?style=flat-square&label=Latest%20version)](https://github.com/quchen/prettyprinter/releases)"
+        , "[![status](https://img.shields.io/travis/quchen/prettyprinter/master.svg?style=flat-square&label=Master%20build)](https://travis-ci.org/quchen/prettyprinter)"
+        ]
+
     , paragraph "This module defines a prettyprinter to format text in a\
         \ flexible and convenient way. The idea is to combine a document out\
         \ of many small components, then using a layouter to convert it to an\
