@@ -193,7 +193,7 @@ module Data.Text.Prettyprint.Doc (
 
 
 
-import Data.Monoid
+import Data.Semigroup
 import Data.Text.Prettyprint.Doc.Internal
 
 -- $setup

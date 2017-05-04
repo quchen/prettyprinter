@@ -68,9 +68,9 @@ benchWLComparison = bgroup "vs. other libs"
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutCompact)                     doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutCompact) (fuse Shallow       doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutCompact) (fuse Deep          doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutCompact)               doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutCompact) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutCompact) (fuse Deep    doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderCompact d) "") wlDoc)
         ]
     ]
@@ -81,7 +81,7 @@ benchWLComparison = bgroup "vs. other libs"
           in funnn (sep (take 48 (cycle ["hello", "world"])))
 
     wlDoc :: WL.Doc
-    wlDoc = let fun x = "fun" <> WL.parens (WL.softline <> x)
+    wlDoc = let fun x = "fun" WL.<> WL.parens (WL.softline WL.<> x)
                 funnn = chain 10 fun
             in funnn (WL.sep (take 48 (cycle ["hello", "world"])))
 

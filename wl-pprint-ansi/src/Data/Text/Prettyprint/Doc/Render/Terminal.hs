@@ -31,7 +31,6 @@ module Data.Text.Prettyprint.Doc.Render.Terminal (
 import           Control.Monad
 import           Data.Functor
 import           Data.Maybe
-import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT

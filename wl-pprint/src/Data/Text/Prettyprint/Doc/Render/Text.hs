@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -15,7 +16,6 @@ module Data.Text.Prettyprint.Doc.Render.Text (
 
 
 
-import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
@@ -25,6 +25,9 @@ import           System.IO
 
 import Data.Text.Prettyprint.Doc
 
+#if !MIN_VERSION_base(4,8,0)
+import Data.Semigroup
+#endif
 
 
 -- $setup

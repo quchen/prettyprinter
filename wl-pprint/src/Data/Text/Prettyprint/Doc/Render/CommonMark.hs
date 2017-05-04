@@ -21,7 +21,6 @@ module Data.Text.Prettyprint.Doc.Render.CommonMark (
 
 
 
-import           Data.Monoid
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as LT
