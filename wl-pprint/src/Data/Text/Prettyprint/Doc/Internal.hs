@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -154,6 +155,9 @@ class Pretty a where
     -- 1 hello 1.234
     pretty :: a -> Doc ann
 
+    default pretty :: Show a => a -> Doc ann
+    pretty = viaShow
+
     -- | @'prettyList'@ is only used to define the @instance
     -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
     -- function is used.
@@ -172,8 +176,8 @@ instance Pretty a => Pretty (NonEmpty a) where
     pretty (x:|xs) = prettyList (x:xs)
 
 -- | Does not change the text, but removes all annotations. __Pitfall__: since
--- this un-annotates its argument, so nesting it means multiple traversals over
--- the 'Doc'.
+-- this un-annotates its argument, nesting it means multiple, potentially
+-- costly, traversals over the 'Doc'.
 --
 -- >>> putDoc (pretty 123)
 -- 123
@@ -212,9 +216,15 @@ instance Pretty Char where
 
     prettyList = (pretty :: Text -> Doc ann) . fromString
 
+-- | Convert a 'Show'able value to a 'Doc'. If the 'String' does not contain
+-- newlines, consider using the more performant 'unsafeViaShow'.
+viaShow :: Show a => a -> Doc ann
+viaShow = pretty . T.pack . show
+
 -- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
+-- If there are newlines, use 'viaShow' instead.
 unsafeViaShow :: Show a => a -> Doc ann
-unsafeViaShow = unsafeText  . T.pack . show
+unsafeViaShow = unsafeText . T.pack . show
 
 -- | >>> putDoc (pretty (123 :: Int))
 -- 123
