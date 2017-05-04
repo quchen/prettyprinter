@@ -174,8 +174,9 @@ instance Pretty a => Pretty [a] where
 instance Pretty a => Pretty (NonEmpty a) where
     pretty (x:|xs) = prettyList (x:xs)
 
--- | Identity transformation. __Pitfall__: this un-annotates its argument, so
--- nesting it means multiple traversals over the 'Doc'.
+-- | Does not change the text, but removes all annotations. __Pitfall__: since
+-- this un-annotates its argument, so nesting it means multiple traversals over
+-- the 'Doc'.
 --
 -- >>> putDoc (pretty 123)
 -- 123
