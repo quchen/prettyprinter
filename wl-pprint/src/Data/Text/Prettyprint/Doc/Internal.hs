@@ -223,6 +223,7 @@ instance Pretty Int8 where pretty = unsafeViaShow
 instance Pretty Int16 where pretty = unsafeViaShow
 instance Pretty Int32 where pretty = unsafeViaShow
 instance Pretty Int64 where pretty = unsafeViaShow
+instance Pretty Word where pretty = unsafeViaShow
 instance Pretty Word8 where pretty = unsafeViaShow
 instance Pretty Word16 where pretty = unsafeViaShow
 instance Pretty Word32 where pretty = unsafeViaShow
