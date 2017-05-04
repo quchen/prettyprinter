@@ -296,7 +296,7 @@ import Data.Text.Prettyprint.Doc.Internal
 --
 -- @
 -- 'align' 'mempty' = 'mempty'
--- 'align' ('text' s) = 'text' s
+-- 'align' ('pretty' string) = 'pretty' string
 -- 'align' ('align' x) = 'align' x
 -- @
 --
