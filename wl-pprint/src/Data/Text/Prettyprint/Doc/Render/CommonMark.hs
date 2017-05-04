@@ -12,7 +12,7 @@ module Data.Text.Prettyprint.Doc.Render.CommonMark (
     renderLazy,
     renderStrict,
 
-    -- * Render directly to 'stdout'
+    -- * Render to a 'Handle'
     renderIO,
 
     -- ** Convenience functions

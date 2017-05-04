@@ -7,7 +7,7 @@ module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
 
-    -- * Render directly to 'stdout'
+    -- * Render to a 'Handle'
     renderIO,
 
     -- ** Convenience functions
