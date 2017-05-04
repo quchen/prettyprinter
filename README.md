@@ -63,6 +63,7 @@ colouring, a web browser a plethora of different formattings.
 More complex uses of annotations include e.g. adding type annotations for
 mouse-over hovers when printing a syntax tree, adding URLs to documentation, or
 adding source locations to show where a certain piece of output comes from.
+Idris is a project that makes extensive use of such a feature.
 
 Special care has been applied to make annotations unobtrusive, so that if you
 don’t need or care about them there is no overhead, neither in terms of

@@ -143,8 +143,8 @@ instance Monoid (Doc ann) where
 -- hello
 -- world
 --
--- This instance uses the 'Pretty' 'Doc' instance, and uses the same newline
--- conversion to 'line'.
+-- This instance uses the 'Pretty' 'Text' instance, and uses the same newline to
+-- 'line' conversion.
 instance IsString (Doc ann) where
     fromString = pretty . T.pack
 
@@ -383,14 +383,22 @@ unsafeText t = case T.length t of
     1 -> Char (T.head t)
     n -> Text n t
 
--- | The empty docdument behaves like @('pretty' "")@, so it has a height of 1.
+-- | Alternative implementation of unsafeText. TODO: find out which one is better
+unsafeText' :: Text -> Doc ann
+unsafeText' text = case T.uncons text of
+    Nothing -> Empty
+    Just (t,ext)
+        | T.null ext -> Char t
+        | otherwise -> Text (T.length text) text
+
+-- | The empty document behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
--- inside e.g. 'vcat', where we get an empty line of output from it ('angles'
+-- inside e.g. 'vcat', where we get an empty line of output from it ('parens'
 -- for visibility only):
 --
--- >>> putDoc (vsep ["hello", angles emptyDoc, "world"])
+-- >>> putDoc (vsep ["hello", parens emptyDoc, "world"])
 -- hello
--- <>
+-- ()
 -- world
 --
 -- Together with '<>', 'emptyDoc' forms the 'Monoid' 'Doc'.
@@ -1403,8 +1411,10 @@ data LayoutOptions = LayoutOptions
 -- don’t particularly care about the details. Used by the 'Show' instance, for
 -- example.
 --
--- >>> defaultLayoutOptions
--- LayoutOptions {layoutPageWidth = CharsPerLine 80, layoutRibbonFraction = 0.4}
+-- >>> layoutPageWidth defaultLayoutOptions
+-- CharsPerLine 80
+-- >>> layoutRibbonFraction defaultLayoutOptions
+-- 0.4
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions
     { layoutPageWidth = CharsPerLine 80
