@@ -1225,20 +1225,27 @@ pipe = "|"
 
 
 
-
+-- | Add an annotation to a @'Doc'@. This annotation can then be used by the
+-- renderer to e.g. add colour to certain parts of the output. For a simple
+-- example, see "Data.Text.Prettyprint.Doc.Render.CommonMark".
+--
+-- This function is only relevant for custom formats with their own annotations,
+-- and not relevant for basic prettyprinting. The predefined renderers, e.g.
+-- "Data.Text.Prettyprint.Doc.Render.Text", should be enough for the most common
+-- needs.
 annotate :: ann -> Doc ann -> Doc ann
 annotate = Annotated
 
 -- | Remove all annotations.
 --
--- Although 'plain' is idempotent,
+-- Although 'unAnnotate' is idempotent with respect to rendering,
 --
 -- @
--- 'plain' . 'plain' = 'plain'
+-- 'unAnnotate' . 'unAnnotate' = 'unAnnotate'
 -- @
 --
 -- it should not be used without caution, for each invocation traverses the
--- entire contained document. The most common place to use 'plain' is just
+-- entire contained document. The most common place to use 'unAnnotate' is just
 -- before producing a layout.
 unAnnotate :: Doc ann -> Doc xxx
 unAnnotate = \case
