@@ -1394,12 +1394,7 @@ defaultLayoutOptions = LayoutOptions
     }
 
 -- | This is the default prettyprinter which is used by 'show', 'putDoc' and
--- 'hPutDoc'. @(layoutPretty ribbonfrac width x)@ lays out the document @x@ with
--- a page width of @width@ and a ribbon width of @(ribbonfrac * width)@
--- characters. The ribbon width is the maximal amount of non-indentation
--- characters on a line. The parameter @ribbonfrac@ should be between @0.0@ and
--- @1.0@. If it is lower or higher, the ribbon width will be 0 or @width@
--- respectively.
+-- 'hPutDoc'.
 layoutPretty
     :: LayoutOptions
     -> Doc ann
