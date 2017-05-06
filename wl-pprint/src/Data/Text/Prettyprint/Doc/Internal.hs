@@ -82,7 +82,7 @@ data Doc ann =
     --
     -- Since the frequently used 'T.length' of 'Text' is /O(length)/, we cache
     -- it in this constructor.
-    | Text {-# UNPACK #-} !Int Text
+    | Text !Int Text
 
     -- | Line break
     | Line
