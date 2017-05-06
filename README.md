@@ -58,7 +58,7 @@ anymore.
 
 Text is not all letters and newlines. Often, we want to add more information,
 the simplest kind being some form of styling. An ANSI terminal supports
-colouring, a web browser a plethora of different formattings.
+coloring, a web browser a plethora of different formattings.
 
 More complex uses of annotations include e.g. adding type annotations for
 mouse-over hovers when printing a syntax tree, adding URLs to documentation, or

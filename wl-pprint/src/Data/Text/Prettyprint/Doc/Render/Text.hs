@@ -18,9 +18,9 @@ module Data.Text.Prettyprint.Doc.Render.Text (
 
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as LT
+import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
@@ -34,20 +34,20 @@ import Data.Semigroup
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
 -- >>> import qualified Data.Text.IO as T
--- >>> import qualified Data.Text.Lazy.IO as LT
+-- >>> import qualified Data.Text.Lazy.IO as TL
 
 
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text.
 --
--- >>> let render = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
+-- >>> let render = TL.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> let doc = "lorem" <+> align (vsep ["ipsum dolor", parens "foo bar", "sit amet"])
 -- >>> render doc
 -- lorem ipsum dolor
 --       (foo bar)
 --       sit amet
-renderLazy :: SimpleDoc () -> LT.Text
+renderLazy :: SimpleDoc () -> TL.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
@@ -62,7 +62,7 @@ renderLazy = TLB.toLazyText . build
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
 renderStrict :: SimpleDoc () -> Text
-renderStrict = LT.toStrict . renderLazy
+renderStrict = TL.toStrict . renderLazy
 
 
 
@@ -72,7 +72,7 @@ renderStrict = LT.toStrict . renderLazy
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc () -> IO ()
-renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
+renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters.

@@ -23,9 +23,9 @@ module Data.Text.Prettyprint.Doc.Render.CommonMark (
 
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as LT
+import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
@@ -40,7 +40,7 @@ import Control.Applicative
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XLambdaCase
 -- >>> import qualified Data.Text.IO as T
--- >>> import qualified Data.Text.Lazy.IO as LT
+-- >>> import qualified Data.Text.Lazy.IO as TL
 
 
 
@@ -61,10 +61,10 @@ italics = annotate Italics
 -- | Add Markdown-style markers for emphasis and strong emphasis.
 --
 -- >>> let doc = "This text" <+> italics ("is emphasized" <+> bold "even stronger" <> "!")
--- >>> let pprint = LT.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
+-- >>> let pprint = TL.putStrLn . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> pprint doc
 -- This text *is emphasized **even stronger**!*
-renderLazy :: SimpleDoc Markdown -> LT.Text
+renderLazy :: SimpleDoc Markdown -> TL.Text
 renderLazy doc
   = let (resultBuilder, remainingMarkdowns) = execRenderM [] (build doc)
     in if null remainingMarkdowns
@@ -103,7 +103,7 @@ styleToMarker = \case
 
 -- | Strict version of 'renderLazy'.
 renderStrict :: SimpleDoc Markdown -> Text
-renderStrict = LT.toStrict . renderLazy
+renderStrict = TL.toStrict . renderLazy
 
 
 
@@ -113,7 +113,7 @@ renderStrict = LT.toStrict . renderLazy
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc Markdown -> IO ()
-renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
+renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a
 -- page width of 80 characters and a ribbon width of 32 characters.

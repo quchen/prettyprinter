@@ -33,9 +33,9 @@ import           Data.Functor
 import           Data.Maybe
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import qualified Data.Text.Lazy         as LT
+import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as LT
+import qualified Data.Text.Lazy.IO      as TL
 import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, stdout)
 
@@ -50,8 +50,8 @@ import Control.Applicative
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import qualified Data.Text.Lazy.IO as LT
--- >>> import qualified Data.Text.Lazy as LT
+-- >>> import qualified Data.Text.Lazy.IO as TL
+-- >>> import qualified Data.Text.Lazy as TL
 -- >>> import Data.Text.Prettyprint.Doc.Render.Terminal
 
 
@@ -117,7 +117,7 @@ underline = annotate Underlined
 -- With a bit of trickery to make the ANSI codes printable, here is an example
 -- that would render colored in an ANSI terminal:
 --
--- >>> let render = LT.putStrLn . LT.replace "\ESC" "\\e" . renderLazy . layoutPretty defaultLayoutOptions
+-- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\e" . renderLazy . layoutPretty defaultLayoutOptions
 -- >>> let doc = color Red ("red" <+> align (vsep [color Blue ("blue" <+> bold "bold" <+> "blue"), "red"]))
 -- >>> render (unAnnotate doc)
 -- red blue bold blue
@@ -127,7 +127,7 @@ underline = annotate Underlined
 --     red\e[0m
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
-renderLazy :: SimpleDoc AnsiTerminal -> LT.Text
+renderLazy :: SimpleDoc AnsiTerminal -> TL.Text
 renderLazy doc
   = let (resultBuilder, remainingStyles) = execRenderM [emptyStyle] (build doc)
     in case remainingStyles of
@@ -216,7 +216,7 @@ stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
 renderStrict :: SimpleDoc AnsiTerminal -> Text
-renderStrict = LT.toStrict . renderLazy
+renderStrict = TL.toStrict . renderLazy
 
 
 
@@ -226,7 +226,7 @@ renderStrict = LT.toStrict . renderLazy
 -- hello
 -- world
 renderIO :: Handle -> SimpleDoc AnsiTerminal -> IO ()
-renderIO h sdoc = LT.hPutStrLn h (renderLazy sdoc)
+renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
 -- width of 80 characters and a ribbon width of 32 characters.

@@ -44,11 +44,9 @@ import Prelude       hiding (foldr, foldr1)
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
+-- >>> import Data.Text.Prettyprint.Doc.Util as Util
 -- >>> import Test.QuickCheck.Modifiers
--- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = CharsPerLine w }
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
 
 
 
@@ -214,7 +212,7 @@ instance Pretty Char where
     pretty '\n' = line
     pretty c = Char c
 
-    prettyList = (pretty :: Text -> Doc ann) . fromString
+    prettyList = pretty . (id :: Text -> Text) . fromString
 
 -- | Convert a 'Show'able value to a 'Doc'. If the 'String' does not contain
 -- newlines, consider using the more performant 'unsafeViaShow'.
@@ -603,7 +601,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- /current column/ plus @i@. Negative values are allowed, and decrease the
 -- nesting level accordingly.
 --
--- >>> let doc = fillSep (map pretty (T.words "Indenting these words with hang"))
+-- >>> let doc = reflow "Indenting these words with hang"
 -- >>> putDocW 24 ("prefix" <+> hang 4 doc)
 -- prefix Indenting these
 --            words with
@@ -613,7 +611,7 @@ align d = column (\k -> nesting (\i -> nest (k - i) d)) -- nesting might be nega
 -- @i@. When you're not sure, try the more efficient 'nest' first. In our
 -- example, this would yield
 --
--- >>> let doc = fillSep (map pretty (T.words "Indenting these words with nest"))
+-- >>> let doc = reflow "Indenting these words with nest"
 -- >>> putDocW 24 ("prefix" <+> nest 4 doc)
 -- prefix Indenting these
 --     words with nest
@@ -630,7 +628,7 @@ hang i d = align (nest i d)
 -- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
 -- current cursor position.
 --
--- >>> let doc = fillSep (map pretty (T.words "The indent function indents these words!"))
+-- >>> let doc = reflow "The indent function indents these words!"
 -- >>> putDocW 24 ("prefix" <> indent 4 doc)
 -- prefix    The indent
 --           function
@@ -761,7 +759,7 @@ concatWith f ds
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
 --
--- >>> let docs = map pretty (T.words "lorem ipsum dolor sit amet")
+-- >>> let docs = Util.words "lorem ipsum dolor sit amet"
 --
 -- >>> putDoc (hsep docs)
 -- lorem ipsum dolor sit amet
@@ -858,7 +856,7 @@ sep = group . vsep
 --
 -- It is provided only for consistency, since it is identical to 'mconcat'.
 --
--- >>> let docs = map pretty (T.words "lorem ipsum dolor")
+-- >>> let docs = Util.words "lorem ipsum dolor"
 -- >>> putDoc (hcat docs)
 -- loremipsumdolor
 hcat :: [Doc ann] -> Doc ann
@@ -870,7 +868,7 @@ hcat = concatWith (<>)
 -- In other words @'vcat'@ is like @'vsep'@, with newlines removed instead of
 -- replaced by 'space's.
 --
--- >>> let docs = map pretty (T.words "lorem ipsum dolor")
+-- >>> let docs = Util.words "lorem ipsum dolor"
 -- >>> putDoc (vcat docs)
 -- lorem
 -- ipsum
@@ -915,7 +913,7 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 -- differentiates it from 'vcat', which always layouts its contents beneath each
 -- other.
 --
--- >>> let docs = map pretty (T.words "lorem ipsum dolor")
+-- >>> let docs = Util.words "lorem ipsum dolor"
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
 -- Docs: loremipsumdolor
 --
@@ -936,7 +934,7 @@ cat = group . vcat
 
 -- | @('punctuate' p xs)@ appends @p@ to all but the last document in @xs@.
 --
--- >>> let docs = punctuate comma (map pretty (T.words "lorem ipsum dolor sit amet"))
+-- >>> let docs = punctuate comma (Util.words "lorem ipsum dolor sit amet")
 -- >>> putDocW 80 (hsep docs)
 -- lorem, ipsum, dolor, sit, amet
 --
@@ -1245,7 +1243,7 @@ pipe = "|"
 
 
 -- | Add an annotation to a @'Doc'@. This annotation can then be used by the
--- renderer to e.g. add colour to certain parts of the output. For a simple
+-- renderer to e.g. add color to certain parts of the output. For a simple
 -- example, see "Data.Text.Prettyprint.Doc.Render.CommonMark".
 --
 -- This function is only relevant for custom formats with their own annotations,
@@ -1282,6 +1280,30 @@ unAnnotate = \case
     WithPageWidth f -> WithPageWidth (unAnnotate . f)
     Nesting f       -> Nesting (unAnnotate . f)
     Annotated _ x   -> unAnnotate x
+
+-- | Change the annotation of a 'Doc'ument.
+--
+-- Useful in particularly to embed documents with one form of annotation in a
+-- more generlly annotated document.
+--
+-- Technically this makes 'Doc' a 'Functor', but since reannotation is hardly
+-- intuitive we omit the instance.
+reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
+reAnnotate re = \case
+    Fail            -> Fail
+    Empty           -> Empty
+    Char c          -> Char c
+    Text l t        -> Text l t
+    Line            -> Line
+
+    FlatAlt x y     -> FlatAlt (reAnnotate re x) (reAnnotate re y)
+    Cat x y         -> Cat (reAnnotate re x) (reAnnotate re y)
+    Nest i x        -> Nest i (reAnnotate re x)
+    Union x y       -> Union (reAnnotate re x) (reAnnotate re y)
+    Column f        -> Column (reAnnotate re . f)
+    WithPageWidth f -> WithPageWidth (reAnnotate re . f)
+    Nesting f       -> Nesting (reAnnotate re . f)
+    Annotated ann x -> Annotated (re ann) (reAnnotate re x)
 
 
 
@@ -1546,9 +1568,9 @@ layoutFits
         -> Int -- Current column, i.e. "where the cursor is"
         -> LayoutPipeline ann -- Documents remaining to be handled (in order)
         -> SimpleDoc ann
-    best _ _ Nil                = SEmpty
-    best !nl !cc (UndoAnn ds)   = SAnnPop (best nl cc ds)
-    best !nl !cc (Cons !i d ds) = case d of
+    best !_ !_ Nil           = SEmpty
+    best nl cc (UndoAnn ds)  = SAnnPop (best nl cc ds)
+    best nl cc (Cons i d ds) = case d of
         Fail            -> SFail
         Empty           -> best nl cc ds
         Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
@@ -1571,8 +1593,7 @@ layoutFits
         -> Int           -- ^ Current column
         -> SimpleDoc ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
         -> SimpleDoc ann -- ^ Choice B.
-        -> SimpleDoc ann -- ^ The nicer one among A and B, depending on which
-                         --   one fits better.
+        -> SimpleDoc ann -- ^ Choice A if it fits, otherwise B.
     selectNicer (FP fits) lineIndent currentColumn x y
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
@@ -1628,7 +1649,8 @@ layoutCompact doc = scan 0 [doc]
         Nesting f       -> scan k (f 0:ds)
         Annotated _ x   -> scan k (x:ds)
 
--- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions'.
+-- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions',
+-- ignoring all annotations.
 instance Show (Doc ann) where
     showsPrec _ doc = displayString (layoutPretty defaultLayoutOptions doc)
 

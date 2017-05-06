@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | A collection of predefined unicode values for use with the "i"ter.
+-- | A collection of predefined unicode values.
 module Data.Text.Prettyprint.Doc.Unicode {-# WARNING "This module is unstable, and will likely be split up into multiple different ones in the future." #-} (
     -- * Quotes
 
@@ -27,7 +27,6 @@ module Data.Text.Prettyprint.Doc.Unicode {-# WARNING "This module is unstable, a
     rsGuillemet,
     lsGuillemet,
 
-
     -- * Various typographical symbols
     bullet,
     endash,
@@ -47,13 +46,8 @@ import Data.Text.Prettyprint.Doc
 
 -- $setup
 -- >>> :set -XOverloadedStrings
--- >>> import qualified Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = w }
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
-
-
-
+-- >>> import Data.Text.Prettyprint.Doc.Util
 
 
 

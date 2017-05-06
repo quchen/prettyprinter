@@ -158,6 +158,7 @@ module Data.Text.Prettyprint.Doc (
     -- ** Annotations
     annotate,
     unAnnotate,
+    reAnnotate,
 
     -- * Optimization
     --
@@ -199,8 +200,7 @@ import Data.Text.Prettyprint.Doc.Internal
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> let layoutOptions w = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = CharsPerLine w }
--- >>> let putDocW w doc = renderIO System.IO.stdout (layoutPretty (layoutOptions w) doc)
+-- >>> import Data.Text.Prettyprint.Doc.Util
 
 
 
