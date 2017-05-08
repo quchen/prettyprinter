@@ -55,6 +55,4 @@ reflow = fillSep . words
 putDocW :: Int -> Doc ann -> IO ()
 putDocW w doc = renderIO System.IO.stdout (layoutPretty layoutOptions (unAnnotate doc))
   where
-    layoutOptions = LayoutOptions
-        { layoutRibbonFraction = 1
-        , layoutPageWidth = CharsPerLine w }
+    layoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine w 1 }

@@ -1005,15 +1005,12 @@ width doc f
 
 -- | Layout a document depending on the page width, if one has been specified.
 --
--- >>> let doc = "prefix" <+> pageWidth (\(CharsPerLine l) -> brackets ("Width:" <+> pretty l))
+-- >>> let prettyPageWidth (AvailablePerLine l r) = "Width:" <+> pretty l <> ", ribbon fraction:" <+> pretty r
+-- >>> let doc = "prefix" <+> pageWidth (brackets . prettyPageWidth)
 -- >>> putDocW 32 (vsep [indent n doc | n <- [0,4,8]])
--- prefix [Width: 32]
---     prefix [Width: 32]
---         prefix [Width: 32]
---
--- Whether the page width is @'Just' n@ or @'Nothing'@ depends on the layouter.
--- Of the default layouters, @'layoutCompact'@ uses @'Nothing'@, and all others
--- @'Just' <pagewidth>@.
+-- prefix [Width: 32, ribbon fraction: 1.0]
+--     prefix [Width: 32, ribbon fraction: 1.0]
+--         prefix [Width: 32, ribbon fraction: 1.0]
 pageWidth :: (PageWidth -> Doc ann) -> Doc ann
 pageWidth = WithPageWidth
 
@@ -1413,39 +1410,39 @@ data LayoutPipeline ann =
 -- will try not to exceed the set limit by inserting line breaks when applicable
 -- (e.g. via 'softline'').
 data PageWidth
-    = CharsPerLine Int -- ^ Layouters should not exceed this many caracters per
-                       --   line (including whitespace).
-    | Unbounded        -- ^ No limit on the line length. Layouters should not
-                       --   introduce line breaks on their own.
+
+    = AvailablePerLine Int Double
+    -- ^ Layouters should not exceed the specified space per line.
+    --
+    --   - The 'Int' is the number of characters, including whitespace, that
+    --     fit in a line. A typical value is 80.
+    --
+    --   - The 'Double' is the ribbon with, i.e. the fraction of the total
+    --     page width that can be printed on. This allows limiting the length
+    --     of printable text per line. Values must be between 0 and 1, and
+    --     0.4 to 1 is typical.
+
+    | Unbounded
+    -- ^ Layouters should not introduce line breaks on their own.
+
     deriving (Eq, Ord, Show)
 
 -- $ Test to avoid surprising behaviour
--- >>> Unbounded > CharsPerLine maxBound
+-- >>> Unbounded > AvailablePerLine maxBound 1
 -- True
 
-data LayoutOptions = LayoutOptions
-    { -- | Maximum number of characters that fit in one line. 80 is a typical
-      -- value.
-      layoutPageWidth :: PageWidth
-
-    -- | Fraction of the total page width that can be printed on. This allows
-    -- limiting the length of printable text per line.
-    , layoutRibbonFraction :: Double
-    } deriving (Eq, Ord, Show)
+-- | Options to influence the layout algorithms.
+data LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
+    deriving (Eq, Ord, Show)
 
 -- | The default layout options, suitable when you just want some output, and
 -- don’t particularly care about the details. Used by the 'Show' instance, for
 -- example.
 --
--- >>> layoutPageWidth defaultLayoutOptions
--- CharsPerLine 80
--- >>> layoutRibbonFraction defaultLayoutOptions
--- 0.4
+-- >>> defaultLayoutOptions
+-- LayoutOptions {layoutPageWidth = AvailablePerLine 80 0.4}
 defaultLayoutOptions :: LayoutOptions
-defaultLayoutOptions = LayoutOptions
-    { layoutPageWidth = CharsPerLine 80
-    , layoutRibbonFraction = 0.4
-    }
+defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 0.4 }
 
 -- | This is the default prettyprinter which is used by 'show', 'putDoc' and
 -- 'hPutDoc'.
@@ -1532,17 +1529,17 @@ layoutSmart = layoutFits fitsR
            -> Maybe Int -- ^ Width in which to fit the first line
            -> SimpleDoc ann
            -> Bool
-        go _ _ Nothing _                  = False
-        go _ _ (Just w) _ | w < 0         = False
-        go _ _ _ SFail                    = False
-        go _ _ _ SEmpty                   = True
-        go pw m (Just w) (SChar _ x)      = go pw m (Just (w - 1)) x
-        go pw m (Just w) (SText l _t x)   = go pw m (Just (w - l)) x
+        go _ _ Nothing _                        = False
+        go _ _ (Just w) _ | w < 0               = False
+        go _ _ _ SFail                          = False
+        go _ _ _ SEmpty                         = True
+        go pw m (Just w) (SChar _ x)            = go pw m (Just (w - 1)) x
+        go pw m (Just w) (SText l _t x)         = go pw m (Just (w - l)) x
         go pw m _ (SLine i x)
-          | m < i, CharsPerLine cpl <- pw = go pw m (Just (cpl - i)) x
-          | otherwise                     = True
-        go pw m w (SAnnPush _ x)          = go pw m w x
-        go pw m w (SAnnPop x)             = go pw m w x
+          | m < i, AvailablePerLine cpl _ <- pw = go pw m (Just (cpl - i)) x
+          | otherwise                           = True
+        go pw m w (SAnnPush _ x)                = go pw m w x
+        go pw m w (SAnnPop x)                   = go pw m w x
 
 
 
@@ -1553,17 +1550,10 @@ layoutFits
     -> SimpleDoc ann
 layoutFits
     fittingPredicate
-    LayoutOptions
-        { layoutPageWidth = pWidth
-        , layoutRibbonFraction = ribbonFraction }
+    LayoutOptions { layoutPageWidth = pWidth }
     doc
   = best 0 0 (Cons 0 doc Nil)
   where
-
-    ribbonWidth :: Maybe Int
-    ribbonWidth = case pWidth of
-        CharsPerLine ll -> (Just . max 0 . min ll . round) (fromIntegral ll * ribbonFraction)
-        Unbounded -> Nothing
 
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
@@ -1603,9 +1593,14 @@ layoutFits
       | otherwise = y
       where
         minNestingLevel = min lineIndent currentColumn
+        ribbonWidth = case pWidth of
+            AvailablePerLine lineLength ribbonFraction ->
+                (Just . max 0 . min lineLength . round)
+                    (fromIntegral lineLength * ribbonFraction)
+            Unbounded -> Nothing
         availableWidth = do
             columnsLeftInLine <- case pWidth of
-                CharsPerLine cpl -> Just (cpl - currentColumn)
+                AvailablePerLine cpl _ribbonFrac -> Just (cpl - currentColumn)
                 Unbounded -> Nothing
             columnsLeftInRibbon <- do
                 li <- Just lineIndent

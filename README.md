@@ -79,6 +79,10 @@ these speak different languages, and the backend is responsible for the
 translation to those languages. Backends should be readily available, or easy to
 implement if a custom solution is desired.
 
+As a result, each backend requires only minimal dependencies; if you don’t want
+to print to an ANSI terminal for example, there is no need to have a dependency
+on a terminal library.
+
 
 
 ### Performance

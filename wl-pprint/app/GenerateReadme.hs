@@ -18,7 +18,7 @@ import           Data.Text.Prettyprint.Doc.Render.Text
 main :: IO ()
 main = (T.putStrLn . renderStrict . layoutPretty layoutOptions) readmeContents
   where
-    layoutOptions = LayoutOptions { layoutRibbonFraction = 1, layoutPageWidth = CharsPerLine 80 }
+    layoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 1 }
 
 readmeContents :: Doc ann
 readmeContents = (mconcat . L.intersperse vspace)
