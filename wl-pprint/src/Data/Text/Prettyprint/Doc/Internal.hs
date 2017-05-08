@@ -350,14 +350,9 @@ data SimpleDoc ann =
     | SEmpty
     | SChar Char (SimpleDoc ann)
 
-    -- | Since the frequently used 'T.length' of 'Text' is /O(n)/, we cache it
-    -- in this constructor.
-    --
-    -- A 'SimpleDoc' is just a collection of how to concatenate things, for
-    -- which the length would be unnecessary from a user's perspective that
-    -- merely wants to print it; however, the layout algorithms might retry
-    -- generating certain sections of output multiple times in different ways to
-    -- fit the layout constraints.
+    -- | Some layout algorithms use the Since the frequently used 'T.length' of
+    -- the 'Text', which scales linearly with its length, we cache it in this
+    -- constructor.
     | SText !Int Text (SimpleDoc ann)
 
     -- | @Int@ = indentation level for the line
