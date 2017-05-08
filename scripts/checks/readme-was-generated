@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+cd "$(stack path --project-root)"
+./scripts/generate_readme
+
+cd "$(git rev-parse --show-toplevel)"
+git diff --exit-code -U0 --word-diff README.md
+EXIT=$?
+
+if [[ $EXIT -ne 0 ]]; then
+    echo "The generated README differs from the tracked one!"
+    echo "Please regenerate it by running ./scripts/generate_readme."
+fi
+exit $EXIT

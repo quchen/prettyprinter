@@ -111,6 +111,7 @@ script:
       if [[ -z "$SKIP_HLINT" ]]; then
           hlint wl-pprint*
       fi
+    - ./scripts/checks/readme-was-generated
 
 
 
