@@ -371,14 +371,7 @@ data SimpleDoc ann =
 -- The string must not contain any newline characters, since this is an
 -- invariant of the 'Text' constructor.
 unsafeText :: Text -> Doc ann
-unsafeText t = case T.length t of
-    0 -> Empty
-    1 -> Char (T.head t)
-    n -> Text n t
-
--- | Alternative implementation of unsafeText. TODO: find out which one is better
-unsafeText' :: Text -> Doc ann
-unsafeText' text = case T.uncons text of
+unsafeText text = case T.uncons text of
     Nothing -> Empty
     Just (t,ext)
         | T.null ext -> Char t

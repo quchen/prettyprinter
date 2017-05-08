@@ -52,6 +52,7 @@ readmeContents = (mconcat . L.intersperse vspace)
         , paragraph "Special care has been applied to make annotations unobtrusive, so that if you don’t need or care about them there is no overhead, neither in terms of usability nor performance."
     , h3 "Extensible backends"
         , paragraph "A document can be rendered in many different ways, for many different clients. There is plain text, there is the ANSI terminal, there is the browser. Each of these speak different languages, and the backend is responsible for the translation to those languages. Backends should be readily available, or easy to implement if a custom solution is desired."
+        , paragraph "As a result, each backend requires only minimal dependencies; if you don’t want to print to an ANSI terminal for example, there is no need to have a dependency on a terminal library."
     , h3 "Performance"
         , paragraph "Rendering large documents should be done efficiently, and the library should make it easy to optimize common use cases for the programmer."
     , h3 "Open implementation"
