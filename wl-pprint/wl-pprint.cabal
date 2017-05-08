@@ -55,13 +55,17 @@ library
 
 
 executable generate_readme
-    main-is: app/GenerateReadme.hs
+    hs-source-dirs: app
+    main-is: GenerateReadme.hs
     build-depends:
           base < 127
         , wl-pprint
         , text
+        , template-haskell
     default-language: Haskell2010
+    other-modules: MultilineTh
     other-extensions: OverloadedStrings
+                    , TemplateHaskell
     if impl (ghc < 7.10)
         buildable: False
 

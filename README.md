@@ -113,7 +113,7 @@ The `wl-pprint` family of packages consists of:
     various ways, e.g. HTML, or plain text.
   - `wl-pprint-ansi` provides a renderer suitable for ANSI terminal output
     including colors (at the cost of a dependency more).
-  - `wl-pprint-compat-old` provides a drop-in compatibility layer forprevious
+  - `wl-pprint-compat-old` provides a drop-in compatibility layer for previous
     users of the old `wl-pprint`. Use it for easy adaption of the new
     `wl-pprint`, but don't develop anything new with it.
   - `wl-pprint-compat-old-ansi` is the same, but for previous users of
