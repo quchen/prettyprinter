@@ -18,11 +18,83 @@
 --
 -- The documentation consists of several parts:
 --
---   1. Just below is some general textual information about the library.
+--   1. Just below is some general information about the library.
 --   2. The actual library with extensive documentation and examples
 --   3. Migration guide for users familiar with (ansi-)wl-pprint
 --   4. Historical notes about previous libraries
 --   5. Algebraic properties
+--
+-- == Starting out
+--
+-- As a reading list for starters, some of the most commonly used functions in
+-- this module include '<>', 'hsep', '<+>', 'vsep', 'align', 'hang'. These cover
+-- many use cases already, and many other functions are variations or
+-- combinations of these.
+--
+-- = Simple example
+--
+-- Let’s prettyprint a simple Haskell type definition. First, intersperse @->@
+-- and add a leading @::@,
+--
+-- >>> let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
+--
+-- The 'sep' function is one way of concatenating documents, there are multiple
+-- others, e.g. 'vsep', 'cat' and 'fillSep'. In our case, 'sep' space-separates
+-- all entries if there is space, and newlines if the remaining line is too
+-- short.
+--
+-- Second, prepend the name to the type,
+--
+-- >>> let prettyDecl n tys = pretty n <+> prettyType tys
+--
+-- Now we can define a document that contains some type signature:
+--
+-- >>> let doc = prettyDecl "example" ["Int", "Bool", "Char", "IO ()"]
+--
+-- This document can now be printed, and it automatically adapts to available
+-- space. If the page is wide enough (80 characters in this case), the
+-- definitions are space-separated,
+--
+-- >>> putDocW 80 doc
+-- example :: Int -> Bool -> Char -> IO ()
+--
+-- If we narrow the page width to only 20 characters, the /same document/
+-- renders vertically aligned:
+--
+-- >>> putDocW 20 doc
+-- example :: Int
+--         -> Bool
+--         -> Char
+--         -> IO ()
+--
+-- Speaking of alignment, had we not used 'align', the @->@ would be at the
+-- beginning of each line, and not beneath the @::@.
+--
+-- = General workflow
+--
+-- @
+-- ╭───────────────╮      ╭───────────────────╮
+-- │ 'vsep', 'pretty', │      │        'Doc'        │
+-- │ '<+>', 'nest',    ├─────▷│  (rich document)  │
+-- │ 'align', …      │      ╰─────────┬─────────╯
+-- ╰───────────────╯                │
+--                                  │ Layout algorithms
+--                                  │ e.g. 'layoutPretty'
+--                                  ▽
+--                        ╭───────────────────╮
+--                        │     'SimpleDoc'     │
+--                        │ (simple document) │
+--                        ╰─────────┬─────────╯
+--                                  │
+--                                  │ Renderers
+--                                  │
+--              ╭───────────────────┼───────────────────╮
+--              │                   │                   │
+--              ▽                   ▽                   ▽
+--      ╭───────────────╮   ╭───────────────╮   ╭───────────────╮
+--      │  Plain 'Text'   │   │ ANSI terminal │   │ other/custom  │
+--      ╰───────────────╯   ╰───────────────╯   ╰───────────────╯
+-- @
 --
 -- = How the layout works
 --
@@ -51,40 +123,6 @@
 -- constraints (given by page and ribbon widths), the document is rendered
 -- unaltered. This allows fallback definitions, so that we get nice results even
 -- when the original document would exceed the layout constraints.
---
--- == Starting out
---
--- As a reading list for starters, some of the most commonly used functions in
--- this module include '<>', 'hsep', '<+>', 'vsep', 'align', 'hang'. These cover
--- many use cases already, and many other functions are variations or
--- combinations of these.
---
--- = Example
---
--- The layout of the document can adapt to the available space. For example, we
--- can define a prettyprinter for simple type declaration that aligns over
--- multiple lines nicely if space does not permit it to fit in a single line.
---
--- Let's look at some code for doing this:
---
--- >>> let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
--- >>> let prettyDecl n tys = pretty n <+> prettyType tys
--- >>> let doc = prettyDecl "example" ["Int", "Bool", "Char", "IO ()"]
---
--- If the page is wide enough (80 characters in this case), the definitions are
--- space-separated,
---
--- >>> putDocW 80 doc
--- example :: Int -> Bool -> Char -> IO ()
---
--- If we narrow the page width to only 20 characters, the /same document/
--- renders vertically aligned:
---
--- >>> putDocW 20 doc
--- example :: Int
---         -> Bool
---         -> Char
---         -> IO ()
 module Data.Text.Prettyprint.Doc (
     -- * Documents
     Doc,

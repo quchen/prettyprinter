@@ -1412,7 +1412,11 @@ data LayoutPipeline ann =
 -- | Maximum number of characters that fit in one line. The layout algorithms
 -- will try not to exceed the set limit by inserting line breaks when applicable
 -- (e.g. via 'softline'').
-data PageWidth = CharsPerLine Int | Unbounded
+data PageWidth
+    = CharsPerLine Int -- ^ Layouters should not exceed this many caracters per
+                       --   line (including whitespace).
+    | Unbounded        -- ^ No limit on the line length. Layouters should not
+                       --   introduce line breaks on their own.
     deriving (Eq, Ord, Show)
 
 -- $ Test to avoid surprising behaviour
