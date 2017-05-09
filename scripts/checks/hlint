@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+cd "$(stack path --project-root)"
+hlint wl-pprint*

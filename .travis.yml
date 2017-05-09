@@ -109,7 +109,7 @@ script:
     - stack $STACK_ARGS --no-terminal sdist
     - |
       if [[ -z "$SKIP_HLINT" ]]; then
-          hlint wl-pprint*
+          ./scripts/checks/hlint
       fi
     - ./scripts/checks/readme-was-generated
 
