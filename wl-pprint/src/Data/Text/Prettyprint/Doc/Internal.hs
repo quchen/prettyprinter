@@ -343,11 +343,8 @@ instance Pretty Void where pretty = absurd
 -- formats, such as plain text or terminal output.
 --
 -- To write your own @'Doc'@ to X converter, it is therefore sufficient to
--- convert from @'SimpleDoc'@.
---
--- This package includes converters to a couple of formatters that you can use
--- by importing one of "Data.Text.Prettyprint.Doc.Render.CommonMark" or
--- "Data.Text.Prettyprint.Doc.Render.Text".
+-- convert from @'SimpleDoc'@. The »Render« submodules provide some built-in
+-- converters to do so, and helpers to create own ones.
 data SimpleDoc ann =
       SFail
     | SEmpty
@@ -1231,8 +1228,9 @@ pipe = "|"
 
 
 -- | Add an annotation to a @'Doc'@. This annotation can then be used by the
--- renderer to e.g. add color to certain parts of the output. For a simple
--- example, see "Data.Text.Prettyprint.Doc.Render.CommonMark".
+-- renderer to e.g. add color to certain parts of the output. For a full
+-- tutorial example on how to use it, see
+-- "Data.Text.Prettyprint.Doc.Render.TutorialExample".
 --
 -- This function is only relevant for custom formats with their own annotations,
 -- and not relevant for basic prettyprinting. The predefined renderers, e.g.
