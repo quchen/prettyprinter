@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module MultilineTh (multiline) where
 
 

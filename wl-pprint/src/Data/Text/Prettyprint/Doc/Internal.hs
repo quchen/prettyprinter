@@ -1420,7 +1420,7 @@ data PageWidth
 -- True
 
 -- | Options to influence the layout algorithms.
-data LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
+newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
     deriving (Eq, Ord, Show)
 
 -- | The default layout options, suitable when you just want some output, and
