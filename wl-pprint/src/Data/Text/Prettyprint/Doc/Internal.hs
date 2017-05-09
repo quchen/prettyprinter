@@ -1639,14 +1639,21 @@ layoutCompact doc = scan 0 [doc]
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions',
 -- ignoring all annotations.
 instance Show (Doc ann) where
-    showsPrec _ doc = displayString (layoutPretty defaultLayoutOptions doc)
+    showsPrec _ doc = renderShowS (layoutPretty defaultLayoutOptions doc)
 
-displayString :: SimpleDoc ann -> ShowS
-displayString = \case
+-- | Render a 'SimpleDoc' to a 'ShowS', useful to write 'Show' instances based
+-- on the prettyprinter.
+--
+-- @
+-- instance 'Show' MyType where
+--     'showsPrec' _ = 'renderShowS' . 'layoutPretty' 'defaultLayoutOptions' . 'pretty'
+-- @
+renderShowS :: SimpleDoc ann -> ShowS
+renderShowS = \case
     SFail        -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
     SEmpty       -> id
-    SChar c x    -> showChar c . displayString x
-    SText _l t x -> showString (T.unpack t) . displayString x
-    SLine i x    -> showString ('\n':replicate i ' ') . displayString x
-    SAnnPush _ x -> displayString x
-    SAnnPop x    -> displayString x
+    SChar c x    -> showChar c . renderShowS x
+    SText _l t x -> showString (T.unpack t) . renderShowS x
+    SLine i x    -> showString ('\n':replicate i ' ') . renderShowS x
+    SAnnPush _ x -> renderShowS x
+    SAnnPop x    -> renderShowS x

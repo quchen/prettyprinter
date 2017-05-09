@@ -8,6 +8,8 @@ import           Language.Haskell.TH.Quote
 import           Language.Haskell.TH.Syntax
 import           Prelude
 
+
+
 multiline :: QuasiQuoter
 multiline = QuasiQuoter
     { quoteExp = quoteUnlines
@@ -19,4 +21,10 @@ multiline = QuasiQuoter
     badUse = fail "multiline quasiquoter can only be used as an expression"
 
 quoteUnlines :: String -> Q Exp
-quoteUnlines = liftString . T.unpack . T.unwords . filter (not . T.null) . T.words . T.pack
+quoteUnlines =
+      liftString
+    . T.unpack
+    . T.unwords
+    . filter (not . T.null)
+    . T.words
+    . T.pack

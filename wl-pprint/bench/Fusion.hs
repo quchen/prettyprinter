@@ -21,6 +21,7 @@ import Control.Applicative
 #endif
 
 
+
 main :: IO ()
 main = defaultMain
     [ benchOptimize
@@ -62,9 +63,9 @@ benchWLComparison = bgroup "vs. other libs"
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderPretty 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderSmart"
-        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart defaultLayoutOptions)                doc)
-        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Shallow  doc))
-        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Deep     doc))
+        [ bench "this, unoptimized"     (nf (renderLazy . layoutSmart defaultLayoutOptions)               doc)
+        , bench "this, shallowly fused" (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Shallow doc))
+        , bench "this, deeply fused"    (nf (renderLazy . layoutSmart defaultLayoutOptions) (fuse Deep    doc))
         , bench "ansi-wl-pprint"        (nf (\d -> WL.displayS (WL.renderSmart 0.4 80 d) "") wlDoc)
         ]
     , bgroup "renderCompact"
