@@ -40,7 +40,7 @@ import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.RenderM
+import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
@@ -132,7 +132,7 @@ underline = annotate Underlined
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
 renderLazy :: SimpleDoc AnsiTerminal -> TL.Text
 renderLazy doc
-  = let (resultBuilder, remainingStyles) = execRenderM [emptyStyle] (build doc)
+  = let (resultBuilder, remainingStyles) = execStackMachine [emptyStyle] (build doc)
     in case remainingStyles of
         [] -> error ("There is no empty style left at the end of rendering" ++
                      " (but there should be). Please report this as a bug.")
@@ -141,7 +141,7 @@ renderLazy doc
                      "end of rendering (there should be only 1). Please report" ++
                      " this as a bug.")
 
-build :: SimpleDoc AnsiTerminal -> RenderM TLB.Builder CombinedStyle ()
+build :: SimpleDoc AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()

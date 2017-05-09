@@ -15,7 +15,7 @@ import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 
 import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.RenderM
+import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 -- $setup
 --
@@ -64,14 +64,14 @@ color c = annotate (Color c)
 -- conversion function from 'SimpleDoc' annotated with our 'SimpleHtml' to the
 -- final 'TL.Text' representation.
 
--- | The 'RenderM' type defines a stack machine suitable for many rendering
+-- | The 'StackMachine' type defines a stack machine suitable for many rendering
 -- needs. It has two auxiliary parameters: the type of the end result, and the
 -- type of the document’s annotations.
 --
--- Most 'RenderM' creations will look like this definition: a recursive walk
+-- Most 'StackMachine' creations will look like this definition: a recursive walk
 -- through the 'SimpleDoc', pushing styles on the stack and popping them off
 -- again, and writing raw output.
-renderStackMachine :: SimpleDoc SimpleHtml -> RenderM TLB.Builder SimpleHtml ()
+renderStackMachine :: SimpleDoc SimpleHtml -> StackMachine TLB.Builder SimpleHtml ()
 renderStackMachine = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@. This is a bug in the layout algorithm!"
     SEmpty -> pure ()
@@ -116,7 +116,7 @@ htmlTag = \case
 -- (i.e. there are no unmatched style applications) after the machine is run.
 render :: SimpleDoc SimpleHtml -> TL.Text
 render doc
-  = let (resultBuilder, remainingStyles) = execRenderM [] (renderStackMachine doc)
+  = let (resultBuilder, remainingStyles) = execStackMachine [] (renderStackMachine doc)
     in if null remainingStyles
         then TLB.toLazyText resultBuilder
         else error ("There are "

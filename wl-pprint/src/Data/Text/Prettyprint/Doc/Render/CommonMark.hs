@@ -29,7 +29,7 @@ import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.RenderM
+import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !MIN_VERSION_base(4,8,0)
 import Control.Applicative
@@ -68,14 +68,14 @@ italics = annotate Italics
 -- This text *is emphasized **even stronger**!*
 renderLazy :: SimpleDoc Markdown -> TL.Text
 renderLazy doc
-  = let (resultBuilder, remainingMarkdowns) = execRenderM [] (build doc)
+  = let (resultBuilder, remainingMarkdowns) = execStackMachine [] (build doc)
     in if null remainingMarkdowns
         then TLB.toLazyText resultBuilder
         else error ("There are "
                     <> show (length remainingMarkdowns)
                     <> " unpaired styles! Please report this as a bug.")
 
-build :: SimpleDoc Markdown -> RenderM TLB.Builder Markdown ()
+build :: SimpleDoc Markdown -> StackMachine TLB.Builder Markdown ()
 build = \case
     SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
     SEmpty -> pure ()

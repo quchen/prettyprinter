@@ -28,10 +28,10 @@ library
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Internal.Type
         , Data.Text.Prettyprint.Doc.Render.CommonMark
-        , Data.Text.Prettyprint.Doc.Render.RenderM
         , Data.Text.Prettyprint.Doc.Render.ShowS
         , Data.Text.Prettyprint.Doc.Render.Text
         , Data.Text.Prettyprint.Doc.Render.TutorialExample
+        , Data.Text.Prettyprint.Doc.Render.Util.StackMachine
         , Data.Text.Prettyprint.Doc.Unicode
         , Data.Text.Prettyprint.Doc.Util
     ghc-options: -Wall
