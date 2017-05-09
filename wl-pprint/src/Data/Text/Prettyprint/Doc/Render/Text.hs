@@ -36,8 +36,10 @@ import Data.Semigroup
 #endif
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
--- >>> :set -XLambdaCase
 -- >>> import qualified Data.Text.IO as T
 -- >>> import qualified Data.Text.Lazy.IO as TL
 

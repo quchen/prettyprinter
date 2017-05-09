@@ -43,6 +43,9 @@ import Prelude       hiding (foldr, foldr1)
 
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Data.Text.Prettyprint.Doc.Util as Util

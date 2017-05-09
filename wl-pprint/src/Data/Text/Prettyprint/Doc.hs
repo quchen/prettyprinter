@@ -236,6 +236,9 @@ import Data.Semigroup
 import Data.Text.Prettyprint.Doc.Internal
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Data.Text.Prettyprint.Doc.Util

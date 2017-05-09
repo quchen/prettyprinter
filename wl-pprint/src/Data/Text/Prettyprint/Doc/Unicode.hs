@@ -45,6 +45,9 @@ import Data.Text.Prettyprint.Doc
 
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> import Data.Text.Prettyprint.Doc.Util

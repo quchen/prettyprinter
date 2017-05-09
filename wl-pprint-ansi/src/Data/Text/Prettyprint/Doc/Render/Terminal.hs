@@ -49,6 +49,9 @@ import Control.Applicative
 
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
 -- >>> import qualified Data.Text.Lazy.IO as TL
 -- >>> import qualified Data.Text.Lazy as TL

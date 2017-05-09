@@ -12,6 +12,9 @@ import           System.IO
 import Data.Text.Prettyprint.Doc
 
 -- $setup
+--
+-- (Definitions for the doctests)
+--
 -- >>> :set -XOverloadedStrings
 
 
