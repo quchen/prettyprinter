@@ -30,6 +30,7 @@ import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 #if !MIN_VERSION_base(4,8,0)
 import Data.Semigroup
@@ -63,7 +64,7 @@ renderLazy :: SimpleDoc () -> Lazy TL.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
-        SFail          -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+        SFail          -> panicUncaughtFail
         SEmpty         -> mempty
         SChar c x      -> TLB.singleton c <> build x
         SText _l t x   -> TLB.fromText t <> build x

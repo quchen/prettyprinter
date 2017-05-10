@@ -40,6 +40,7 @@ import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !MIN_VERSION_base(4,8,0)
@@ -143,7 +144,7 @@ renderLazy doc
 
 build :: SimpleDoc AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
 build = \case
-    SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SFail -> panicUncaughtFail
     SEmpty -> pure ()
     SChar c x -> do
         writeOutput (TLB.singleton c)

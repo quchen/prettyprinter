@@ -40,6 +40,8 @@ import Data.Monoid   hiding ((<>))
 import Prelude       hiding (foldr, foldr1)
 #endif
 
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
+
 
 
 -- $setup
@@ -363,6 +365,7 @@ data SimpleDoc ann =
 
     -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDoc ann)
+    deriving (Eq, Ord, Show)
 
 
 
@@ -1651,7 +1654,7 @@ instance Show (Doc ann) where
 -- @
 renderShowS :: SimpleDoc ann -> ShowS
 renderShowS = \case
-    SFail        -> error "@SFail@ can not appear uncaught in a laid out @SimpleDoc@"
+    SFail        -> panicUncaughtFail
     SEmpty       -> id
     SChar c x    -> showChar c . renderShowS x
     SText _l t x -> showString (T.unpack t) . renderShowS x

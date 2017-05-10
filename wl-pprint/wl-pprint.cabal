@@ -29,7 +29,10 @@ library
         , Data.Text.Prettyprint.Doc.Internal.Type
         , Data.Text.Prettyprint.Doc.Render.ShowS
         , Data.Text.Prettyprint.Doc.Render.Text
-        , Data.Text.Prettyprint.Doc.Render.TutorialExample
+        , Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
+        , Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial
+        , Data.Text.Prettyprint.Doc.Render.Util.Panic
+        , Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
         , Data.Text.Prettyprint.Doc.Render.Util.StackMachine
         , Data.Text.Prettyprint.Doc.Unicode
         , Data.Text.Prettyprint.Doc.Util
