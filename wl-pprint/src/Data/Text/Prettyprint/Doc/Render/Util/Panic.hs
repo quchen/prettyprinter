@@ -10,12 +10,18 @@ module Data.Text.Prettyprint.Doc.Render.Util.Panic (
 panicUncaughtFail :: a
 panicUncaughtFail = error ("»SFail« must not appear in a rendered »SimpleDoc«. This is a bug in the layout algorithm! " ++ report)
 
+-- | Raise a hard 'error' when an annotation terminator is encountered in an
+-- unannotated region.
 panicUnpairedPop :: a
 panicUnpairedPop = error ("An unpaired style terminator was encountered. This is a bug in the layout algorithm! " ++ report)
 
+-- | Raise a hard generic 'error' when the 'Data.Text.Prettyprinter.Doc.SimpleDoc' to 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree' conversion fails.
 panicSimpleDocTreeConversionFailed :: a
 panicSimpleDocTreeConversionFailed = error ("Conversion from SimpleDoc to SimpleDocTree failed! " ++ report)
 
+-- | Raise a hard 'error' when the »to
+-- 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree'« parser finishes
+-- without consuming the full input.
 panicInputNotFullyConsumed :: a
 panicInputNotFullyConsumed = error ("Conversion from SimpleDoc to SimpleDocTree left unconsumed input! " ++ report)
 

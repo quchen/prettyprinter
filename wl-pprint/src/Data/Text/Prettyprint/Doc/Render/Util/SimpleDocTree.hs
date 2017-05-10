@@ -90,36 +90,36 @@ nextToken :: UniqueParser (SimpleDoc ann) (SimpleDocTok ann)
 nextToken = UniqueParser (\case
     SFail             -> panicUncaughtFail
     SEmpty            -> empty
-    SChar c rest      -> Just (TokChar c, rest)
-    SText l t rest    -> Just (TokText l t, rest)
-    SLine i rest      -> Just (TokLine i, rest)
-    SAnnPush ann rest -> Just (TokAnnPush ann, rest)
-    SAnnPop rest      -> Just (TokAnnPop, rest) )
+    SChar c rest      -> Just (TokChar c      , rest)
+    SText l t rest    -> Just (TokText l t    , rest)
+    SLine i rest      -> Just (TokLine i      , rest)
+    SAnnPush ann rest -> Just (TokAnnPush ann , rest)
+    SAnnPop rest      -> Just (TokAnnPop      , rest) )
 
-parser :: UniqueParser (SimpleDoc ann) (SimpleDocTree ann)
-parser = many (contentPiece <|> annotation) >>= \case
-    []  -> pure STEmpty
-    [x] -> pure x
-    xs  -> pure (STConcat xs)
+sdocToTreeParser :: UniqueParser (SimpleDoc ann) (SimpleDocTree ann)
+sdocToTreeParser = fmap wrap (many contentPiece)
 
   where
 
-    contentPiece = nextToken >>= \case
-        TokEmpty    -> pure STEmpty
-        TokChar c   -> pure (STChar c)
-        TokText l t -> pure (STText l t)
-        TokLine i   -> pure (STLine i)
-        _other      -> empty
+    wrap :: [SimpleDocTree ann] -> SimpleDocTree ann
+    wrap = \case
+        []  -> STEmpty
+        [x] -> x
+        xs  -> STConcat xs
 
-    annotation = do
-        TokAnnPush ann <- nextToken
-        annotatedContents <- parser
-        TokAnnPop <- nextToken
-        pure (STAnn ann annotatedContents)
+    contentPiece = nextToken >>= \case
+        TokEmpty       -> pure STEmpty
+        TokChar c      -> pure (STChar c)
+        TokText l t    -> pure (STText l t)
+        TokLine i      -> pure (STLine i)
+        TokAnnPop      -> empty
+        TokAnnPush ann -> do annotatedContents <- sdocToTreeParser
+                             TokAnnPop <- nextToken
+                             pure (STAnn ann annotatedContents)
 
 -- | Convert a 'SimpleDoc' to its 'SimpleDocTree' representation.
 treeForm :: SimpleDoc ann -> SimpleDocTree ann
-treeForm sdoc = case runParser parser sdoc of
+treeForm sdoc = case runParser sdocToTreeParser sdoc of
     Nothing               -> panicSimpleDocTreeConversionFailed
     Just (sdoct, SEmpty)  -> sdoct
     Just (_, _unconsumed) -> panicInputNotFullyConsumed
