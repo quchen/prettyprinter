@@ -5,6 +5,8 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+#include "version-compatibility-macros.h"
+
 -- | __Warning: internal module!__ This means that the API may change
 -- arbitrarily between versions without notice. Depending on this module may
 -- lead to unexpected breakages, so proceed with caution!
@@ -30,14 +32,16 @@ import           Data.Word
 -- from the semigroups package.
 import Data.Semigroup
 
--- Base 4.8 introduced Foldable, Traversable and Monoid to the Prelude, and
--- Natural to Base.
-#if MIN_VERSION_base(4,8,0)
+#if NATURAL_IN_BASE
 import Numeric.Natural
-#else
+#endif
+
+#if !FOLDABLE_TRAVERSABLE
 import Data.Foldable (Foldable (..))
-import Data.Monoid   hiding ((<>))
 import Prelude       hiding (foldr, foldr1)
+#endif
+#if !MONOID_IN_PRELUDE
+import Data.Monoid hiding ((<>))
 #endif
 
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
@@ -246,7 +250,7 @@ instance Pretty Word64 where pretty = unsafeViaShow
 -- 10633823966279326983230456482242756608
 instance Pretty Integer where pretty = unsafeViaShow
 
-#if MIN_VERSION_base(4,8,0)
+#if NATURAL_IN_BASE
 instance Pretty Natural where pretty = unsafeViaShow
 #endif
 
@@ -739,7 +743,7 @@ x <+> y = x <> space <> y
 -- Data.Text.Prettyprint.Doc
 concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
-#if !MIN_VERSION_base(4,8,0)
+#if !FOLDABLE_TRAVERSABLE
     | foldr (\_ _ -> False) True ds = mempty
 #else
     | null ds = mempty

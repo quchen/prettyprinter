@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | This module shows how to write a custom prettyprinter backend, based on
 -- directly converting a 'SimpleDoc' to an output format using a stack machine.
 -- For a tree serialization approach, which may be more suitable for certain
@@ -25,7 +27,7 @@ import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
 #endif
 

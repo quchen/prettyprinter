@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP        #-}
 {-# LANGUAGE LambdaCase #-}
 
+#include "version-compatibility-macros.h"
+
 -- | Conversion of the linked-list-like 'SimpleDoc' to a tree-like
 -- 'SimpleDocTree'.
 module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
@@ -16,7 +18,7 @@ import Data.Text           (Text)
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
-#if MIN_VERSION_base(4,9,0)
+#if MONAD_FAIL
 import Control.Monad.Fail
 #endif
 
@@ -39,6 +41,9 @@ instance Applicative (UniqueParser s) where
         pure (f x, s'') )
 
 instance Monad (UniqueParser s) where
+#if !APPLICATIVE_MONAD
+    return = pure
+#endif
     UniqueParser p >>= f = UniqueParser (\s -> do
         (a', s') <- p s
         (a'', s'') <- runParser (f a') s'
@@ -46,7 +51,7 @@ instance Monad (UniqueParser s) where
 
     fail _err = empty
 
-#if MIN_VERSION_base(4,9,0)
+#if MONAD_FAIL
 instance MonadFail (UniqueParser s) where
     fail _err = empty
 #endif

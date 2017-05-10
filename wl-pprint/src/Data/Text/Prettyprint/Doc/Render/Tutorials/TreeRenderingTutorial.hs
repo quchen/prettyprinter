@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | This module shows how to write a custom prettyprinter backend, based on a
 -- tree representation of a 'SimpleDoc'.  For a stack machine approach, which
 -- may be more suitable for certain output formats, see
@@ -23,6 +25,10 @@ import qualified Data.Text.Lazy.Builder as TLB
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
+
+#if !FOLDABLE_TRAVERSABLE
+import Data.Foldable (foldMap)
+#endif
 
 
 

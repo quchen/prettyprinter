@@ -7,6 +7,7 @@ description:         See README.md
 license:             BSD3
 license-file:        LICENSE.md
 extra-source-files:  README.md
+                   , aux/version-compatibility-macros.h
 author:              Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -38,6 +39,7 @@ library
         , Data.Text.Prettyprint.Doc.Util
     ghc-options: -Wall
     hs-source-dirs: src
+    include-dirs: aux
     default-language: Haskell2010
     other-extensions:
           BangPatterns

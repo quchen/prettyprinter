@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | Render 'SimpleDoc' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
@@ -43,7 +45,7 @@ import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
 #endif
 

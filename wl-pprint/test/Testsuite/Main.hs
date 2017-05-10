@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 module Main (main) where
 
 
@@ -16,9 +18,11 @@ import Data.Text.Prettyprint.Doc.Render.Text
 import Test.Tasty
 import Test.Tasty.QuickCheck
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
-import Data.Semigroup
+#endif
+#if !MONOID_IN_PRELUDE
+import Data.Monoid (mconcat)
 #endif
 
 

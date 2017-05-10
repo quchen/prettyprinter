@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | Render an unannotated 'SimpleDoc' as plain 'Text'.
 module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Tags for clarity
@@ -32,7 +34,7 @@ import           System.IO
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
-#if !MIN_VERSION_base(4,8,0)
+#if !SEMIGROUP_IN_BASE
 import Data.Semigroup
 #endif
 
