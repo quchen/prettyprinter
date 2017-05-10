@@ -1,5 +1,5 @@
-// These macros allow writing CPP compatibility hacks in a way that makes their
-// purpose much clearer than just demanding a specific version of a library.
+-- These macros allow writing CPP compatibility hacks in a way that makes their
+-- purpose much clearer than just demanding a specific version of a library.
 
 #define APPLICATIVE_MONAD    MIN_VERSION_base(4,8,0)
 #define FOLDABLE_TRAVERSABLE MIN_VERSION_base(4,8,0)
