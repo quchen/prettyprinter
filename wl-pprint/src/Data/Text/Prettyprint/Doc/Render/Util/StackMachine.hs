@@ -3,6 +3,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | A strict State/Writer monad to implement a stack machine for rendering
 -- 'SimpleDoc's.
 module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
@@ -19,7 +21,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
 import Data.Monoid
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
 #endif
 
@@ -45,7 +47,7 @@ instance Monoid output => Applicative (StackMachine output style) where
         in (f1 x2, w12, s2))
 
 instance Monoid output => Monad (StackMachine output style) where
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
     return = pure
 #endif
     StackMachine r >>= f = StackMachine (\s ->

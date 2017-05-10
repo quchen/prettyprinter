@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 module Main (main) where
 
 
@@ -16,7 +18,7 @@ import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Render.Text
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
 #endif
 

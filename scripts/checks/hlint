@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
 cd "$(stack path --project-root)"
-hlint wl-pprint*
+hlint wl-pprint* --cpp-include=aux

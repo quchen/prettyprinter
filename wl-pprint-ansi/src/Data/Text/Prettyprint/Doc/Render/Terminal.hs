@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+#include "version-compatibility-macros.h"
+
 -- | Render 'SimpleDoc' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
@@ -40,9 +42,10 @@ import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
-#if !MIN_VERSION_base(4,8,0)
+#if !APPLICATIVE_MONAD
 import Control.Applicative
 #endif
 
@@ -143,7 +146,7 @@ renderLazy doc
 
 build :: SimpleDoc AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
 build = \case
-    SFail -> error "@SFail@ can not appear uncaught in a rendered @SimpleDoc@"
+    SFail -> panicUncaughtFail
     SEmpty -> pure ()
     SChar c x -> do
         writeOutput (TLB.singleton c)

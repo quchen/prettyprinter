@@ -24,6 +24,8 @@ ignore "Use if"
 
 -- Obfuscation much?
 ignore "Use uncurry"
+ignore "Use first"
+ignore "Use second"
 
 -- AMP fallout
 error "generalize mapM"  = mapM  ==> traverse
