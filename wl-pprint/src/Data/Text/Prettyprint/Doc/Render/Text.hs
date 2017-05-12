@@ -34,7 +34,7 @@ import           System.IO
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
-#if !SEMIGROUP_IN_BASE
+#if !(SEMIGROUP_IN_BASE)
 import Data.Semigroup
 #endif
 

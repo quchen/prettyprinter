@@ -41,7 +41,7 @@ instance Applicative (UniqueParser s) where
         pure (f x, s'') )
 
 instance Monad (UniqueParser s) where
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
     return = pure
 #endif
     UniqueParser p >>= f = UniqueParser (\s -> do

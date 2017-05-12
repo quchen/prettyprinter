@@ -27,7 +27,7 @@ import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
 import Control.Applicative
 #endif
 

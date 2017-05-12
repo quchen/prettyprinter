@@ -18,7 +18,7 @@ import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Render.Text
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
 import Control.Applicative
 #endif
 

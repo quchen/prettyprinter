@@ -112,6 +112,7 @@ script:
           ./scripts/checks/hlint
       fi
     - ./scripts/checks/readme-was-generated
+    - ./scripts/checks/negated-cpp-macro-syntax
 
 
 

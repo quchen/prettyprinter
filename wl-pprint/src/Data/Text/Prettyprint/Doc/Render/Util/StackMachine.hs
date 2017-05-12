@@ -21,7 +21,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
 import Data.Monoid
 
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
 import Control.Applicative
 #endif
 
@@ -47,7 +47,7 @@ instance Monoid output => Applicative (StackMachine output style) where
         in (f1 x2, w12, s2))
 
 instance Monoid output => Monad (StackMachine output style) where
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
     return = pure
 #endif
     StackMachine r >>= f = StackMachine (\s ->

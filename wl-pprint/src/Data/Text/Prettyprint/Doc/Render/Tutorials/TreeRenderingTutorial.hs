@@ -26,7 +26,7 @@ import qualified Data.Text.Lazy.Builder as TLB
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
 
-#if !FOLDABLE_TRAVERSABLE
+#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
 import Data.Foldable (foldMap)
 #endif
 

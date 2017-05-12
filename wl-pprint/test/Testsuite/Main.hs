@@ -18,10 +18,10 @@ import Data.Text.Prettyprint.Doc.Render.Text
 import Test.Tasty
 import Test.Tasty.QuickCheck
 
-#if !APPLICATIVE_MONAD
+#if !(APPLICATIVE_MONAD)
 import Control.Applicative
 #endif
-#if !MONOID_IN_PRELUDE
+#if !(MONOID_IN_PRELUDE)
 import Data.Monoid (mconcat)
 #endif
 

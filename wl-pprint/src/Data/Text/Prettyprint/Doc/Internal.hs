@@ -36,11 +36,11 @@ import Data.Semigroup
 import Numeric.Natural
 #endif
 
-#if !FOLDABLE_TRAVERSABLE
+#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
 import Data.Foldable (Foldable (..))
 import Prelude       hiding (foldr, foldr1)
 #endif
-#if !MONOID_IN_PRELUDE
+#if !(MONOID_IN_PRELUDE)
 import Data.Monoid hiding ((<>))
 #endif
 
@@ -743,7 +743,7 @@ x <+> y = x <> space <> y
 -- Data.Text.Prettyprint.Doc
 concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
-#if !FOLDABLE_TRAVERSABLE
+#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
     | foldr (\_ _ -> False) True ds = mempty
 #else
     | null ds = mempty

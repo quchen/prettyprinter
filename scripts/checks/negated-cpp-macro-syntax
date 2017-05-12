@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+cd "$(stack path --project-root)"
+
+function find_bad_macro() {
+    git grep -I --extended-regexp --line-number --break $1 '#if\s+![^(]'
+}
+
+if find_bad_macro "-q"; then
+    echo "╭──────────────────────────────────────────────────────────────╮"
+    echo "│ Please use explicit parentheses to emphasize negated macros. │"
+    echo "│ #if !(MIN_VERSION_base(4,8,0))                               │"
+    echo "│ instead of                                                   │"
+    echo "│ !MIN_VERSION_base(4,8,0)                                     │"
+    echo "╰──────────────────────────────────────────────────────────────╯"
+    echo ""
+    echo "The following offenders were found:"
+    find_bad_macro
+    exit 1
+else
+    echo "Macro check passed"
+fi
