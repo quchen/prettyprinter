@@ -59,6 +59,12 @@ color :: Color -> Doc SimpleHtml -> Doc SimpleHtml
 color c = annotate (Color c)
 
 
+-- = The rendering algorithm
+--
+-- With the annotation definitions out of the way, we can now define a
+-- conversion function from 'SimpleDoc' (annotated with our 'SimpleHtml') to the
+-- tree-shaped 'SimpleDocTree', which is easily convertible to a HTML/'Text'
+-- representation.
 
 -- | To render the HTML, we first convert the 'SimpleDoc' to the 'SimpleDocTree'
 -- format, which makes enveloping sub-documents in markup easier.
