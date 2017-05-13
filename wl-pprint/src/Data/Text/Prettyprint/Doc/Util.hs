@@ -1,5 +1,7 @@
 -- | Frequently useful definitions for working with general prettyprinters.
-module Data.Text.Prettyprint.Doc.Util where
+module Data.Text.Prettyprint.Doc.Util (
+    module Data.Text.Prettyprint.Doc.Util
+) where
 
 
 

@@ -91,7 +91,7 @@ before_install:
       | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
     - stack $STACK_ARGS --no-terminal setup
-    - stack $STACK_ARGS --no-terminal install hlint hscolour
+    - stack $STACK_ARGS --no-terminal install hlint-2.0.6 hscolour
 
 
 

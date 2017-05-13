@@ -15,7 +15,9 @@
 --
 -- The module is written to be readable top-to-bottom in both Haddock and raw
 -- source form.
-module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial where
+module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial (
+    module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
+) where
 
 
 

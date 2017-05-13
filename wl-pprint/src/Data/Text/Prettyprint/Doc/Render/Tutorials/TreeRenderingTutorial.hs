@@ -14,7 +14,9 @@
 --
 -- The module is written to be readable top-to-bottom in both Haddock and raw
 -- source form.
-module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial where
+module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial (
+    module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial
+) where
 
 
 

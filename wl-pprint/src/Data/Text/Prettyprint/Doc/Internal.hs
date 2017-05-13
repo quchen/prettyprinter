@@ -14,7 +14,9 @@
 -- For a stable API, use the non-internal modules. For the special case of
 -- writing adaptors to this library’s @'Doc'@ type, see
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
-module Data.Text.Prettyprint.Doc.Internal where
+module Data.Text.Prettyprint.Doc.Internal (
+    module Data.Text.Prettyprint.Doc.Internal
+) where
 
 
 
