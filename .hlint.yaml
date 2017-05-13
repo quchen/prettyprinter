@@ -29,7 +29,7 @@
 
 # AMP fallout
 - error:
-    name: generalize mapM"
+    name: generalize mapM
     lhs: mapM
     rhs: traverse
 - error:
@@ -37,7 +37,7 @@
     lhs: mapM_
     rhs: traverse_
 - error:
-    name: generalize forM"
+    name: generalize forM
     lhs: forM
     rhs: for
 - error:
