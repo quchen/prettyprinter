@@ -117,6 +117,10 @@ script:
       if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
           ./scripts/checks/negated-cpp-macro-syntax
       fi
+    - |
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
+          ./scripts/checks/stylish-haskell
+      fi
 
 
 

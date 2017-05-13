@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+stylish-haskell --version
+
+cd "$(stack path --project-root)"
+find wl-pprint* -name "*.hs" -exec stylish-haskell --inplace {} \;
+
+cd "$(git rev-parse --show-toplevel)"
+set +e
+git diff --exit-code -U0 --word-diff README.md
+EXIT=$?
+set -e
+
+if [[ $EXIT -ne 0 ]]; then
+    echo "╭──────────────────────────────────────────────────────────────────────╮"
+    echo "│ Stylish-Haskell introduced changes.                                  │"
+    echo "│ Please run it before committing!                                     │"
+    echo "│ find wl-pprint* -name \"*.hs\" -exec stylish-haskell --inplace {} \; │"
+    echo "╰──────────────────────────────────────────────────────────────────────╯"
+fi
+exit $EXIT
