@@ -53,10 +53,12 @@ env:
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-7"
       STACK_BUILD_ARGS="--ghc-options -Werror"
       SKIP_BENCH_BUILD=1
+      SKIP_HLINT=1
     - >
       STACK_ARGS="--resolver lts-8"
       STACK_BUILD_ARGS="--ghc-options -Werror"
@@ -91,7 +93,10 @@ before_install:
       | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
     - stack $STACK_ARGS --no-terminal setup
-    - stack $STACK_ARGS --no-terminal install hlint-2.0.6 hscolour
+    - |
+      if [[ -z "$SKIP_HLINT" ]]; then
+          stack $STACK_ARGS --no-terminal install hlint-2.0.6 hscolour
+      fi
 
 
 
