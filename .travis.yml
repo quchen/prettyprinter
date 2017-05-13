@@ -27,38 +27,31 @@ env:
     - >
       STACK_ARGS="--resolver lts-1 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-3 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-4"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-5"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-7"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
-      SKIP_BENCH_BUILD=1
-      SKIP_HLINT=1
+      STACK_BUILD_ARGS=""
+      SKIP_RELEASE_CHECKS=1
     - >
       STACK_ARGS="--resolver lts-8"
       STACK_BUILD_ARGS="--ghc-options -Werror"
@@ -94,7 +87,7 @@ before_install:
 
     - stack $STACK_ARGS --no-terminal setup
     - |
-      if [[ -z "$SKIP_HLINT" ]]; then
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
           stack $STACK_ARGS --no-terminal install hlint-2.0.6 hscolour
       fi
 
@@ -108,16 +101,22 @@ script:
       travis_wait stack $STACK_ARGS --no-terminal haddock --no-haddock-deps
       $STACK_BUILD_ARGS
     - |
-      if [[ -z "$SKIP_BENCH_BUILD" ]]; then
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
           travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks $STACK_BUILD_ARGS
       fi
     - stack $STACK_ARGS --no-terminal sdist
     - |
-      if [[ -z "$SKIP_HLINT" ]]; then
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
           ./scripts/checks/hlint
       fi
-    - ./scripts/checks/readme-was-generated
-    - ./scripts/checks/negated-cpp-macro-syntax
+    - |
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
+          ./scripts/checks/readme-was-generated
+      fi
+    - |
+      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
+          ./scripts/checks/negated-cpp-macro-syntax
+      fi
 
 
 
