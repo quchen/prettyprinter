@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 cd "$(stack path --project-root)"
 hlint --version
-hlint wl-pprint* --cpp-include=aux
+hlint . --cpp-include=aux --color
