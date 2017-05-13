@@ -60,7 +60,7 @@ env:
       STACK_BUILD_ARGS=""
     - >
       STACK_ARGS="--resolver nightly"
-      STACK_BUILD_ARGS=""
+      STACK_BUILD_ARGS="--ghc-options \"-Wcompat -Werror\""
 
 
 
@@ -70,7 +70,7 @@ matrix:
         - env:
             - >
               STACK_ARGS="--resolver nightly"
-              STACK_BUILD_ARGS="--ghc-options -Wcompat"
+              STACK_BUILD_ARGS="--ghc-options \"-Wcompat -Werror\""
 
 
 
