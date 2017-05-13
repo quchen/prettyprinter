@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# This script generates the Haddocks and uploads them to a remote repository. I
+# use Github as a temporary host before release, pushing this to
+# quchen/ansi-wl-pprint-docdump.
+
+set -euo pipefail
+set
+
+cd "$(stack path --local-doc-root)"
+stack haddock
+git add .
+git commit --amend --no-edit
+git push --force
