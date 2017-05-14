@@ -105,22 +105,11 @@ script:
           travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks $STACK_BUILD_ARGS
       fi
     - stack $STACK_ARGS --no-terminal sdist
-    - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          ./scripts/checks/hlint
-      fi
-    - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          ./scripts/checks/readme-was-generated
-      fi
-    - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          ./scripts/checks/negated-cpp-macro-syntax
-      fi
-    - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          ./scripts/checks/stylish-haskell
-      fi
+
+    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/hlint;                    fi
+    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/readme-was-generated;     fi
+    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/negated-cpp-macro-syntax; fi
+    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/stylish-haskell;          fi
 
 
 
