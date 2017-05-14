@@ -6,8 +6,6 @@
 
 -- | Render an unannotated 'SimpleDoc' as plain 'Text'.
 module Data.Text.Prettyprint.Doc.Render.Text (
-    -- * Tags for clarity
-
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
 

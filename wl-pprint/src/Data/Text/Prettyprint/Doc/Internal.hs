@@ -1371,11 +1371,11 @@ fuse depth = go
 
         Nest i (Nest j x) -> let !fused = Nest (i+j) x
                              in go fused
-        Nest _ x@Empty{}  -> x
-        Nest _ x@Text{}   -> x
-        Nest _ x@Char{}   -> x
-        Nest 0 x          -> go x
-        Nest i x          -> Nest i (go x)
+        Nest _ x@Empty{} -> x
+        Nest _ x@Text{}  -> x
+        Nest _ x@Char{}  -> x
+        Nest 0 x         -> go x
+        Nest i x         -> Nest i (go x)
 
         Annotated _ Empty -> Empty
 
@@ -1664,6 +1664,6 @@ renderShowS = \case
     SEmpty       -> id
     SChar c x    -> showChar c . renderShowS x
     SText _l t x -> showString (T.unpack t) . renderShowS x
-    SLine i x    -> showString ('\n':replicate i ' ') . renderShowS x
+    SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
