@@ -14,10 +14,11 @@ EXIT=$?
 set -e
 
 if [[ $EXIT -ne 0 ]]; then
-    echo "╭──────────────────────────────────────────────────────────────────────╮"
-    echo "│ Stylish-Haskell introduced changes.                                  │"
-    echo "│ Please run it before committing!                                     │"
+    echo "╭────────────────────────────────────────────────────────────────────╮"
+    echo "│ Stylish-Haskell introduced changes.                                │"
+    echo "│ Please run it before committing!                                   │"
+    echo "│                                                                    │"
     echo "│ find wl-pprint* -name \"*.hs\" -exec stylish-haskell --inplace {} \; │"
-    echo "╰──────────────────────────────────────────────────────────────────────╯"
+    echo "╰────────────────────────────────────────────────────────────────────╯"
 fi
 exit $EXIT
