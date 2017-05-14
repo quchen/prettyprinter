@@ -1284,21 +1284,23 @@ unAnnotate = \case
 -- Technically this makes 'Doc' a 'Functor', but since reannotation is hardly
 -- intuitive we omit the instance.
 reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
-reAnnotate re = \case
-    Fail            -> Fail
-    Empty           -> Empty
-    Char c          -> Char c
-    Text l t        -> Text l t
-    Line            -> Line
+reAnnotate re = go
+  where
+    go = \case
+        Fail            -> Fail
+        Empty           -> Empty
+        Char c          -> Char c
+        Text l t        -> Text l t
+        Line            -> Line
 
-    FlatAlt x y     -> FlatAlt (reAnnotate re x) (reAnnotate re y)
-    Cat x y         -> Cat (reAnnotate re x) (reAnnotate re y)
-    Nest i x        -> Nest i (reAnnotate re x)
-    Union x y       -> Union (reAnnotate re x) (reAnnotate re y)
-    Column f        -> Column (reAnnotate re . f)
-    WithPageWidth f -> WithPageWidth (reAnnotate re . f)
-    Nesting f       -> Nesting (reAnnotate re . f)
-    Annotated ann x -> Annotated (re ann) (reAnnotate re x)
+        FlatAlt x y     -> FlatAlt (go x) (go y)
+        Cat x y         -> Cat (go x) (go y)
+        Nest i x        -> Nest i (go x)
+        Union x y       -> Union (go x) (go y)
+        Column f        -> Column (go . f)
+        WithPageWidth f -> WithPageWidth (go . f)
+        Nesting f       -> Nesting (go . f)
+        Annotated ann x -> Annotated (re ann) (go x)
 
 
 
