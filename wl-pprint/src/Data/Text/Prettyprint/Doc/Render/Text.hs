@@ -8,10 +8,6 @@
 module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Tags for clarity
 
-    -- | Since both lazy and strict text render simply as »Text« in Haddock,
-    -- these simple tags make it obvious which one of the two is being used.
-    Lazy, Strict,
-
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
 
@@ -48,11 +44,6 @@ import Data.Semigroup
 
 
 
-type Lazy a = a
-type Strict a = a
-
-
-
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to lazy text.
 --
@@ -62,7 +53,7 @@ type Strict a = a
 -- lorem ipsum dolor
 --       (foo bar)
 --       sit amet
-renderLazy :: SimpleDoc () -> Lazy TL.Text
+renderLazy :: SimpleDoc () -> TL.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
@@ -76,7 +67,7 @@ renderLazy = TLB.toLazyText . build
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc () -> Strict Text
+renderStrict :: SimpleDoc () -> Text
 renderStrict = TL.toStrict . renderLazy
 
 
