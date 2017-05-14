@@ -5,10 +5,15 @@
 # quchen/ansi-wl-pprint-docdump.
 
 set -euo pipefail
-set
 
-cd "$(stack path --local-doc-root)"
+cd "$(stack path --project-root)"
 stack haddock
+cd "$(stack path --local-doc-root)"
+if ! (git remote | grep origin > /dev/null); then
+    ORIGIN="git@github.com:quchen/ansi-wl-pprint-docdump.git"
+    echo "origin not found! Adding remote origin $ORIGIN"
+    git remote add origin "$ORIGIN"
+fi
 git add .
 git commit --amend --no-edit
 git push --force
