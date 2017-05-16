@@ -132,7 +132,7 @@ readmeContents = (mconcat . L.intersperse vspace)
           users of `ansi-wl-pprint`.|]
         ]
 
-    , h2 "Differences to the old Wadler/Leijen prettyprinter"
+    , h2 "Differences to the old Wadler/Leijen prettyprinters"
 
     , paragraph [multiline| The library originally started as a fork of
     `ansi-wl-pprint` until every line had been touched. The result is still in
@@ -154,6 +154,15 @@ readmeContents = (mconcat . L.intersperse vspace)
           color/intensity/layer combination, they have been combined in 'color'
           'colorDull', 'bgColor', and 'bgColorDull' functions. |]
         ]
+
+    , h2 "Historical notes"
+        , paragraph [multiline| This module is based on previous work by Daan
+        Leijen and Max Bolingbroke, who implemented and significantly extended
+        the prettyprinter given by a paper by Phil Wadler in his 1997 paper »A
+        Prettier Printer«, by adding lots of convenience functions, styling, and
+        new functionality. Their package, ansi-wl-pprint is widely used in the
+        Haskell ecosystem, and is at the time of writing maintained by Edward
+        Kmett.|]
     ]
 
 paragraph :: Text -> Doc ann

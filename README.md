@@ -126,8 +126,8 @@ The `wl-pprint` family of packages consists of:
 
 
 
-Differences to the old Wadler/Leijen prettyprinter
---------------------------------------------------
+Differences to the old Wadler/Leijen prettyprinters
+---------------------------------------------------
 
 The library originally started as a fork of `ansi-wl-pprint` until every line
 had been touched. The result is still in the same spirit as its predecessors,
@@ -147,3 +147,15 @@ The most significant changes are:
   6. Instead of providing an own colorization function for each
      color/intensity/layer combination, they have been combined in 'color'
      'colorDull', 'bgColor', and 'bgColorDull' functions.
+
+
+
+Historical notes
+----------------
+
+This module is based on previous work by Daan Leijen and Max Bolingbroke, who
+implemented and significantly extended the prettyprinter given by a paper by
+Phil Wadler in his 1997 paper »A Prettier Printer«, by adding lots of
+convenience functions, styling, and new functionality. Their package,
+ansi-wl-pprint is widely used in the Haskell ecosystem, and is at the time of
+writing maintained by Edward Kmett.

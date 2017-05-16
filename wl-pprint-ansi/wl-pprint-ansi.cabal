@@ -2,13 +2,13 @@ name:                wl-pprint-ansi
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            ANSI terminal renderer for the Wadler/Leijen prettyprinter.
+synopsis:            ANSI terminal backend for the modern, extensible and well-documented prettyprinter.
 description:         See README.md
-license:             BSD3
+license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
                    , aux/version-compatibility-macros.h
-author:              Daan Leijen, Max Bolingbroke, Edward Kmett
+author:              David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter

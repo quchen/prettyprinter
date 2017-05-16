@@ -2,12 +2,12 @@ name:                wl-pprint-compat-old-ansi
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            Compatibility between the new/old wl-pprint-ansi packages.
+synopsis:            Prettyprinter compatibility module for previous users of the ansi-wl-pprint package.
 description:         See README.md
-license:             BSD3
+license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
-author:              Daan Leijen, Max Bolingbroke, Edward Kmett
+author:              David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter

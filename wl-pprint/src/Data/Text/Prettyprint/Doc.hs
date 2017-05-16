@@ -21,7 +21,6 @@
 --   1. Just below is some general information about the library.
 --   2. The actual library with extensive documentation and examples
 --   3. Migration guide for users familiar with (ansi-)wl-pprint
---   4. Historical notes about previous libraries
 --
 -- == Starting out
 --
@@ -213,20 +212,9 @@ module Data.Text.Prettyprint.Doc (
     PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
 
-    -- * Notes
-
-    -- ** Migration guide
+    -- * Migration guide
     --
     -- $migration
-
-    -- ** Historical
-    --
-    -- $history
-
-    -- ** Algebraic properties
-    --
-    -- $algebra
-
 ) where
 
 
@@ -255,38 +243,10 @@ import Data.Text.Prettyprint.Doc.Internal
 --   - @\<$>@, @\<$$>@, @\</>@, @\<//>@ are special cases of
 --     @'vsep'@, @'vcat'@, @'fillSep'@, @'fillCat'@ with only two documents.
 --   - If you need 'String' output, use 'T.unpack' on the generated renderings.
---   - The /display/ functions are moved to the rendering submodules.
+--   - The /display/ functions are moved to the rendering submodules, for
+--     example conversion to plain 'Text' is in the
+--     "Data.Text.Prettyprint.Doc.Render.Text" module.
 --   - The /render/ functions are called /layout/ functions.
 --   - Instead of providing an own colorization function for each
 --     color\/intensity\/layer combination, they have been combined in 'color',
 --     'colorDull', 'bgColor', and 'bgColorDull' functions.
-
-
-
--- $history
---
--- This module is based on previous work by Daan Leijen and Max Bolingbroke, who
--- implemented and significantly extended the prettyprinter given by a paper by
--- Phil Wadler in his 1997 paper "A Prettier Printer", by adding lots of
--- convenience functions, styling, and new functionality. Their package,
--- <http:/hackage.haskell.org/package/ansi-wl-pprint ansi-wl-pprint> is widely
--- used in the Haskell ecosystem.
---
--- However, ansi-wl-pprint is showing its age, resulting in a couple of issues:
---
---   - Definitions clashing with others that are now standard Haskell, such as
---     @\<$>@
---   - Hard to read operators, such as @\<//>@
---   - Some undocumented definitions, not many examples
---   - Based on 'String'
---
--- This modified package addresses and modernizes these issues:
---
---   - No clashing definitions
---   - All but the essential @'<>'@ and @'<+>'@ operators removed
---   - Everything extensively documented, with references to other functions and
---     runnable code examples
---   - 'Text' instead of 'String'
---
--- For more justification of yet another prettyprinter library, have a look at
--- the readme.

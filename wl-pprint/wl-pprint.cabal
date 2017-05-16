@@ -2,13 +2,13 @@ name:                wl-pprint
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            The prettyprinter based on the work of Wadler/Leijen.
+synopsis:            A modern, extensible and well-documented prettyprinter.
 description:         See README.md
-license:             BSD3
+license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
                    , aux/version-compatibility-macros.h
-author:              Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
+author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter

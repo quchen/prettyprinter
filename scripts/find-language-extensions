@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+cd "$(stack path --project-root)"
+
+function find-language-extensions() {
+    find "$1" -name "*.hs" -type f -exec grep -Ehro '\{-# LANGUAGE [a-zA-Z]+' '{}' \; |\
+        sed -re 's/.*LANGUAGE\s+//' |\
+        sort -u
+}
+
+function separator() {
+    echo "=========================================================="
+    echo
+}
+
+for dir in wl-pprint wl-pprint-ansi wl-pprint-compat-old wl-pprint-compat-old-ansi; do
+    separator
+    echo "Language extensions used in $dir:"
+    for extension in $(find-language-extensions "$i"); do
+        echo "  - $extension"
+    done
+    echo
+done
+separator
