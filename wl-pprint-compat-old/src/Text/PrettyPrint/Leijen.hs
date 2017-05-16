@@ -21,14 +21,13 @@ import qualified Data.Text.Lazy as TL
 import           System.IO
 
 import           Data.Text.Prettyprint.Doc             (Pretty (..))
-import qualified Data.Text.Prettyprint.Doc             as Doc
 import qualified Data.Text.Prettyprint.Doc             as New
 import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
 
 
 
-type Doc = Doc.Doc ()
-type SimpleDoc = Doc.SimpleDoc ()
+type Doc = New.Doc ()
+type SimpleDoc = New.SimpleDoc ()
 
 
 
