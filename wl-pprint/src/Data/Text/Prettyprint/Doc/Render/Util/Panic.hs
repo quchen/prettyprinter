@@ -5,8 +5,8 @@ module Data.Text.Prettyprint.Doc.Render.Util.Panic (
     panicInputNotFullyConsumed,
 ) where
 
--- | Raise a hard 'error' if there is a 'Data.Text.Prettyprinter.Doc.SFail' in a
--- 'Data.Text.Prettyprinter.Doc.SimpleDoc'.
+-- | Raise a hard 'error' if there is a 'Data.Text.Prettyprint.Doc.SFail' in a
+-- 'Data.Text.Prettyprint.Doc.SimpleDoc'.
 panicUncaughtFail :: a
 panicUncaughtFail = error ("»SFail« must not appear in a rendered »SimpleDoc«. This is a bug in the layout algorithm! " ++ report)
 
@@ -15,12 +15,14 @@ panicUncaughtFail = error ("»SFail« must not appear in a rendered »SimpleDoc�
 panicUnpairedPop :: a
 panicUnpairedPop = error ("An unpaired style terminator was encountered. This is a bug in the layout algorithm! " ++ report)
 
--- | Raise a hard generic 'error' when the 'Data.Text.Prettyprinter.Doc.SimpleDoc' to 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree' conversion fails.
+-- | Raise a hard generic 'error' when the
+-- 'Data.Text.Prettyprint.Doc.SimpleDoc' to
+-- 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' conversion fails.
 panicSimpleDocTreeConversionFailed :: a
 panicSimpleDocTreeConversionFailed = error ("Conversion from SimpleDoc to SimpleDocTree failed! " ++ report)
 
 -- | Raise a hard 'error' when the »to
--- 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree'« parser finishes
+-- 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree'« parser finishes
 -- without consuming the full input.
 panicInputNotFullyConsumed :: a
 panicInputNotFullyConsumed = error ("Conversion from SimpleDoc to SimpleDocTree left unconsumed input! " ++ report)

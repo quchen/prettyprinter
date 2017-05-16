@@ -91,8 +91,8 @@ renderTree = \case
     STAnn ann content -> encloseInTagFor ann (renderTree content)
     STConcat contents -> foldMap renderTree contents
 
--- | Convert a 'SimpleHtml' annotation to a pair of opening and closing tags.
--- This is where the translation of style to raw output happens.
+-- | Convert a 'SimpleHtml' to a function that encloses a 'TLB.Builder' in HTML
+-- tags. This is where the translation of style to raw output happens.
 encloseInTagFor :: SimpleHtml -> TLB.Builder -> TLB.Builder
 encloseInTagFor = \case
     Bold      -> \x -> "<strong>" <> x <> "</strong>"
