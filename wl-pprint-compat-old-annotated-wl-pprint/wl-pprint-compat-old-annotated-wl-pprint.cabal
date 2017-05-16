@@ -22,6 +22,7 @@ library
     exposed-modules:  Text.PrettyPrint.Annotated.Leijen
     ghc-options:      -Wall
     hs-source-dirs:   src
+    include-dirs:     aux
     default-language: Haskell2010
     other-extensions: CPP
 

@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+
+#include "version-compatibility-macros.h"
+
 module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module for users of annotated-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, SimpleDoc(..), SpanList, putDoc, hPutDoc, empty, char, text, (<>),
@@ -17,8 +21,11 @@ module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module fo
 
 import Prelude hiding ((<$>))
 
-import           Control.Applicative (liftA2)
-import           Data.Semigroup
+#if !(MONOID_IN_PRELUDE)
+import Data.Monoid hiding ((<>))
+#endif
+
+import           Control.Applicative hiding (empty, (<$>))
 import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import           System.IO
