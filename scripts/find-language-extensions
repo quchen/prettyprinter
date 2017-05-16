@@ -18,7 +18,7 @@ function separator() {
 for dir in wl-pprint wl-pprint-ansi wl-pprint-compat-old wl-pprint-compat-old-ansi; do
     separator
     echo "Language extensions used in $dir:"
-    for extension in $(find-language-extensions "$i"); do
+    for extension in $(find-language-extensions "$dir"); do
         echo "  - $extension"
     done
     echo

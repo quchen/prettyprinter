@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(stack path --project-root)"
 
 function find_bad_macro() {
-    git grep -I --extended-regexp --line-number --break $1 '#if\s+![^(]'
+    git grep -I --extended-regexp --line-number --break "$1" '#if\s+![^(]'
 }
 
 if find_bad_macro "-q"; then
