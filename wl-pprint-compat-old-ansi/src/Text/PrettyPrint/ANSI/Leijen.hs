@@ -26,14 +26,13 @@ import qualified Data.Text.Lazy as TL
 import           System.IO
 
 import           Data.Text.Prettyprint.Doc                 (Pretty (..))
-import qualified Data.Text.Prettyprint.Doc                 as Doc
 import qualified Data.Text.Prettyprint.Doc                 as New
 import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
 
 
 
-type Doc = Doc.Doc NewT.AnsiTerminal
-type SimpleDoc = Doc.SimpleDoc NewT.AnsiTerminal
+type Doc = New.Doc NewT.AnsiTerminal
+type SimpleDoc = New.SimpleDoc NewT.AnsiTerminal
 
 
 

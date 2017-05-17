@@ -4,6 +4,7 @@ packages:
     - 'wl-pprint-ansi'
     - 'wl-pprint-compat-old'
     - 'wl-pprint-compat-old-ansi'
+    - 'wl-pprint-compat-old-annotated-wl-pprint'
 extra-deps:
     - pgp-wordlist-0.1.0.2
 flags: {}

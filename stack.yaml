@@ -4,6 +4,7 @@ packages:
     - 'wl-pprint-ansi'
     - 'wl-pprint-compat-old'
     - 'wl-pprint-compat-old-ansi'
+    - 'wl-pprint-compat-old-annotated-wl-pprint'
 extra-deps: []
 flags: {}
 extra-package-dbs: []
