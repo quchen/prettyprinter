@@ -1,3 +1,10 @@
+#ifndef VERSION_COMPATIBILITY_MACROS
+#define VERSION_COMPATIBILITY_MACROS
+
+#ifndef MIN_VERSION_base
+#error "MIN_VERSION_base macro not defined!"
+#endif
+
 -- These macros allow writing CPP compatibility hacks in a way that makes their
 -- purpose much clearer than just demanding a specific version of a library.
 
@@ -8,3 +15,5 @@
 #define SEMIGROUP_IN_BASE               MIN_VERSION_base(4,8,0)
 
 #define MONAD_FAIL                      MIN_VERSION_base(4,9,0)
+
+#endif

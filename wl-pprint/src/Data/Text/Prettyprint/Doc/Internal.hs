@@ -258,13 +258,11 @@ instance Pretty Natural where pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (pi :: Float))
 -- 3.1415927
-instance Pretty Float where
-    pretty = unsafeViaShow
+instance Pretty Float where pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (exp 1 :: Double))
 -- 2.718281828459045
-instance Pretty Double where
-    pretty = unsafeViaShow
+instance Pretty Double where pretty = unsafeViaShow
 
 -- | >>> putDoc (pretty (123, "hello"))
 -- (123, hello)
@@ -1029,7 +1027,7 @@ fill
     :: Int -- ^ Append spaces until the document is at least this wide
     -> Doc ann
     -> Doc ann
-fill f doc = width doc (\w -> spaces (f - w))
+fill n doc = width doc (\w -> spaces (n - w))
 
 -- | @('fillBreak' i x)@ first lays out the document @x@. It then appends @space@s
 -- until the width is equal to @i@. If the width of @x@ is already larger than
@@ -1287,11 +1285,11 @@ reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
 reAnnotate re = go
   where
     go = \case
-        Fail            -> Fail
-        Empty           -> Empty
-        Char c          -> Char c
-        Text l t        -> Text l t
-        Line            -> Line
+        Fail     -> Fail
+        Empty    -> Empty
+        Char c   -> Char c
+        Text l t -> Text l t
+        Line     -> Line
 
         FlatAlt x y     -> FlatAlt (go x) (go y)
         Cat x y         -> Cat (go x) (go y)
@@ -1425,8 +1423,7 @@ fuse depth = go
 --   - width in which to fit the first line; Nothing is unbounded
 newtype FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -> Bool)
 
--- List of nesting level/document pairs yet to be laid out. Saves one
--- indirection over [(Int, Doc)].
+-- | List of nesting level/document pairs yet to be laid out.
 data LayoutPipeline ann =
       Nil
     | Cons !Int (Doc ann) (LayoutPipeline ann)
@@ -1671,7 +1668,7 @@ layoutCompact doc = scan 0 [doc]
         Union _ y       -> scan k (y:ds)
         Column f        -> scan k (f k:ds)
         WithPageWidth f -> scan k (f Unbounded : ds)
-        Nesting f       -> scan k (f 0:ds)
+        Nesting f       -> scan k (f 0 : ds)
         Annotated _ x   -> scan k (x:ds)
 
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions',
