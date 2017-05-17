@@ -1315,7 +1315,7 @@ unAnnotateS = go
         SAnnPush _ rest -> go rest
         SAnnPop rest    -> go rest
 
--- | Change the annotation of a simple document. 'reAnnotate' for 'SimpleDoc'.
+-- | Change the annotation of a document. 'reAnnotate' for 'SimpleDoc'.
 reAnnotateS :: (ann -> ann') -> SimpleDoc ann -> SimpleDoc ann'
 reAnnotateS f = go
   where

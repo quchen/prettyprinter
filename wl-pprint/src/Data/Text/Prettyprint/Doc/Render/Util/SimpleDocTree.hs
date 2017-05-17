@@ -8,6 +8,9 @@
 module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
     SimpleDocTree(..),
     treeForm,
+
+    unAnnotateST,
+    reAnnotateST,
 ) where
 
 
@@ -129,3 +132,25 @@ treeForm sdoc = case runParser sdocToTreeParser sdoc of
 -- >>> :set -XOverloadedStrings
 -- >>> treeForm (layoutPretty defaultLayoutOptions ("lorem" <+> "ipsum" <+> annotate True ("TRUE" <+> annotate False "FALSE") <+> "dolor"))
 -- STConcat [STText 5 "lorem",STChar ' ',STText 5 "ipsum",STChar ' ',STAnn True (STConcat [STText 4 "TRUE",STChar ' ',STAnn False (STText 5 "FALSE")]),STChar ' ',STText 5 "dolor"]
+
+-- | Remove all annotations. 'unAnnotateS' for 'SimpleDoc'.
+unAnnotateST :: SimpleDocTree ann -> SimpleDocTree xxx
+unAnnotateST = \case
+    STEmpty      -> STEmpty
+    STChar c     -> STChar c
+    STText l t   -> STText l t
+    STLine i     -> STLine i
+    STAnn _ rest -> unAnnotateST rest
+    STConcat xs  -> STConcat (map unAnnotateST xs)
+
+-- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocTree'.
+reAnnotateST :: (ann -> ann') -> SimpleDocTree ann -> SimpleDocTree ann'
+reAnnotateST f = go
+  where
+    go = \case
+        STEmpty        -> STEmpty
+        STChar c       -> STChar c
+        STText l t     -> STText l t
+        STLine i       -> STLine i
+        STAnn ann rest -> STAnn (f ann) (go rest)
+        STConcat xs    -> STConcat (map go xs)
