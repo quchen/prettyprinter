@@ -46,8 +46,10 @@ hPutDoc = New.hPutDoc
 displayS :: SimpleDoc ann -> ShowS
 displayS = New.renderShowS
 
-renderPretty :: LayoutOptions -> Doc ann -> SimpleDoc ann
-renderPretty = layoutPretty
+renderPretty :: Float -> Int -> Doc ann -> SimpleDoc ann
+renderPretty ribbonFraction pWidth
+    = layoutPretty LayoutOptions
+        { layoutPageWidth = AvailablePerLine pWidth (realToFrac ribbonFraction) }
 
 renderCompact :: Doc ann -> SimpleDoc ann
 renderCompact = layoutCompact
