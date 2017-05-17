@@ -1302,6 +1302,32 @@ reAnnotate re = go
         Nesting f       -> Nesting (go . f)
         Annotated ann x -> Annotated (re ann) (go x)
 
+-- | Remove all annotations. 'unAnnotateS' for 'SimpleDoc'.
+unAnnotateS :: SimpleDoc ann -> SimpleDoc xxx
+unAnnotateS = go
+  where
+    go = \case
+        SFail           -> SFail
+        SEmpty          -> SEmpty
+        SChar c rest    -> SChar c (go rest)
+        SText l t rest  -> SText l t (go rest)
+        SLine l rest    -> SLine l (go rest)
+        SAnnPush _ rest -> go rest
+        SAnnPop rest    -> go rest
+
+-- | Change the annotation of a simple document. 'reAnnotate' for 'SimpleDoc'.
+reAnnotateS :: (ann -> ann') -> SimpleDoc ann -> SimpleDoc ann'
+reAnnotateS f = go
+  where
+    go = \case
+        SFail             -> SFail
+        SEmpty            -> SEmpty
+        SChar c rest      -> SChar c (go rest)
+        SText l t rest    -> SText l t (go rest)
+        SLine l rest      -> SLine l (go rest)
+        SAnnPush ann rest -> SAnnPush (f ann) (go rest)
+        SAnnPop rest      -> SAnnPop (go rest)
+
 
 
 -- | Fusion depth parameter, used by 'fuse'.
