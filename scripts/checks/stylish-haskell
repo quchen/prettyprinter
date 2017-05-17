@@ -5,6 +5,7 @@ set -euo pipefail
 stylish-haskell --version
 
 cd "$(stack path --project-root)"
+git stash
 find wl-pprint* -name "*.hs" -exec stylish-haskell --inplace {} \;
 
 cd "$(git rev-parse --show-toplevel)"
