@@ -51,7 +51,7 @@ import Data.Semigroup
 -- lorem ipsum dolor
 --       (foo bar)
 --       sit amet
-renderLazy :: SimpleDoc () -> TL.Text
+renderLazy :: SimpleDoc ann -> TL.Text
 renderLazy = TLB.toLazyText . build
   where
     build = \case
@@ -65,7 +65,7 @@ renderLazy = TLB.toLazyText . build
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc () -> Text
+renderStrict :: SimpleDoc ann -> Text
 renderStrict = TL.toStrict . renderLazy
 
 
@@ -75,7 +75,7 @@ renderStrict = TL.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc () -> IO ()
+renderIO :: Handle -> SimpleDoc ann -> IO ()
 renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output. Uses the
@@ -87,7 +87,7 @@ renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 -- @
 -- 'putDoc' = 'hPutDoc' 'stdout'
 -- @
-putDoc :: Doc () -> IO ()
+putDoc :: Doc ann -> IO ()
 putDoc = hPutDoc stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
@@ -103,5 +103,5 @@ putDoc = hPutDoc stdout
 -- @
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
-hPutDoc :: Handle -> Doc () -> IO ()
+hPutDoc :: Handle -> Doc ann -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)
