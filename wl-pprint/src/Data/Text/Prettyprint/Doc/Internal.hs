@@ -66,7 +66,17 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 --
 -- More specifically, a value of type @'Doc'@ represents a non-empty set of
 -- possible layouts of a document. The layout functions select one of these
--- possibilities.
+-- possibilities, taking into account things like the width of the output
+-- document.
+--
+-- The annotation is an arbitrary piece of data associated with (part of) a
+-- document. Annotations may be used by the rendering backends in order to
+-- display output differently, such as
+--
+--   - color information (e.g. when rendering to the terminal)
+--   - mouseover text (e.g. when rendering to rich HTML)
+--   - metailed whether to show something or not (to allow simple or detailed
+--     versions)
 --
 -- The simplest way to display a 'Doc' is via the 'Show' class.
 --
