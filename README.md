@@ -154,8 +154,9 @@ Historical notes
 ----------------
 
 This module is based on previous work by Daan Leijen and Max Bolingbroke, who
-implemented and significantly extended the prettyprinter given by a paper by
-Phil Wadler in his 1997 paper »A Prettier Printer«, by adding lots of
-convenience functions, styling, and new functionality. Their package,
-ansi-wl-pprint is widely used in the Haskell ecosystem, and is at the time of
-writing maintained by Edward Kmett.
+implemented and significantly extended the prettyprinter given by a [paper by
+Phil Wadler in his 1997 paper »A Prettier
+Printer«](https://homepages.inf.ed.ac.uk/wadler/papers/prettier/prettier.pdf),
+by adding lots of convenience functions, styling, and new functionality. Their
+package, ansi-wl-pprint is widely used in the Haskell ecosystem, and is at the
+time of writing maintained by Edward Kmett.
