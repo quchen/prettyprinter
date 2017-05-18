@@ -1477,8 +1477,14 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 0.4 }
 
--- | This is the default prettyprinter which is used by 'show', 'putDoc' and
--- 'hPutDoc'.
+-- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
+-- and 'hPutDoc'.
+--
+-- @'layoutPretty'@ commits to rendering something in a certain way if the next
+-- element fits the layout constraints; in other words, it has one 'SimpleDoc'
+-- element lookahead when rendering. Consider using the smarter, but a bit less
+-- performant, @'layoutSmart'@ algorithm if the results seem to run off to the
+-- right before having lots of line breaks.
 layoutPretty
     :: LayoutOptions
     -> Doc ann
@@ -1502,44 +1508,53 @@ layoutPretty = layoutFits fits1
         go (Just w) (SAnnPush _ x) = go (Just w) x
         go (Just w) (SAnnPop x)    = go (Just w) x
 
--- | A slightly smarter layout algorithm with more lookahead. It provides
--- python-ish pseudocode:
--- earlier breaking on deeply nested structures. For example, consider this
+-- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
+-- line breaks earlier if the content does not (or will not, rather) fit into
+-- one line.
 --
--- @fun(fun(fun(fun(fun([abcdefg, abcdefg])))))@
+-- Considre the following python-ish document,
 --
--- If we put a 'softline'' (+ 'nest' 2) after each open parenthesis, and align
--- the elements of the list to match the opening brackets, this will layout with
--- @'layoutPretty'@ and a page width of 20 as:
+-- >>> fun x = hang 2 ("fun(" <> softline' <> x) <> ")"
+-- >>> doc = (fun . fun . fun . fun . fun) (list ["abcdef", "ghijklm"])
 --
--- @
--- fun(fun(fun(fun(fun([
---                     | abcdef,
---                     | abcdef,
---                     ]
---   )))))             |
--- @
+-- which we’ll be rendering using the following pipeline (where the layout
+-- algorithm has been left open),
 --
--- Where the 20 character boundary has been marked with @|@. Because
--- @'layoutPretty'@ only uses only one line lookahead, it sees that the first
--- line fits, and is stuck putting the second and third lines after the 20
--- character mark. In contrast, @'layoutSmart'@ will continue to check the
--- potential document up to the end of the indentation level. Thus, it will
--- format the document as:
+-- >>> import Data.Text.IO as T
+-- >>> import Data.Text.Prettyprint.Doc.Render.Text
+-- >>> hr = pipe <> pretty (replicate (26-2) '-') <> pipe
+-- >>> go layouter x = (T.putStrLn . renderStrict . layouter (LayoutOptions (AvailablePerLine 26 1))) (vsep [hr, x, hr])
 --
--- @
--- fun(                |
---   fun(              |
---     fun(            |
---       fun(          |
---         fun([       |
---               abcdef,
---               abcdef,
---             ]       |
---   )))))             |
--- @
+-- If we render this using @'layoutPretty'@ with a page width of 26 characters
+-- per line, all the @fun@ calls fit into the first line so they will be put
+-- there,
 --
--- This fits within the 20 character boundary.
+-- >>> import Data.Text.IO as T
+-- >>> import Data.Text.Prettyprint.Doc.Render.Text
+-- >>> go layoutPretty doc
+-- |------------------------|
+-- fun(fun(fun(fun(fun(
+--                   [ abcdef
+--                   , ghijklm ])))))
+-- |------------------------|
+--
+-- Note that this exceeds the desired 26 character page width. The same
+-- document, rendered with @'layoutSmart'@, fits the layout contstraints:
+--
+-- >>> go layoutSmart doc
+-- |------------------------|
+-- fun(
+--   fun(
+--     fun(
+--       fun(
+--         fun(
+--           [ abcdef
+--           , ghijklm ])))))
+-- |------------------------|
+--
+-- The key difference between @'layoutPretty'@ and @'layoutSmart'@ is that the
+-- latter will check the potential document up to the end of the current
+-- indentation level, instead of just having one element lookahead.
 layoutSmart
     :: LayoutOptions
     -> Doc ann
