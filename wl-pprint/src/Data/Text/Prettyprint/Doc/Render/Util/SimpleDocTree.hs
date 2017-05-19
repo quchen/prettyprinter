@@ -133,7 +133,7 @@ treeForm sdoc = case runParser sdocToTreeParser sdoc of
 -- >>> treeForm (layoutPretty defaultLayoutOptions ("lorem" <+> "ipsum" <+> annotate True ("TRUE" <+> annotate False "FALSE") <+> "dolor"))
 -- STConcat [STText 5 "lorem",STChar ' ',STText 5 "ipsum",STChar ' ',STAnn True (STConcat [STText 4 "TRUE",STChar ' ',STAnn False (STText 5 "FALSE")]),STChar ' ',STText 5 "dolor"]
 
--- | Remove all annotations. 'unAnnotateS' for 'SimpleDoc'.
+-- | Remove all annotations. 'unAnnotate' for 'SimpleDocTree'.
 unAnnotateST :: SimpleDocTree ann -> SimpleDocTree xxx
 unAnnotateST = \case
     STEmpty      -> STEmpty
