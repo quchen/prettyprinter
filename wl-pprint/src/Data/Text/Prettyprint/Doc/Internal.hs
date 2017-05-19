@@ -1514,16 +1514,16 @@ layoutPretty = layoutFits fits1
 --
 -- Considre the following python-ish document,
 --
--- >>> fun x = hang 2 ("fun(" <> softline' <> x) <> ")"
--- >>> doc = (fun . fun . fun . fun . fun) (list ["abcdef", "ghijklm"])
+-- >>> let fun x = hang 2 ("fun(" <> softline' <> x) <> ")"
+-- >>> let doc = (fun . fun . fun . fun . fun) (list ["abcdef", "ghijklm"])
 --
 -- which we’ll be rendering using the following pipeline (where the layout
 -- algorithm has been left open),
 --
 -- >>> import Data.Text.IO as T
 -- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> hr = pipe <> pretty (replicate (26-2) '-') <> pipe
--- >>> go layouter x = (T.putStrLn . renderStrict . layouter (LayoutOptions (AvailablePerLine 26 1))) (vsep [hr, x, hr])
+-- >>> let hr = pipe <> pretty (replicate (26-2) '-') <> pipe
+-- >>> let go layouter x = (T.putStrLn . renderStrict . layouter (LayoutOptions (AvailablePerLine 26 1))) (vsep [hr, x, hr])
 --
 -- If we render this using @'layoutPretty'@ with a page width of 26 characters
 -- per line, all the @fun@ calls fit into the first line so they will be put
