@@ -7,7 +7,7 @@ description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
-                   , aux/version-compatibility-macros.h
+                   , misc/version-compatibility-macros.h
 author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -40,7 +40,7 @@ library
         -- , Data.Text.Prettyprint.Doc.Unicode
     ghc-options: -Wall
     hs-source-dirs: src
-    include-dirs: aux
+    include-dirs: misc
     default-language: Haskell2010
     other-extensions:
           BangPatterns

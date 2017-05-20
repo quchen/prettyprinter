@@ -7,9 +7,9 @@ PROJECT_ROOT="$(stack path --project-root)"
 cd "$PROJECT_ROOT"
 pwd
 
-OUTDIR="${PROJECT_ROOT}/generated"
+OUTDIR="${PROJECT_ROOT}/generated/benchmarks"
 mkdir -p "$OUTDIR"
 stack bench prettyprinter:bench:fusion \
-    --benchmark-arguments "--output \"$OUTDIR/wl-pprint-benchmark.html\""
+    --benchmark-arguments "--output \"$OUTDIR/fusion.html\""
 stack bench prettyprinter:bench:faster-unsafe-text \
     --benchmark-arguments "--output \"$OUTDIR/faster-unsafe-text.html\""
