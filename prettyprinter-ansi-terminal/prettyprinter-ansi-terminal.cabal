@@ -1,5 +1,5 @@
-name:                wl-pprint-ansi
-version:             1
+name:                prettyprinter-ansi-terminal
+version:             0.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            ANSI terminal backend for the modern, extensible and well-documented prettyprinter.
@@ -35,7 +35,7 @@ library
           base < 127
         , ansi-terminal >= 0.4.0 && < 0.7
         , text
-        , wl-pprint
+        , prettyprinter >= 0 && < 0.2
 
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat

@@ -6,5 +6,5 @@ set -v
 cd "$(git rev-parse --show-toplevel)"
 pwd
 
-stack build wl-pprint:exe:generate_readme
+stack build prettyprinter:exe:generate_readme
 stack exec generate_readme > README.md

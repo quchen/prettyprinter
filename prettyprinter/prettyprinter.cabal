@@ -1,5 +1,5 @@
-name:                wl-pprint
-version:             1
+name:                prettyprinter
+version:             0.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            A modern, extensible and well-documented prettyprinter.
@@ -35,8 +35,9 @@ library
         , Data.Text.Prettyprint.Doc.Render.Util.Panic
         , Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
         , Data.Text.Prettyprint.Doc.Render.Util.StackMachine
-        , Data.Text.Prettyprint.Doc.Unicode
         , Data.Text.Prettyprint.Doc.Util
+        -- Hidden for now, until I figure out where to put it:
+        -- , Data.Text.Prettyprint.Doc.Unicode
     ghc-options: -Wall
     hs-source-dirs: src
     include-dirs: aux
@@ -68,7 +69,7 @@ executable generate_readme
     main-is: GenerateReadme.hs
     build-depends:
           base < 127
-        , wl-pprint
+        , prettyprinter
         , text
         , template-haskell
     default-language: Haskell2010
@@ -100,7 +101,7 @@ test-suite testsuite
     main-is: Main.hs
     build-depends:
           base
-        , wl-pprint
+        , prettyprinter
 
         , pgp-wordlist
         , bytestring
@@ -121,13 +122,14 @@ benchmark fusion
     main-is: Fusion.hs
     build-depends:
           base
-        , wl-pprint
-        , ansi-wl-pprint
+        , prettyprinter
+
         , criterion
+        , mtl
         , random
         , text
         , transformers
-        , mtl
+        , ansi-wl-pprint
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
     other-extensions: NumDecimals, OverloadedStrings
@@ -136,7 +138,7 @@ benchmark faster-unsafe-text
     build-depends: base >= 4.7 && < 5
                  , criterion
                  , text
-                 , wl-pprint
+                 , prettyprinter
 
     hs-source-dirs:      bench
     main-is:             FasterUnsafeText.hs

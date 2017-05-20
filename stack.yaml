@@ -1,10 +1,10 @@
 resolver: lts-8.0
 packages:
-    - 'wl-pprint'
-    - 'wl-pprint-ansi'
-    - 'wl-pprint-compat-old'
-    - 'wl-pprint-compat-old-ansi'
-    - 'wl-pprint-compat-old-annotated-wl-pprint'
+    - 'prettyprinter'
+    - 'prettyprinter-ansi-terminal'
+    - 'prettyprinter-compat-wl-pprint'
+    - 'prettyprinter-compat-ansi-wl-pprint'
+    - 'prettyprinter-compat-annotated-wl-pprint'
 extra-deps: []
 flags: {}
 extra-package-dbs: []

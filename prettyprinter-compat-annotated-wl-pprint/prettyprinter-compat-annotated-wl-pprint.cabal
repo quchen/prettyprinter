@@ -1,5 +1,5 @@
-name:                wl-pprint-compat-old-annotated-wl-pprint
-version:             1
+name:                prettyprinter-compat-annotated-wl-pprint
+version:             0.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            Prettyprinter compatibility module for previous users of the annotated-wl-pprint package.
@@ -29,4 +29,4 @@ library
     build-depends:
           base < 127
         , text
-        , wl-pprint
+        , prettyprinter >= 0 && < 0.2

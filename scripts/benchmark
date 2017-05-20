@@ -9,7 +9,7 @@ pwd
 
 OUTDIR="${PROJECT_ROOT}/generated"
 mkdir -p "$OUTDIR"
-stack bench wl-pprint \
+stack bench prettyprinter:bench:fusion \
     --benchmark-arguments "--output \"$OUTDIR/wl-pprint-benchmark.html\""
-stack bench faster-unsafe-text \
+stack bench prettyprinter:bench:faster-unsafe-text \
     --benchmark-arguments "--output \"$OUTDIR/faster-unsafe-text.html\""
