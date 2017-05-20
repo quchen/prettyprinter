@@ -749,7 +749,7 @@ x <+> y = x <> space <> y
 --
 -- This is also useful to define customized joiners,
 --
--- >>> concatWith (\x y -> x <> dot <> y) ["Data", "Text", "Prettyprint", "Doc"]
+-- >>> concatWith (surround dot) ["Data", "Text", "Prettyprint", "Doc"]
 -- Data.Text.Prettyprint.Doc
 concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
@@ -1110,6 +1110,24 @@ enclose
     -> Doc ann -- ^ x
     -> Doc ann -- ^ LxR
 enclose l r x = l <> x <> r
+
+
+-- | @('surround' x l r)@ surrounds document @x@ with @l@/@r: on the left/right.
+--
+-- >>> putDoc (surround "·" "A" "Z" )
+-- A·Z
+--
+-- This is merely an argument reordering of @'enclose'@, but allows for
+-- definitions like
+--
+-- >>> concatWith (surround ".") ["Data", "Text", "Prettyprint", "Doc"]
+-- Data.Text.Prettyprint.Doc
+surround
+    :: Doc ann
+    -> Doc ann
+    -> Doc ann
+    -> Doc ann
+surround x l r = l <> x <> r
 
 
 

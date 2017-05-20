@@ -178,7 +178,7 @@ module Data.Text.Prettyprint.Doc (
     -- * General convenience
     --
     -- | Useful helper functions.
-    plural, enclose,
+    plural, enclose, surround,
 
     -- * Bracketing functions
     --
