@@ -139,7 +139,7 @@ data Doc ann =
 -- x '<>' y = 'hcat' [x, y]
 -- @
 --
--- >>> putDoc ("hello" <> "world")
+-- >>> "hello" <> "world" :: Doc ann
 -- helloworld
 instance Semigroup (Doc ann) where
     (<>) = Cat
@@ -151,14 +151,14 @@ instance Semigroup (Doc ann) where
 -- 'mconcat' = 'hcat'
 -- @
 --
--- >>> putDoc (mappend "hello" "world")
+-- >>> mappend "hello" "world" :: Doc ann
 -- helloworld
 instance Monoid (Doc ann) where
     mempty = emptyDoc
     mappend = (<>)
     mconcat = hcat
 
--- | >>> putDoc "hello\nworld"
+-- | >>> pretty ("hello\nworld")
 -- hello
 -- world
 --
@@ -170,7 +170,7 @@ instance IsString (Doc ann) where
 -- | Overloaded conversion to 'Doc'.
 class Pretty a where
 
-    -- | >>> putDoc (pretty 1 <+> pretty "hello" <+> pretty 1.234)
+    -- | >>> pretty 1 <+> pretty "hello" <+> pretty 1.234
     -- 1 hello 1.234
     pretty :: a -> Doc ann
 
@@ -181,12 +181,12 @@ class Pretty a where
     -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
     -- function is used.
     --
-    -- >>> putDoc (prettyList [1, 23, 456])
+    -- >>> prettyList [1, 23, 456]
     -- [1, 23, 456]
     prettyList :: [a] -> Doc ann
     prettyList = list . map pretty
 
--- | >>> putDoc (pretty [1,2,3])
+-- | >>> pretty [1,2,3]
 -- [1, 2, 3]
 instance Pretty a => Pretty [a] where
     pretty = prettyList
@@ -198,24 +198,24 @@ instance Pretty a => Pretty (NonEmpty a) where
 -- this un-annotates its argument, nesting it means multiple, potentially
 -- costly, traversals over the 'Doc'.
 --
--- >>> putDoc (pretty 123)
+-- >>> pretty 123
 -- 123
--- >>> putDoc (pretty (pretty 123))
+-- >>> pretty (pretty 123)
 -- 123
 instance Pretty (Doc ann) where
     pretty = unAnnotate
 
--- | >>> putDoc (pretty ())
+-- | >>> pretty ()
 -- ()
 --
 -- The argument is not used,
 --
--- >>> putDoc (pretty (error "Strict?" :: ()))
+-- >>> pretty (error "Strict?" :: ())
 -- ()
 instance Pretty () where
     pretty _ = "()"
 
--- | >>> putDoc (pretty True)
+-- | >>> pretty True
 -- True
 instance Pretty Bool where
     pretty = \case
@@ -225,9 +225,9 @@ instance Pretty Bool where
 -- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
 -- alternative.
 --
--- >>> putDoc (pretty 'f' <> pretty 'o' <> pretty 'o')
+-- >>> pretty 'f' <> pretty 'o' <> pretty 'o'
 -- foo
--- >>> putDoc (pretty ("string" :: String))
+-- >>> pretty ("string" :: String)
 -- string
 instance Pretty Char where
     pretty '\n' = line
@@ -245,7 +245,7 @@ viaShow = pretty . T.pack . show
 unsafeViaShow :: Show a => a -> Doc ann
 unsafeViaShow = unsafeText . T.pack . show
 
--- | >>> putDoc (pretty (123 :: Int))
+-- | >>> pretty (123 :: Int)
 -- 123
 instance Pretty Int where pretty = unsafeViaShow
 instance Pretty Int8 where pretty = unsafeViaShow
@@ -258,7 +258,7 @@ instance Pretty Word16 where pretty = unsafeViaShow
 instance Pretty Word32 where pretty = unsafeViaShow
 instance Pretty Word64 where pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (2^123 :: Integer))
+-- | >>> pretty (2^123 :: Integer)
 -- 10633823966279326983230456482242756608
 instance Pretty Integer where pretty = unsafeViaShow
 
@@ -266,35 +266,35 @@ instance Pretty Integer where pretty = unsafeViaShow
 instance Pretty Natural where pretty = unsafeViaShow
 #endif
 
--- | >>> putDoc (pretty (pi :: Float))
+-- | >>> pretty (pi :: Float)
 -- 3.1415927
 instance Pretty Float where pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (exp 1 :: Double))
+-- | >>> pretty (exp 1 :: Double)
 -- 2.718281828459045
 instance Pretty Double where pretty = unsafeViaShow
 
--- | >>> putDoc (pretty (123, "hello"))
+-- | >>> pretty (123, "hello")
 -- (123, hello)
 instance (Pretty a1, Pretty a2) => Pretty (a1,a2) where
     pretty (x1,x2) = tupled [pretty x1, pretty x2]
 
--- | >>> putDoc (pretty (123, "hello", False))
+-- | >>> pretty (123, "hello", False)
 -- (123, hello, False)
 instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
     pretty (x1,x2,x3) = tupled [pretty x1, pretty x2, pretty x3]
 
---    -- | >>> putDoc (pretty (123, "hello", False, ()))
+--    -- | >>> pretty (123, "hello", False, ())
 --    -- (123, hello, False, ())
 --    instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4) => Pretty (a1,a2,a3,a4) where
 --        pretty (x1,x2,x3,x4) = tupled [pretty x1, pretty x2, pretty x3, pretty x4]
 --
---    -- | >>> putDoc (pretty (123, "hello", False, (), 3.14))
+--    -- | >>> pretty (123, "hello", False, (), 3.14)
 --    -- (123, hello, False, (), 3.14)
 --    instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5) => Pretty (a1,a2,a3,a4,a5) where
 --        pretty (x1,x2,x3,x4,x5) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5]
 --
---    -- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71))
+--    -- | >>> pretty (123, "hello", False, (), 3.14, Just 2.71)
 --    -- ( 123
 --    -- , hello
 --    -- , False
@@ -304,7 +304,7 @@ instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
 --    instance (Pretty a1, Pretty a2, Pretty a3, Pretty a4, Pretty a5, Pretty a6) => Pretty (a1,a2,a3,a4,a5,a6) where
 --        pretty (x1,x2,x3,x4,x5,x6) = tupled [pretty x1, pretty x2, pretty x3, pretty x4, pretty x5, pretty x6]
 --
---    -- | >>> putDoc (pretty (123, "hello", False, (), 3.14, Just 2.71, [1,2,3]))
+--    -- | >>> pretty (123, "hello", False, (), 3.14, Just 2.71, [1,2,3])
 --    -- ( 123
 --    -- , hello
 --    -- , False
@@ -317,12 +317,12 @@ instance (Pretty a1, Pretty a2, Pretty a3) => Pretty (a1,a2,a3) where
 
 -- | Ignore 'Nothing's, print 'Just' contents.
 --
--- >>> putDoc (pretty (Just True))
+-- >>> pretty (Just True)
 -- True
--- >>> putDoc (braces (pretty (Nothing :: Maybe Bool)))
+-- >>> braces (pretty (Nothing :: Maybe Bool))
 -- {}
 --
--- >>> putDoc (pretty [Just 1, Nothing, Just 3, Nothing])
+-- >>> pretty [Just 1, Nothing, Just 3, Nothing]
 -- [1, 3]
 instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
@@ -330,13 +330,13 @@ instance Pretty a => Pretty (Maybe a) where
 
 -- | Automatically converts all newlines to @'line'@.
 --
--- >>> putDoc (pretty ("hello\nworld" :: Text))
+-- >>> pretty ("hello\nworld" :: Text)
 -- hello
 -- world
 --
 -- Note that  @'line'@ can be undone by @'group'@:
 --
--- >>> putDoc (group (pretty ("hello\nworld" :: Text)))
+-- >>> group (pretty ("hello\nworld" :: Text))
 -- hello world
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
@@ -399,7 +399,7 @@ unsafeText text = case T.uncons text of
 -- inside e.g. 'vcat', where we get an empty line of output from it ('parens'
 -- for visibility only):
 --
--- >>> putDoc (vsep ["hello", parens emptyDoc, "world"])
+-- >>> vsep ["hello", parens emptyDoc, "world"]
 -- hello
 -- ()
 -- world
@@ -412,7 +412,7 @@ emptyDoc = Empty
 -- increased by @i@. Negative values are allowed, and decrease the nesting level
 -- accordingly.
 --
--- >>> putDoc (vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"])
+-- >>> vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"]
 -- lorem
 --     ipsum
 --     dolor
@@ -430,13 +430,13 @@ nest = Nest
 -- nesting level.
 --
 -- >>> let doc = "lorem ipsum" <> line <> "dolor sit amet"
--- >>> putDoc doc
+-- >>> doc
 -- lorem ipsum
 -- dolor sit amet
 --
 -- @'line'@ behaves like @'space'@ if the line break is undone by 'group':
 --
--- >>> putDoc (group doc)
+-- >>> group doc
 -- lorem ipsum dolor sit amet
 line :: Doc ann
 line = FlatAlt Line space
@@ -445,10 +445,10 @@ line = FlatAlt Line space
 -- is undone by 'group' (instead of @'space'@).
 --
 -- >>> let doc = "lorem ipsum" <> line' <> "dolor sit amet"
--- >>> putDoc doc
+-- >>> doc
 -- lorem ipsum
 -- dolor sit amet
--- >>> putDoc (group doc)
+-- >>> group doc
 -- lorem ipsumdolor sit amet
 line' :: Doc ann
 line' = FlatAlt Line mempty
@@ -505,7 +505,7 @@ softline' = group line'
 -- lorem ipsum
 -- dolor sit amet
 --
--- >>> putDoc (group doc)
+-- >>> group doc
 -- lorem ipsum
 -- dolor sit amet
 hardline :: Doc ann
@@ -589,14 +589,14 @@ flatAlt = FlatAlt
 -- the current nesting level. Without 'align'ment, the second line is put simply
 -- below everything we've had so far,
 --
--- >>> putDoc ("lorem" <+> vsep ["ipsum", "dolor"])
+-- >>> "lorem" <+> vsep ["ipsum", "dolor"]
 -- lorem ipsum
 -- dolor
 --
 -- If we add an 'align' to the mix, the @'vsep'@'s contents all start in the
 -- same column,
 --
--- >>> putDoc ("lorem" <+> align (vsep ["ipsum", "dolor"]))
+-- >>> "lorem" <+> align (vsep ["ipsum", "dolor"])
 -- lorem ipsum
 --       dolor
 align :: Doc ann -> Doc ann
@@ -721,7 +721,7 @@ tupled = group . encloseSep (flatAlt "( " "(")
 -- | @(x '<+>' y)@ concatenates document @x@ and @y@ with a @'space'@ in
 -- between.
 --
--- >>> putDoc ("hello" <+> "world")
+-- >>> "hello" <+> "world"
 -- hello world
 --
 -- @
@@ -766,7 +766,7 @@ concatWith f ds
 --
 -- >>> let docs = Util.words "lorem ipsum dolor sit amet"
 --
--- >>> putDoc (hsep docs)
+-- >>> hsep docs
 -- lorem ipsum dolor sit amet
 --
 -- @'hsep'@ does not introduce line breaks on its own, even when the page is too
@@ -785,7 +785,7 @@ hsep = concatWith (<+>)
 --
 -- Using 'vsep' alone yields
 --
--- >>> putDoc ("prefix" <+> vsep ["text", "to", "lay", "out"])
+-- >>> "prefix" <+> vsep ["text", "to", "lay", "out"]
 -- prefix text
 -- to
 -- lay
@@ -798,7 +798,7 @@ hsep = concatWith (<+>)
 -- The 'align' function can be used to align the documents under their first
 -- element:
 --
--- >>> putDoc ("prefix" <+> align (vsep ["text", "to", "lay", "out"]))
+-- >>> "prefix" <+> align (vsep ["text", "to", "lay", "out"])
 -- prefix text
 --        to
 --        lay
@@ -862,7 +862,7 @@ sep = group . vsep
 -- It is provided only for consistency, since it is identical to 'mconcat'.
 --
 -- >>> let docs = Util.words "lorem ipsum dolor"
--- >>> putDoc (hcat docs)
+-- >>> hcat docs
 -- loremipsumdolor
 hcat :: [Doc ann] -> Doc ann
 hcat = concatWith (<>)
@@ -874,7 +874,7 @@ hcat = concatWith (<>)
 -- replaced by 'space's.
 --
 -- >>> let docs = Util.words "lorem ipsum dolor"
--- >>> putDoc (vcat docs)
+-- >>> vcat docs
 -- lorem
 -- ipsum
 -- dolor
@@ -970,11 +970,11 @@ punctuate p = go
 -- | Layout a document depending on which column it starts at. 'align' is
 -- implemented in terms of 'column'.
 --
--- >>> putDoc (column (\l -> "Columns are" <+> pretty l <> "-based."))
+-- >>> column (\l -> "Columns are" <+> pretty l <> "-based.")
 -- Columns are 0-based.
 --
 -- >>> let doc = "prefix" <+> column (\l -> "| <- column" <+> pretty l)
--- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- >>> vsep [indent n doc | n <- [0,4,8]]
 -- prefix | <- column 7
 --     prefix | <- column 11
 --         prefix | <- column 15
@@ -985,7 +985,7 @@ column = Column
 -- implemented in terms of 'nesting'.
 --
 -- >>> let doc = "prefix" <+> nesting (\l -> brackets ("Nested:" <+> pretty l))
--- >>> putDoc (vsep [indent n doc | n <- [0,4,8]])
+-- >>> vsep [indent n doc | n <- [0,4,8]]
 -- prefix [Nested: 0]
 --     prefix [Nested: 4]
 --         prefix [Nested: 8]
@@ -996,7 +996,7 @@ nesting = Nesting
 -- of it available to a function.
 --
 -- >>> let annotate doc = width (brackets doc) (\w -> " <- width:" <+> pretty w)
--- >>> putDoc (align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]])))
+-- >>> align (vsep (map annotate ["---", "------", indent 3 "---", vsep ["---", indent 4 "---"]]))
 -- [---] <- width: 5
 -- [------] <- width: 8
 -- [   ---] <- width: 8
@@ -1029,7 +1029,7 @@ pageWidth = WithPageWidth
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
 -- >>> let ptype (name, tp) = fill 5 (pretty name) <+> "::" <+> pretty tp
--- >>> putDoc ("let" <+> align (vcat (map ptype types)))
+-- >>> "let" <+> align (vcat (map ptype types))
 -- let empty :: Doc
 --     nest  :: Int -> Doc -> Doc
 --     fillSep :: [Doc] -> Doc
@@ -1047,7 +1047,7 @@ fill n doc = width doc (\w -> spaces (n - w))
 --
 -- >>> let types = [("empty","Doc"), ("nest","Int -> Doc -> Doc"), ("fillSep","[Doc] -> Doc")]
 -- >>> let ptype (name, tp) = fillBreak 5 (pretty name) <+> "::" <+> pretty tp
--- >>> putDoc ("let" <+> align (vcat (map ptype types)))
+-- >>> "let" <+> align (vcat (map ptype types))
 -- let empty :: Doc
 --     nest  :: Int -> Doc -> Doc
 --     fillSep
@@ -1083,7 +1083,7 @@ spaces n = unsafeText (T.replicate n " ")
 --
 -- >>> let things = [True]
 -- >>> let amount = length things
--- >>> putDoc ("The list has" <+> pretty amount <+> plural "entry" "entries" amount)
+-- >>> "The list has" <+> pretty amount <+> plural "entry" "entries" amount
 -- The list has 1 entry
 plural
     :: (Num amount, Eq amount)
@@ -1098,7 +1098,7 @@ plural one many n
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.
 --
--- >>> putDoc (enclose "A" "Z" "·")
+-- >>> enclose "A" "Z" "·"
 -- A·Z
 --
 -- @
@@ -1114,7 +1114,7 @@ enclose l r x = l <> x <> r
 
 -- | @('surround' x l r)@ surrounds document @x@ with @l@/@r: on the left/right.
 --
--- >>> putDoc (surround "·" "A" "Z" )
+-- >>> surround "·" "A" "Z"
 -- A·Z
 --
 -- This is merely an argument reordering of @'enclose'@, but allows for
@@ -1131,131 +1131,131 @@ surround x l r = l <> x <> r
 
 
 
--- | >>> putDoc (squotes "·")
+-- | >>> squotes "·"
 -- '·'
 squotes :: Doc ann -> Doc ann
 squotes = enclose squote squote
 
--- | >>> putDoc (dquotes "·")
+-- | >>> dquotes "·"
 -- "·"
 dquotes :: Doc ann -> Doc ann
 dquotes = enclose dquote dquote
 
--- | >>> putDoc (parens "·")
+-- | >>> parens "·"
 -- (·)
 parens :: Doc ann -> Doc ann
 parens = enclose lparen rparen
 
--- | >>> putDoc (angles "·")
+-- | >>> angles "·"
 -- <·>
 angles :: Doc ann -> Doc ann
 angles = enclose langle rangle
 
--- | >>> putDoc (brackets "·")
+-- | >>> brackets "·"
 -- [·]
 brackets :: Doc ann -> Doc ann
 brackets = enclose lbracket rbracket
 
--- | >>> putDoc (braces "·")
+-- | >>> braces "·"
 -- {·}
 braces :: Doc ann -> Doc ann
 braces = enclose lbrace rbrace
 
--- | >>> putDoc squote
+-- | >>> squote
 -- '
 squote :: Doc ann
 squote = "'"
 
--- | >>> putDoc dquote
+-- | >>> dquote
 -- "
 dquote :: Doc ann
 dquote = "\""
 
--- | >>> putDoc lparen
+-- | >>> lparen
 -- (
 lparen :: Doc ann
 lparen = "("
 
--- | >>> putDoc rparen
+-- | >>> rparen
 -- )
 rparen :: Doc ann
 rparen = ")"
 
--- | >>> putDoc langle
+-- | >>> langle
 -- <
 langle :: Doc ann
 langle = "<"
 
--- | >>> putDoc rangle
+-- | >>> rangle
 -- >
 rangle :: Doc ann
 rangle = ">"
 
--- | >>> putDoc lbracket
+-- | >>> lbracket
 -- [
 lbracket :: Doc ann
 lbracket = "["
--- | >>> putDoc rbracket
+-- | >>> rbracket
 -- ]
 rbracket :: Doc ann
 rbracket = "]"
 
--- | >>> putDoc lbrace
+-- | >>> lbrace
 -- {
 lbrace :: Doc ann
 lbrace = "{"
--- | >>> putDoc rbrace
+-- | >>> rbrace
 -- }
 rbrace :: Doc ann
 rbrace = "}"
 
--- | >>> putDoc semi
+-- | >>> semi
 -- ;
 semi :: Doc ann
 semi = ";"
 
--- | >>> putDoc colon
+-- | >>> colon
 -- :
 colon :: Doc ann
 colon = ":"
 
--- | >>> putDoc comma
+-- | >>> comma
 -- ,
 comma :: Doc ann
 comma = ","
 
--- | >>> putDoc ("a" <> space <> "b")
+-- | >>> "a" <> space <> "b"
 -- a b
 --
 -- This is mostly used via @'<+>'@,
 --
--- >>> putDoc ("a" <+> "b")
+-- >>> "a" <+> "b"
 -- a b
 space :: Doc ann
 space = " "
 
--- | >>> putDoc dot
+-- | >>> dot
 -- .
 dot :: Doc ann
 dot = "."
 
--- | >>> putDoc slash
+-- | >>> slash
 -- /
 slash :: Doc ann
 slash = "/"
 
--- | >>> putDoc backslash
+-- | >>> backslash
 -- \\
 
 backslash :: Doc ann
 backslash = "\\"
 
--- | >>> putDoc equals
+-- | >>> equals
 -- =
 equals :: Doc ann
 equals = "="
 
--- | >>> putDoc pipe
+-- | >>> pipe
 -- |
 pipe :: Doc ann
 pipe = "|"
@@ -1389,13 +1389,13 @@ data FusionDepth =
 --
 -- For example
 --
--- >>> putDoc ("a" <> "b" <> pretty 'c' <> "d")
+-- >>> "a" <> "b" <> pretty 'c' <> "d"
 -- abcd
 --
 -- results in a chain of four entries in a 'SimpleDoc', although this is fully
 -- equivalent to the tightly packed
 --
--- >>> putDoc "abcd"
+-- >>> pretty "abcd"
 -- abcd
 --
 -- which is only a single 'SimpleDoc' entry, and can be processed faster.
@@ -1404,7 +1404,7 @@ data FusionDepth =
 -- strings that are used many times,
 --
 -- >>> let oftenUsed = fuse Shallow ("a" <> "b" <> pretty 'c' <> "d")
--- >>> putDoc (hsep (replicate 5 oftenUsed))
+-- >>> hsep (replicate 5 oftenUsed)
 -- abcd abcd abcd abcd abcd
 fuse :: FusionDepth -> Doc ann -> Doc ann
 fuse depth = go
@@ -1685,7 +1685,7 @@ layoutFits
 -- This layout function does not add any colorisation information.
 --
 -- >>> let doc = hang 4 (vsep ["lorem", "ipsum", hang 4 (vsep ["dolor", "sit"])])
--- >>> putDoc doc
+-- >>> doc
 -- lorem
 --     ipsum
 --     dolor
