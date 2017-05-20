@@ -1112,7 +1112,7 @@ enclose
 enclose l r x = l <> x <> r
 
 
--- | @('surround' x l r)@ surrounds document @x@ with @l@/@r: on the left/right.
+-- | @('surround' x l r)@ surrounds document @x@ with @l@ and @r@.
 --
 -- >>> surround "·" "A" "Z"
 -- A·Z
@@ -1395,7 +1395,7 @@ data FusionDepth =
 -- results in a chain of four entries in a 'SimpleDoc', although this is fully
 -- equivalent to the tightly packed
 --
--- >>> pretty "abcd"
+-- >>> "abcd" :: Doc ann
 -- abcd
 --
 -- which is only a single 'SimpleDoc' entry, and can be processed faster.
