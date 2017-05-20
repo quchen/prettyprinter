@@ -1246,8 +1246,9 @@ pipe = "|"
 
 -- | Add an annotation to a @'Doc'@. This annotation can then be used by the
 -- renderer to e.g. add color to certain parts of the output. For a full
--- tutorial example on how to use it, see
--- "Data.Text.Prettyprint.Doc.Render.TutorialExample".
+-- tutorial example on how to use it, see the
+-- "Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial" or
+-- "Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial" modules.
 --
 -- This function is only relevant for custom formats with their own annotations,
 -- and not relevant for basic prettyprinting. The predefined renderers, e.g.
@@ -1265,8 +1266,8 @@ annotate = Annotated
 -- @
 --
 -- it should not be used without caution, for each invocation traverses the
--- entire contained document. The most common place to use 'unAnnotate' is just
--- before producing a layout.
+-- entire contained document. If possible, it is preferrable to unannotate after
+-- producing the layout by using 'unAnnotateS'.
 unAnnotate :: Doc ann -> Doc xxx
 unAnnotate = \case
     Fail            -> Fail
@@ -1286,11 +1287,14 @@ unAnnotate = \case
 
 -- | Change the annotation of a 'Doc'ument.
 --
--- Useful in particularly to embed documents with one form of annotation in a
--- more generlly annotated document.
+-- Useful in particular to embed documents with one form of annotation in a more
+-- generlly annotated document.
 --
--- Technically this makes 'Doc' a 'Functor', but since reannotation is hardly
--- intuitive we omit the instance.
+-- Since this traverses the entire 'Doc' tree, it is preferrable to reannotate
+-- after producing the layout by using 'reAnnotateS'.
+--
+-- Technically 'reAnnotate' makes 'Doc' a 'Functor', but since reannotation is
+-- hardly intuitive we omit the instance.
 reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
 reAnnotate re = go
   where
@@ -1310,7 +1314,7 @@ reAnnotate re = go
         Nesting f       -> Nesting (go . f)
         Annotated ann x -> Annotated (re ann) (go x)
 
--- | Remove all annotations. 'unAnnotateS' for 'SimpleDoc'.
+-- | Remove all annotations. 'unAnnotate' for 'SimpleDoc'.
 unAnnotateS :: SimpleDoc ann -> SimpleDoc xxx
 unAnnotateS = go
   where
@@ -1529,8 +1533,6 @@ layoutPretty = layoutFits fits1
 -- per line, all the @fun@ calls fit into the first line so they will be put
 -- there,
 --
--- >>> import Data.Text.IO as T
--- >>> import Data.Text.Prettyprint.Doc.Render.Text
 -- >>> go layoutPretty doc
 -- |------------------------|
 -- fun(fun(fun(fun(fun(
