@@ -1,6 +1,8 @@
+{-# LANGUAGE AutoDeriveTypeable  #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -29,6 +31,7 @@ import qualified Data.Text          as T
 import qualified Data.Text.Lazy     as Lazy
 import           Data.Void
 import           Data.Word
+import           GHC.Generics       (Generic)
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
 -- from the semigroups package.
@@ -134,6 +137,7 @@ data Doc ann =
     -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
     -- styling directives or alt texts that can then be used by the renderer.
     | Annotated ann (Doc ann)
+    deriving (Generic)
 
 -- |
 -- @
@@ -384,7 +388,7 @@ data SimpleDoc ann =
 
     -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDoc ann)
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Generic)
 
 
 

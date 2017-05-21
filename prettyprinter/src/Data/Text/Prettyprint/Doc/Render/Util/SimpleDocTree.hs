@@ -1,5 +1,7 @@
-{-# LANGUAGE CPP        #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE AutoDeriveTypeable #-}
+{-# LANGUAGE CPP                #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE LambdaCase         #-}
 
 #include "version-compatibility-macros.h"
 
@@ -17,6 +19,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
 
 import Control.Applicative
 import Data.Text           (Text)
+import GHC.Generics
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
@@ -86,7 +89,7 @@ data SimpleDocTree ann
     | STLine !Int
     | STAnn ann (SimpleDocTree ann)
     | STConcat [SimpleDocTree ann]
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Generic)
 
 -- | Get the next token, consuming it in the process.
 nextToken :: UniqueParser (SimpleDoc ann) (SimpleDocTok ann)
