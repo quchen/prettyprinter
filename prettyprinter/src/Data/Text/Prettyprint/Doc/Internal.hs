@@ -89,10 +89,10 @@ data Doc ann =
     -- choosing a more suitable rendering.
     Fail
 
-    -- | The empty document; unit of 'Cat' (observationally)
+    -- | The empty document; conceptually the unit of 'Cat'
     | Empty
 
-    -- | invariant: char is not '\n'
+    -- | invariant: not '\n'
     | Char Char
 
     -- | Invariants: at least two characters long, does not contain '\n'. For
@@ -103,7 +103,7 @@ data Doc ann =
     -- it in this constructor.
     | Text !Int Text
 
-    -- | Line break
+    -- | Hard line break
     | Line
 
     -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
@@ -117,8 +117,9 @@ data Doc ann =
     -- | Document indented by a number of columns
     | Nest !Int (Doc ann)
 
-    -- | Invariant: first lines of first '(Doc ann)' longer than the first lines of
-    -- the second one. Used to implement layout alternatives for 'group'.
+    -- | Invariant: The first lines of first document should be longer than the
+    -- first lines of the second one, so the layout algorithm can pick the one
+    -- that fits best. Used to implement layout alternatives for 'group'.
     | Union (Doc ann) (Doc ann)
 
     -- | React on the current cursor position, see 'column'
@@ -168,6 +169,10 @@ instance IsString (Doc ann) where
     fromString = pretty . T.pack
 
 -- | Overloaded conversion to 'Doc'.
+--
+-- Laws:
+--
+--   1. output should be pretty. :-)
 class Pretty a where
 
     -- | >>> pretty 1 <+> pretty "hello" <+> pretty 1.234
@@ -1511,7 +1516,7 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDoc ann
-layoutPretty = layoutFits fits1
+layoutPretty = layout fits1
   where
     -- | @fits1@ does 1 line lookahead.
     fits1 :: FittingPredicate ann
@@ -1579,7 +1584,7 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDoc ann
-layoutSmart = layoutFits fitsR
+layoutSmart = layout fitsR
   where
     -- @fitsR@ has a little more lookahead: assuming that nesting roughly
     -- corresponds to syntactic depth, @fitsR@ checks that not only the current
@@ -1611,12 +1616,12 @@ layoutSmart = layoutFits fitsR
 
 
 
-layoutFits
+layout
     :: forall ann. FittingPredicate ann
     -> LayoutOptions
     -> Doc ann
     -> SimpleDoc ann
-layoutFits
+layout
     fittingPredicate
     LayoutOptions { layoutPageWidth = pWidth }
     doc
