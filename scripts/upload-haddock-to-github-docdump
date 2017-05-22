@@ -9,11 +9,14 @@ set -euo pipefail
 cd "$(stack path --project-root)"
 stack haddock
 cd "$(stack path --local-doc-root)"
-if ! (git remote | grep origin > /dev/null); then
+git init
+if ! (git remote | grep haddockdump > /dev/null); then
     ORIGIN="git@github.com:quchen/ansi-wl-pprint-docdump.git"
-    echo "origin not found! Adding remote origin $ORIGIN"
-    git remote add origin "$ORIGIN"
+    echo "haddockdump not found! Adding remote haddockdump $ORIGIN"
+    git remote add haddockdump "$ORIGIN"
+    git fetch --all
+    git checkout --track haddockdump/master --force
 fi
 git add .
-git commit --amend --no-edit
-git push --force
+git commit -am "Update docdump [$(date -I)]" --quiet
+git push
