@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-set -vx
 
 PROJECT_ROOT="$(stack path --project-root)"
 cd "$PROJECT_ROOT"
 pwd
+
+stack build prettyprinter --bench --no-run-benchmarks
 
 OUTDIR="${PROJECT_ROOT}/generated/benchmarks"
 mkdir -p "$OUTDIR"
