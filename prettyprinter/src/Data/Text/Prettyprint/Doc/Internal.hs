@@ -359,39 +359,6 @@ instance Pretty Void where pretty = absurd
 
 
 
--- | The data type @SimpleDoc@ represents laid out documents and is used by the
--- display functions.
---
--- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layout functions
--- pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all complexity
--- contained in 'Doc' resolved, making it very easy to convert it to other
--- formats, such as plain text or terminal output.
---
--- To write your own @'Doc'@ to X converter, it is therefore sufficient to
--- convert from @'SimpleDoc'@. The »Render« submodules provide some built-in
--- converters to do so, and helpers to create own ones.
-data SimpleDoc ann =
-      SFail
-    | SEmpty
-    | SChar Char (SimpleDoc ann)
-
-    -- | Some layout algorithms use the Since the frequently used 'T.length' of
-    -- the 'Text', which scales linearly with its length, we cache it in this
-    -- constructor.
-    | SText !Int Text (SimpleDoc ann)
-
-    -- | @Int@ = indentation level for the line
-    | SLine !Int (SimpleDoc ann)
-
-    -- | Add an annotation to the remaining document.
-    | SAnnPush ann (SimpleDoc ann)
-
-    -- | Remove a previously pushed annotation.
-    | SAnnPop (SimpleDoc ann)
-    deriving (Eq, Ord, Show, Generic)
-
-
-
 -- | @(unsafeText s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
@@ -1120,7 +1087,6 @@ enclose
     -> Doc ann -- ^ LxR
 enclose l r x = l <> x <> r
 
-
 -- | @('surround' x l r)@ surrounds document @x@ with @l@ and @r@.
 --
 -- >>> surround "·" "A" "Z"
@@ -1456,6 +1422,39 @@ fuse depth = go
         Nesting f       -> Nesting (go . f)
 
         other -> other
+
+
+
+-- | The data type @SimpleDoc@ represents laid out documents and is used by the
+-- display functions.
+--
+-- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layout functions
+-- pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all complexity
+-- contained in 'Doc' resolved, making it very easy to convert it to other
+-- formats, such as plain text or terminal output.
+--
+-- To write your own @'Doc'@ to X converter, it is therefore sufficient to
+-- convert from @'SimpleDoc'@. The »Render« submodules provide some built-in
+-- converters to do so, and helpers to create own ones.
+data SimpleDoc ann =
+      SFail
+    | SEmpty
+    | SChar Char (SimpleDoc ann)
+
+    -- | Some layout algorithms use the Since the frequently used 'T.length' of
+    -- the 'Text', which scales linearly with its length, we cache it in this
+    -- constructor.
+    | SText !Int Text (SimpleDoc ann)
+
+    -- | @Int@ = indentation level for the line
+    | SLine !Int (SimpleDoc ann)
+
+    -- | Add an annotation to the remaining document.
+    | SAnnPush ann (SimpleDoc ann)
+
+    -- | Remove a previously pushed annotation.
+    | SAnnPop (SimpleDoc ann)
+    deriving (Eq, Ord, Show, Generic)
 
 -- | Decide whether a 'SimpleDoc' fits the constraints given, namely
 --
