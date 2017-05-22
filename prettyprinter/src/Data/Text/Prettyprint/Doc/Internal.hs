@@ -96,7 +96,7 @@ data Doc ann =
     | Empty
 
     -- | invariant: not '\n'
-    | Char Char
+    | Char !Char
 
     -- | Invariants: at least two characters long, does not contain '\n'. For
     -- empty documents, there is @Empty@; for singleton documents, there is
@@ -104,7 +104,7 @@ data Doc ann =
     --
     -- Since the frequently used 'T.length' of 'Text' is /O(length)/, we cache
     -- it in this constructor.
-    | Text !Int Text
+    | Text !Int !Text
 
     -- | Hard line break
     | Line
