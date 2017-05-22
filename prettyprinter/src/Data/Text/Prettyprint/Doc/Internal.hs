@@ -252,7 +252,7 @@ viaShow = pretty . T.pack . show
 -- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
 -- If there are newlines, use 'viaShow' instead.
 unsafeViaShow :: Show a => a -> Doc ann
-unsafeViaShow = unsafeText . T.pack . show
+unsafeViaShow = unsafeTextWithoutNewlines . T.pack . show
 
 -- | >>> pretty (123 :: Int)
 -- 123
@@ -349,7 +349,7 @@ instance Pretty a => Pretty (Maybe a) where
 -- hello world
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
-instance Pretty Text where pretty = vsep . map unsafeText . T.splitOn "\n"
+instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
 
 -- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
@@ -359,12 +359,12 @@ instance Pretty Void where pretty = absurd
 
 
 
--- | @(unsafeText s)@ contains the literal string @s@.
+-- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
 -- invariant of the 'Text' constructor.
-unsafeText :: Text -> Doc ann
-unsafeText text = case T.uncons text of
+unsafeTextWithoutNewlines :: Text -> Doc ann
+unsafeTextWithoutNewlines text = case T.uncons text of
     Nothing -> Empty
     Just (t,ext)
         | T.null ext -> Char t
@@ -1039,7 +1039,7 @@ fillBreak f x = width x (\w ->
 
 -- | Insert a number of spaces. Negative values count as 0.
 spaces :: Int -> Doc ann
-spaces n = unsafeText (T.replicate n " ")
+spaces n = unsafeTextWithoutNewlines (T.replicate n " ")
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
