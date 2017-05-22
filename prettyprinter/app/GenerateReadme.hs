@@ -154,6 +154,8 @@ readmeContents = (mconcat . L.intersperse vspace)
         , [multiline| Use of `Text` instead of `String`. |]
         , [multiline| A `fuse` function to optimize often-used documents before
           rendering for efficiency. |]
+        , [multiline| SimpleDoc was renamed `SimpleDocStream`, to contrast the
+          new `SimpleDocTree`. |]
         , [multiline| Instead of providing an own colorization function for each
           color/intensity/layer combination, they have been combined in 'color'
           'colorDull', 'bgColor', and 'bgColorDull' functions. |]

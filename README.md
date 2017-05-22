@@ -155,7 +155,9 @@ The most significant changes are:
   4. Use of `Text` instead of `String`.
   5. A `fuse` function to optimize often-used documents before rendering for
      efficiency.
-  6. Instead of providing an own colorization function for each
+  6. SimpleDoc was renamed `SimpleDocStream`, to contrast the new
+     `SimpleDocTree`.
+  7. Instead of providing an own colorization function for each
      color/intensity/layer combination, they have been combined in 'color'
      'colorDull', 'bgColor', and 'bgColorDull' functions.
 
