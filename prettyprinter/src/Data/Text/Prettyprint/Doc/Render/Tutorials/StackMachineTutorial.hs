@@ -70,6 +70,14 @@ color c = annotate (Color c)
 -- With the annotation definitions out of the way, we can now define a
 -- conversion function from 'SimpleDoc' annotated with our 'SimpleHtml' to the
 -- final 'TL.Text' representation.
+--
+-- There are two ways to render this; the simpler one is just using
+-- 'renderSimplyDecorated'. However, some output formats require more
+-- complicated functionality, so we explore this explicitly with a simple
+-- example below. An example for something more complicated is ANSI terminal
+-- rendering, where on popping we need to regenerate the previous style,
+-- requiring a pop (discard current style) followed by a peek (regenerate
+-- previous style).
 
 -- | The 'StackMachine' type defines a stack machine suitable for many rendering
 -- needs. It has two auxiliary parameters: the type of the end result, and the
@@ -92,7 +100,7 @@ renderStackMachine = \case
         writeOutput (TLB.fromText t)
         renderStackMachine x
     SLine i x -> do
-        writeOutput (TLB.singleton '\n' )
+        writeOutput (TLB.singleton '\n')
         writeOutput (TLB.fromText (T.replicate i " "))
         renderStackMachine x
     SAnnPush s x -> do

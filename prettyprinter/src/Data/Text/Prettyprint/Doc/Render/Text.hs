@@ -1,6 +1,4 @@
-{-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 #include "version-compatibility-macros.h"
 
@@ -19,17 +17,20 @@ module Data.Text.Prettyprint.Doc.Render.Text (
 
 
 import           Data.Text              (Text)
-import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.Util.Panic
+import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !(SEMIGROUP_IN_BASE)
 import Data.Semigroup
+#endif
+
+#if !(APPLICATIVE_MONAD)
+import Control.Applicative
 #endif
 
 -- $setup
@@ -52,16 +53,7 @@ import Data.Semigroup
 --       (foo bar)
 --       sit amet
 renderLazy :: SimpleDoc ann -> TL.Text
-renderLazy = TLB.toLazyText . build
-  where
-    build = \case
-        SFail          -> panicUncaughtFail
-        SEmpty         -> mempty
-        SChar c x      -> TLB.singleton c <> build x
-        SText _l t x   -> TLB.fromText t <> build x
-        SLine i x      -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> build x
-        SAnnPush _ x   -> build x
-        SAnnPop x      -> build x
+renderLazy = TLB.toLazyText . renderSimplyDecorated TLB.fromText (pure mempty) (pure mempty)
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.

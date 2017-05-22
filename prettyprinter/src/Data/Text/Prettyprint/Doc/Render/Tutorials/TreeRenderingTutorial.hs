@@ -67,6 +67,13 @@ color c = annotate (Color c)
 -- conversion function from 'SimpleDoc' (annotated with our 'SimpleHtml') to the
 -- tree-shaped 'SimpleDocTree', which is easily convertible to a HTML/'Text'
 -- representation.
+--
+-- There are two ways to render this; the simpler one is just using
+-- 'renderSimplyDecorated'. However, some output formats require more
+-- complicated functionality, so we explore this explicitly with a simple
+-- example below. An example for something more complicated is e.g. an XHTML
+-- renderer, where a newline may not simply be a newline character followed by a
+-- certain number of spaces, but e.g. involve adding a @<br/>@ tag.
 
 -- | To render the HTML, we first convert the 'SimpleDoc' to the 'SimpleDocTree'
 -- format, which makes enveloping sub-documents in markup easier.

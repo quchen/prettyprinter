@@ -5,9 +5,23 @@
 
 #include "version-compatibility-macros.h"
 
--- | A strict State/Writer monad to implement a stack machine for rendering
--- 'SimpleDoc's.
+-- | Definitions to write renderers based on looking at a 'SimpleDoc' as an
+-- instruction tape for a stack machine: text is written, annotations are added
+-- (pushed) and later removed (popped).
 module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
+
+    -- * Simple, pre-defined stack machines
+    --
+    -- | These cover most basic use cases where there is not too much special
+    -- logic, and all that’s important is how to render text, and how to
+    -- add/remove an annotation.
+    renderSimplyDecorated,
+    renderSimplyDecoratedA,
+
+    -- * General stack machine
+    --
+    -- | These definitions allow defining a full-blown stack machine renderer,
+    -- allowing for arbitrary peeking, popping and what not.
     StackMachine,
     execStackMachine,
 
@@ -19,11 +33,72 @@ module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
 
 
-import Data.Monoid
+import           Control.Applicative
+import           Data.Monoid
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 
-#if !(APPLICATIVE_MONAD)
-import Control.Applicative
-#endif
+import Data.Text.Prettyprint.Doc                   (SimpleDoc (..))
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
+
+-- $setup
+--
+-- (Definitions for the doctests)
+--
+-- >>> import Data.Text.Prettyprint.Doc hiding ((<>))
+-- >>> import qualified Data.Text.IO as T
+
+
+
+-- | Simplest possible stack-based renderer.
+--
+-- For example, here is a document annotated with @()@, and the behaviour is to
+-- write »>>>« at the beginning, and »<<<« at the end of the annotated region:
+--
+-- >>> let doc = "hello" <+> annotate () "world" <> "!"
+-- >>> let sdoc = layoutPretty defaultLayoutOptions doc
+-- >>> T.putStrLn (renderSimplyDecorated id (\() -> ">>>") (\() -> "<<<") sdoc)
+-- hello >>>world<<<!
+renderSimplyDecorated
+    :: Monoid out
+    => (Text -> out) -- ^ Render plain 'Text'
+    -> (ann -> out)  -- ^ How to render an annotation
+    -> (ann -> out)  -- ^ How to render the removed annotation
+    -> SimpleDoc ann
+    -> out
+renderSimplyDecorated text push pop = go []
+  where
+    go _           SFail               = panicUncaughtFail
+    go []          SEmpty              = mempty
+    go (_:_)       SEmpty              = panicInputNotFullyConsumed
+    go stack       (SChar c rest)      = text (T.singleton c) <> go stack rest
+    go stack       (SText _l t rest)   = text t <> go stack rest
+    go stack       (SLine i rest)      = text (T.singleton '\n' <> T.replicate i " ") <> go stack rest
+    go stack       (SAnnPush ann rest) = push ann <> go (ann : stack) rest
+    go (ann:stack) (SAnnPop rest)      = pop ann <> go stack rest
+    go []          SAnnPop{}           = panicUnpairedPop
+
+-- | Version of 'renderSimplyDecoratedA' that allows for 'Applicative' effects.
+renderSimplyDecoratedA
+    :: (Applicative f, Monoid out)
+    => (Text -> f out) -- ^ Render plain 'Text'
+    -> (ann -> f out)  -- ^ How to render an annotation
+    -> (ann -> f out)  -- ^ How to render the removed annotation
+    -> SimpleDoc ann
+    -> f out
+renderSimplyDecoratedA text push pop = go []
+  where
+    go _           SFail               = panicUncaughtFail
+    go []          SEmpty              = pure mempty
+    go (_:_)       SEmpty              = panicInputNotFullyConsumed
+    go stack       (SChar c rest)      = text (T.singleton c) <++> go stack rest
+    go stack       (SText _l t rest)   = text t <++> go stack rest
+    go stack       (SLine i rest)      = text (T.singleton '\n' <> T.replicate i " ") <++> go stack rest
+    go stack       (SAnnPush ann rest) = push ann <++> go (ann : stack) rest
+    go (ann:stack) (SAnnPop rest)      = pop ann <++> go stack rest
+    go []          SAnnPop{}           = panicUnpairedPop
+
+    (<++>) = liftA2 mappend
 
 
 

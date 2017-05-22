@@ -2,24 +2,33 @@
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 #include "version-compatibility-macros.h"
 
 -- | Conversion of the linked-list-like 'SimpleDoc' to a tree-like
 -- 'SimpleDocTree'.
 module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
+
+    -- * Type and conversion
     SimpleDocTree(..),
     treeForm,
 
+    -- * Manipulating annotations
     unAnnotateST,
     reAnnotateST,
+
+    -- * Common use case shortcut definitions
+    renderSimplyDecorated,
+    renderSimplyDecoratedA,
 ) where
 
 
 
-import Control.Applicative
-import Data.Text           (Text)
-import GHC.Generics
+import           Control.Applicative
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           GHC.Generics
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
@@ -27,6 +36,66 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 #if MONAD_FAIL
 import Control.Monad.Fail
 #endif
+
+#if !(MONOID_IN_PRELUDE)
+import Data.Monoid (Monoid (..))
+#endif
+
+#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
+import Data.Foldable    (Foldable (..))
+import Data.Traversable (Traversable (..))
+#endif
+
+-- $setup
+--
+-- (Definitions for the doctests)
+--
+-- >>> import Data.Text.Prettyprint.Doc hiding ((<>))
+-- >>> import qualified Data.Text.IO as T
+
+
+
+-- | Simplest possible tree-based renderer.
+--
+-- For example, here is a document annotated with @()@, and the behaviour is to
+-- surround annotated regions with »>>>« and »<<<«:
+--
+-- >>> let doc = "hello" <+> annotate () "world" <> "!"
+-- >>> let stdoc = treeForm (layoutPretty defaultLayoutOptions doc)
+-- >>> T.putStrLn (renderSimplyDecorated id (\() x -> ">>>" <> x <> "<<<") stdoc)
+-- hello >>>world<<<!
+renderSimplyDecorated
+    :: Monoid out
+    => (Text -> out)       -- ^ Render plain 'Text'
+    -> (ann -> out -> out) -- ^ How to modify an element with an annotation
+    -> SimpleDocTree ann
+    -> out
+renderSimplyDecorated text renderAnn = go
+  where
+    go = \case
+        STEmpty -> mempty
+        STChar c -> text (T.singleton c)
+        STText _ t -> text t
+        STLine i -> text (T.singleton '\n' <> T.replicate i " ")
+        STAnn ann rest -> renderAnn ann (go rest)
+        STConcat xs -> foldMap go xs
+
+-- | Version of 'renderSimplyDecoratedA' that allows for 'Applicative' effects.
+renderSimplyDecoratedA
+    :: (Applicative f, Monoid out)
+    => (Text -> f out)         -- ^ Render plain 'Text'
+    -> (ann -> f out -> f out) -- ^ How to modify an element with an annotation
+    -> SimpleDocTree ann
+    -> f out
+renderSimplyDecoratedA text renderAnn = go
+  where
+    go = \case
+        STEmpty -> pure mempty
+        STChar c -> text (T.singleton c)
+        STText _ t -> text t
+        STLine i -> text (T.singleton '\n' <> T.replicate i " ")
+        STAnn ann rest -> renderAnn ann (go rest)
+        STConcat xs -> fmap mconcat (traverse go xs)
 
 
 
