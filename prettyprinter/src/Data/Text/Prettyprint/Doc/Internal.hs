@@ -1263,11 +1263,11 @@ annotate = Annotated
 -- producing the layout by using 'unAnnotateS'.
 unAnnotate :: Doc ann -> Doc xxx
 unAnnotate = \case
-    Fail            -> Fail
-    Empty           -> Empty
-    Char c          -> Char c
-    Text l t        -> Text l t
-    Line            -> Line
+    Fail     -> Fail
+    Empty    -> Empty
+    Char c   -> Char c
+    Text l t -> Text l t
+    Line     -> Line
 
     FlatAlt x y     -> FlatAlt (unAnnotate x) (unAnnotate y)
     Cat x y         -> Cat (unAnnotate x) (unAnnotate y)

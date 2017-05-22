@@ -21,7 +21,7 @@ alternative t = case T.length t of
     n -> Text n t
 
 current :: Text -> Doc ann
-current = unsafeText
+current = unsafeTextWithoutNewlines
 
 main :: IO ()
 main = defaultMain [ benchText (letters n) | n <- [0,1,2,3,5,10,50,100] ]
