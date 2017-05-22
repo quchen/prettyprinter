@@ -5,7 +5,7 @@
 #include "version-compatibility-macros.h"
 
 -- | This module shows how to write a custom prettyprinter backend, based on a
--- tree representation of a 'SimpleDoc'.  For a stack machine approach, which
+-- tree representation of a 'SimpleDocStream'.  For a stack machine approach, which
 -- may be more suitable for certain output formats, see
 -- "Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial".
 --
@@ -64,9 +64,9 @@ color c = annotate (Color c)
 -- = The rendering algorithm
 --
 -- With the annotation definitions out of the way, we can now define a
--- conversion function from 'SimpleDoc' (annotated with our 'SimpleHtml') to the
--- tree-shaped 'SimpleDocTree', which is easily convertible to a HTML/'Text'
--- representation.
+-- conversion function from 'SimpleDocStream' (annotated with our 'SimpleHtml')
+-- to the tree-shaped 'SimpleDocTree', which is easily convertible to a
+-- HTML/'Text' representation.
 --
 -- There are two ways to render this; the simpler one is just using
 -- 'renderSimplyDecorated'. However, some output formats require more
@@ -75,14 +75,15 @@ color c = annotate (Color c)
 -- renderer, where a newline may not simply be a newline character followed by a
 -- certain number of spaces, but e.g. involve adding a @<br/>@ tag.
 
--- | To render the HTML, we first convert the 'SimpleDoc' to the 'SimpleDocTree'
--- format, which makes enveloping sub-documents in markup easier.
+-- | To render the HTML, we first convert the 'SimpleDocStream' to the
+-- 'SimpleDocTree' format, which makes enveloping sub-documents in markup
+-- easier.
 --
 -- This function is the entry main API function of the renderer; as such, it is
 -- only glue for the internal functions. This is similar to
 -- 'Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial.render' from
 -- the stack machine tutorial in its purpose.
-render :: SimpleDoc SimpleHtml -> TL.Text
+render :: SimpleDocStream SimpleHtml -> TL.Text
 render = TLB.toLazyText . renderTree . treeForm
 
 -- | Render a 'SimpleDocTree' to a 'TLB.Builder'; this is the workhorse of the

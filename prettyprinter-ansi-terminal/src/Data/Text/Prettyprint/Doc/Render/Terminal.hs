@@ -4,7 +4,7 @@
 
 #include "version-compatibility-macros.h"
 
--- | Render 'SimpleDoc' in a terminal.
+-- | Render 'SimpleDocStream' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
     AnsiTerminal, Color(..),
@@ -133,7 +133,7 @@ underline = annotate Underlined
 --     red\e[0m
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
-renderLazy :: SimpleDoc AnsiTerminal -> TL.Text
+renderLazy :: SimpleDocStream AnsiTerminal -> TL.Text
 renderLazy doc
   = let (resultBuilder, remainingStyles) = execStackMachine [emptyStyle] (build doc)
     in case remainingStyles of
@@ -144,7 +144,7 @@ renderLazy doc
                      "end of rendering (there should be only 1). Please report" ++
                      " this as a bug.")
 
-build :: SimpleDoc AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
+build :: SimpleDocStream AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
 build = \case
     SFail -> panicUncaughtFail
     SEmpty -> pure ()
@@ -221,7 +221,7 @@ stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
 
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc AnsiTerminal -> Text
+renderStrict :: SimpleDocStream AnsiTerminal -> Text
 renderStrict = TL.toStrict . renderLazy
 
 
@@ -231,7 +231,7 @@ renderStrict = TL.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc AnsiTerminal -> IO ()
+renderIO :: Handle -> SimpleDocStream AnsiTerminal -> IO ()
 renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page

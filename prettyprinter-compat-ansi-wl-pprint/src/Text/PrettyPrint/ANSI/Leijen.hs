@@ -32,7 +32,7 @@ import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
 
 
 type Doc = New.Doc NewT.AnsiTerminal
-type SimpleDoc = New.SimpleDoc NewT.AnsiTerminal
+type SimpleDoc = New.SimpleDocStream NewT.AnsiTerminal
 
 
 

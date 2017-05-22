@@ -27,7 +27,7 @@ import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
 
 
 type Doc = New.Doc ()
-type SimpleDoc = New.SimpleDoc ()
+type SimpleDoc = New.SimpleDocStream ()
 
 
 

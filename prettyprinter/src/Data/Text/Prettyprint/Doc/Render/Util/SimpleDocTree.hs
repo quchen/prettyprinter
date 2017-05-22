@@ -6,7 +6,7 @@
 
 #include "version-compatibility-macros.h"
 
--- | Conversion of the linked-list-like 'SimpleDoc' to a tree-like
+-- | Conversion of the linked-list-like 'SimpleDocStream' to a tree-like
 -- 'SimpleDocTree'.
 module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
 
@@ -144,13 +144,13 @@ data SimpleDocTok ann
     | TokAnnPop
     deriving (Eq, Ord, Show)
 
--- | A 'SimpleDoc' is a linked list of different annotated cons cells ('SText'
--- and then some further 'SimpleDoc', 'SLine' and then some further 'SimpleDoc', …).
--- This format is very suitable as a target for a layout engine, but not very
--- useful for rendering to a structured format such as HTML, where we don’t want
--- to do a lookahead until the end of some markup. These formats benefit from a
--- tree-like structure that explicitly marks its contents as annotated.
--- 'SimpleDocTree' is that format.
+-- | A 'SimpleDocStream' is a linked list of different annotated cons cells
+-- ('SText' and then some further 'SimpleDocStream', 'SLine' and then some
+-- further 'SimpleDocStream', …). This format is very suitable as a target for a
+-- layout engine, but not very useful for rendering to a structured format such
+-- as HTML, where we don’t want to do a lookahead until the end of some markup.
+-- These formats benefit from a tree-like structure that explicitly marks its
+-- contents as annotated. 'SimpleDocTree' is that format.
 data SimpleDocTree ann
     = STEmpty
     | STChar Char
@@ -161,7 +161,7 @@ data SimpleDocTree ann
     deriving (Eq, Ord, Show, Generic)
 
 -- | Get the next token, consuming it in the process.
-nextToken :: UniqueParser (SimpleDoc ann) (SimpleDocTok ann)
+nextToken :: UniqueParser (SimpleDocStream ann) (SimpleDocTok ann)
 nextToken = UniqueParser (\case
     SFail             -> panicUncaughtFail
     SEmpty            -> empty
@@ -171,7 +171,7 @@ nextToken = UniqueParser (\case
     SAnnPush ann rest -> Just (TokAnnPush ann , rest)
     SAnnPop rest      -> Just (TokAnnPop      , rest) )
 
-sdocToTreeParser :: UniqueParser (SimpleDoc ann) (SimpleDocTree ann)
+sdocToTreeParser :: UniqueParser (SimpleDocStream ann) (SimpleDocTree ann)
 sdocToTreeParser = fmap wrap (many contentPiece)
 
   where
@@ -192,8 +192,8 @@ sdocToTreeParser = fmap wrap (many contentPiece)
                              TokAnnPop <- nextToken
                              pure (STAnn ann annotatedContents)
 
--- | Convert a 'SimpleDoc' to its 'SimpleDocTree' representation.
-treeForm :: SimpleDoc ann -> SimpleDocTree ann
+-- | Convert a 'SimpleDocStream' to its 'SimpleDocTree' representation.
+treeForm :: SimpleDocStream ann -> SimpleDocTree ann
 treeForm sdoc = case runParser sdocToTreeParser sdoc of
     Nothing               -> panicSimpleDocTreeConversionFailed
     Just (sdoct, SEmpty)  -> sdoct

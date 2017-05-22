@@ -4,8 +4,8 @@
 
 module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module for users of annotated-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
-    Doc, SimpleDoc(..), SpanList, putDoc, hPutDoc, empty, char, text, (<>),
-    nest, line, linebreak, group, softline, softbreak, align, hang, indent,
+    Doc, SimpleDoc, SpanList, putDoc, hPutDoc, empty, char, text, (<>), nest,
+    line, linebreak, group, softline, softbreak, align, hang, indent,
     encloseSep, list, tupled, semiBraces, (<+>), (<$>), (</>), (<$$>), (<//>),
     hsep, vsep, fillSep, sep, hcat, vcat, fillCat, cat, punctuate, fill,
     fillBreak, enclose, squotes, dquotes, parens, angles, braces, brackets,
@@ -36,6 +36,8 @@ import qualified Data.Text.Prettyprint.Doc.Render.Text       as New
 import           Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 
+
+type SimpleDoc = SimpleDocStream
 
 putDoc :: Doc () -> IO ()
 putDoc = New.putDoc

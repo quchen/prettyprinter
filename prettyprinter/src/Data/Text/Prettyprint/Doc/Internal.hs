@@ -1307,8 +1307,8 @@ reAnnotate re = go
         Nesting f       -> Nesting (go . f)
         Annotated ann x -> Annotated (re ann) (go x)
 
--- | Remove all annotations. 'unAnnotate' for 'SimpleDoc'.
-unAnnotateS :: SimpleDoc ann -> SimpleDoc xxx
+-- | Remove all annotations. 'unAnnotate' for 'SimpleDocStream'.
+unAnnotateS :: SimpleDocStream ann -> SimpleDocStream xxx
 unAnnotateS = go
   where
     go = \case
@@ -1320,8 +1320,8 @@ unAnnotateS = go
         SAnnPush _ rest -> go rest
         SAnnPop rest    -> go rest
 
--- | Change the annotation of a document. 'reAnnotate' for 'SimpleDoc'.
-reAnnotateS :: (ann -> ann') -> SimpleDoc ann -> SimpleDoc ann'
+-- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocStream'.
+reAnnotateS :: (ann -> ann') -> SimpleDocStream ann -> SimpleDocStream ann'
 reAnnotateS f = go
   where
     go = \case
@@ -1358,22 +1358,22 @@ data FusionDepth =
 -- efficiently. A fused document is always laid out identical to its unfused
 -- version.
 --
--- When laying a 'Doc'ument out to a 'SimpleDoc', every component of the input
--- is translated directly to the simpler output format. This sometimes yields
--- undesirable chunking when many pieces have been concatenated together.
+-- When laying a 'Doc'ument out to a 'SimpleDocStream', every component of the
+-- input is translated directly to the simpler output format. This sometimes
+-- yields undesirable chunking when many pieces have been concatenated together.
 --
 -- For example
 --
 -- >>> "a" <> "b" <> pretty 'c' <> "d"
 -- abcd
 --
--- results in a chain of four entries in a 'SimpleDoc', although this is fully
+-- results in a chain of four entries in a 'SimpleDocStream', although this is fully
 -- equivalent to the tightly packed
 --
 -- >>> "abcd" :: Doc ann
 -- abcd
 --
--- which is only a single 'SimpleDoc' entry, and can be processed faster.
+-- which is only a single 'SimpleDocStream' entry, and can be processed faster.
 --
 -- It is therefore a good idea to run 'fuse' on concatenations of lots of small
 -- strings that are used many times,
@@ -1425,43 +1425,44 @@ fuse depth = go
 
 
 
--- | The data type @SimpleDoc@ represents laid out documents and is used by the
--- display functions.
+-- | The data type @SimpleDocStream@ represents laid out documents and is used
+-- by the display functions.
 --
--- A simplified view is that @'Doc' = ['SimpleDoc']@, and the layout functions
--- pick one of the 'SimpleDoc's. This means that 'SimpleDoc' has all complexity
--- contained in 'Doc' resolved, making it very easy to convert it to other
--- formats, such as plain text or terminal output.
+-- A simplified view is that @'Doc' = ['SimpleDocStream']@, and the layout
+-- functions pick one of the 'SimpleDocStream's. This means that
+-- 'SimpleDocStream' has all complexity contained in 'Doc' resolved, making it
+-- very easy to convert it to other formats, such as plain text or terminal
+-- output.
 --
 -- To write your own @'Doc'@ to X converter, it is therefore sufficient to
--- convert from @'SimpleDoc'@. The »Render« submodules provide some built-in
--- converters to do so, and helpers to create own ones.
-data SimpleDoc ann =
+-- convert from @'SimpleDocStream'@. The »Render« submodules provide some
+-- built-in converters to do so, and helpers to create own ones.
+data SimpleDocStream ann =
       SFail
     | SEmpty
-    | SChar Char (SimpleDoc ann)
+    | SChar Char (SimpleDocStream ann)
 
     -- | Some layout algorithms use the Since the frequently used 'T.length' of
     -- the 'Text', which scales linearly with its length, we cache it in this
     -- constructor.
-    | SText !Int Text (SimpleDoc ann)
+    | SText !Int Text (SimpleDocStream ann)
 
     -- | @Int@ = indentation level for the line
-    | SLine !Int (SimpleDoc ann)
+    | SLine !Int (SimpleDocStream ann)
 
     -- | Add an annotation to the remaining document.
-    | SAnnPush ann (SimpleDoc ann)
+    | SAnnPush ann (SimpleDocStream ann)
 
     -- | Remove a previously pushed annotation.
-    | SAnnPop (SimpleDoc ann)
+    | SAnnPop (SimpleDocStream ann)
     deriving (Eq, Ord, Show, Generic)
 
--- | Decide whether a 'SimpleDoc' fits the constraints given, namely
+-- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line; Nothing is unbounded
-newtype FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDoc ann -> Bool)
+newtype FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDocStream ann -> Bool)
 
 -- | List of nesting level/document pairs yet to be laid out.
 data LayoutPipeline ann =
@@ -1511,14 +1512,14 @@ defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 0.4
 -- and 'hPutDoc'.
 --
 -- @'layoutPretty'@ commits to rendering something in a certain way if the next
--- element fits the layout constraints; in other words, it has one 'SimpleDoc'
--- element lookahead when rendering. Consider using the smarter, but a bit less
--- performant, @'layoutSmart'@ algorithm if the results seem to run off to the
--- right before having lots of line breaks.
+-- element fits the layout constraints; in other words, it has one
+-- 'SimpleDocStream' element lookahead when rendering. Consider using the
+-- smarter, but a bit less performant, @'layoutSmart'@ algorithm if the results
+-- seem to run off to the right before having lots of line breaks.
 layoutPretty
     :: LayoutOptions
     -> Doc ann
-    -> SimpleDoc ann
+    -> SimpleDocStream ann
 layoutPretty = layout fits1
   where
     -- | @fits1@ does 1 line lookahead.
@@ -1526,7 +1527,7 @@ layoutPretty = layout fits1
     fits1 = FP (\_p _m w -> go w)
       where
         go :: Maybe Int -- ^ Width in which to fit the first line; Nothing is infinite
-           -> SimpleDoc ann
+           -> SimpleDocStream ann
            -> Bool
         go Nothing _               = True
         go (Just w) _ | w < 0      = False
@@ -1586,7 +1587,7 @@ layoutPretty = layout fits1
 layoutSmart
     :: LayoutOptions
     -> Doc ann
-    -> SimpleDoc ann
+    -> SimpleDocStream ann
 layoutSmart = layout fitsR
   where
     -- @fitsR@ has a little more lookahead: assuming that nesting roughly
@@ -1603,7 +1604,7 @@ layoutSmart = layout fitsR
         go :: PageWidth
            -> Int       -- ^ Minimum nesting level to fit in
            -> Maybe Int -- ^ Width in which to fit the first line
-           -> SimpleDoc ann
+           -> SimpleDocStream ann
            -> Bool
         go _ _ Nothing _                        = False
         go _ _ (Just w) _ | w < 0               = False
@@ -1623,7 +1624,7 @@ layout
     :: forall ann. FittingPredicate ann
     -> LayoutOptions
     -> Doc ann
-    -> SimpleDoc ann
+    -> SimpleDocStream ann
 layout
     fittingPredicate
     LayoutOptions { layoutPageWidth = pWidth }
@@ -1637,7 +1638,7 @@ layout
         :: Int -- Current nesting level
         -> Int -- Current column, i.e. "where the cursor is"
         -> LayoutPipeline ann -- Documents remaining to be handled (in order)
-        -> SimpleDoc ann
+        -> SimpleDocStream ann
     best !_ !_ Nil           = SEmpty
     best nl cc (UndoAnn ds)  = SAnnPop (best nl cc ds)
     best nl cc (Cons i d ds) = case d of
@@ -1661,9 +1662,9 @@ layout
         :: FittingPredicate ann
         -> Int           -- ^ Current nesting level
         -> Int           -- ^ Current column
-        -> SimpleDoc ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
-        -> SimpleDoc ann -- ^ Choice B.
-        -> SimpleDoc ann -- ^ Choice A if it fits, otherwise B.
+        -> SimpleDocStream ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
+        -> SimpleDocStream ann -- ^ Choice B.
+        -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
     selectNicer (FP fits) lineIndent currentColumn x y
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
@@ -1705,7 +1706,7 @@ layout
 -- ipsum
 -- dolor
 -- sit
-layoutCompact :: Doc ann -> SimpleDoc ann
+layoutCompact :: Doc ann -> SimpleDocStream ann
 layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
@@ -1729,14 +1730,14 @@ layoutCompact doc = scan 0 [doc]
 instance Show (Doc ann) where
     showsPrec _ doc = renderShowS (layoutPretty defaultLayoutOptions doc)
 
--- | Render a 'SimpleDoc' to a 'ShowS', useful to write 'Show' instances based
--- on the prettyprinter.
+-- | Render a 'SimpleDocStream' to a 'ShowS', useful to write 'Show' instances
+-- based on the prettyprinter.
 --
 -- @
 -- instance 'Show' MyType where
 --     'showsPrec' _ = 'renderShowS' . 'layoutPretty' 'defaultLayoutOptions' . 'pretty'
 -- @
-renderShowS :: SimpleDoc ann -> ShowS
+renderShowS :: SimpleDocStream ann -> ShowS
 renderShowS = \case
     SFail        -> panicUncaughtFail
     SEmpty       -> id

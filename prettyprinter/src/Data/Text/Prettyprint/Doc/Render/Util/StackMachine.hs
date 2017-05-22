@@ -5,7 +5,7 @@
 
 #include "version-compatibility-macros.h"
 
--- | Definitions to write renderers based on looking at a 'SimpleDoc' as an
+-- | Definitions to write renderers based on looking at a 'SimpleDocStream' as an
 -- instruction tape for a stack machine: text is written, annotations are added
 -- (pushed) and later removed (popped).
 module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
@@ -38,7 +38,7 @@ import           Data.Monoid
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 
-import Data.Text.Prettyprint.Doc                   (SimpleDoc (..))
+import Data.Text.Prettyprint.Doc                   (SimpleDocStream (..))
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 -- $setup
@@ -64,7 +64,7 @@ renderSimplyDecorated
     => (Text -> out) -- ^ Render plain 'Text'
     -> (ann -> out)  -- ^ How to render an annotation
     -> (ann -> out)  -- ^ How to render the removed annotation
-    -> SimpleDoc ann
+    -> SimpleDocStream ann
     -> out
 renderSimplyDecorated text push pop = go []
   where
@@ -84,7 +84,7 @@ renderSimplyDecoratedA
     => (Text -> f out) -- ^ Render plain 'Text'
     -> (ann -> f out)  -- ^ How to render an annotation
     -> (ann -> f out)  -- ^ How to render the removed annotation
-    -> SimpleDoc ann
+    -> SimpleDocStream ann
     -> f out
 renderSimplyDecoratedA text push pop = go []
   where

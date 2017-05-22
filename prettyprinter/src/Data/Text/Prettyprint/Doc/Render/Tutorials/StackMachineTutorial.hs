@@ -5,9 +5,9 @@
 #include "version-compatibility-macros.h"
 
 -- | This module shows how to write a custom prettyprinter backend, based on
--- directly converting a 'SimpleDoc' to an output format using a stack machine.
--- For a tree serialization approach, which may be more suitable for certain
--- output formats, see
+-- directly converting a 'SimpleDocStream' to an output format using a stack
+-- machine. For a tree serialization approach, which may be more suitable for
+-- certain output formats, see
 -- "Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial".
 --
 -- Rendering to ANSI terminal with colors is an important use case for stack
@@ -68,7 +68,7 @@ color c = annotate (Color c)
 -- = The rendering algorithm
 --
 -- With the annotation definitions out of the way, we can now define a
--- conversion function from 'SimpleDoc' annotated with our 'SimpleHtml' to the
+-- conversion function from 'SimpleDocStream' annotated with our 'SimpleHtml' to the
 -- final 'TL.Text' representation.
 --
 -- There are two ways to render this; the simpler one is just using
@@ -83,13 +83,13 @@ color c = annotate (Color c)
 -- needs. It has two auxiliary parameters: the type of the end result, and the
 -- type of the document’s annotations.
 --
--- Most 'StackMachine' creations will look like this definition: a recursive walk
--- through the 'SimpleDoc', pushing styles on the stack and popping them off
--- again, and writing raw output.
+-- Most 'StackMachine' creations will look like this definition: a recursive
+-- walk through the 'SimpleDocStream', pushing styles on the stack and popping
+-- them off again, and writing raw output.
 --
 -- The equivalent to this in the tree based rendering approach is
 -- 'Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial.renderTree'.
-renderStackMachine :: SimpleDoc SimpleHtml -> StackMachine TLB.Builder SimpleHtml ()
+renderStackMachine :: SimpleDocStream SimpleHtml -> StackMachine TLB.Builder SimpleHtml ()
 renderStackMachine = \case
     SFail -> panicUncaughtFail
     SEmpty -> pure ()
@@ -137,7 +137,7 @@ htmlTag = \case
 -- the main API function of a stack machine renderer. The tree renderer
 -- equivalent to this is
 -- 'Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial.render'.
-render :: SimpleDoc SimpleHtml -> TL.Text
+render :: SimpleDocStream SimpleHtml -> TL.Text
 render doc
   = let (resultBuilder, remainingStyles) = execStackMachine [] (renderStackMachine doc)
     in if null remainingStyles

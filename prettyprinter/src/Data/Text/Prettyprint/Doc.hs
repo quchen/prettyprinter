@@ -13,8 +13,8 @@
 -- This module defines a prettyprinter to format text in a flexible and
 -- convenient way. The idea is to combine a 'Doc'ument out of many small
 -- components, then using a layouter to convert it to an easily renderable
--- 'SimpleDoc', which can then be rendered to a variety of formats, for example
--- plain 'Text'.
+-- 'SimpleDocStream', which can then be rendered to a variety of formats, for
+-- example plain 'Text'.
 --
 -- The documentation consists of several parts:
 --
@@ -80,7 +80,7 @@
 --                                  │ e.g. 'layoutPretty'
 --                                  ▽
 --                        ╭───────────────────╮
---                        │     'SimpleDoc'     │
+--                        │  'SimpleDocStream'  │
 --                        │ (simple document) │
 --                        ╰─────────┬─────────╯
 --                                  │
@@ -205,12 +205,12 @@ module Data.Text.Prettyprint.Doc (
 
     -- * Layout
     --
-    -- | Laying a 'Doc'ument out produces a straightforward 'SimpleDoc' based on
-    -- parameters such as page width and ribbon size, by evaluating how a 'Doc'
-    -- fits these constraints the best. There are various ways to render a
-    -- 'SimpleDoc'. For the common case of rendering a 'SimpleDoc' as plain
-    -- 'Text' take a look at "Data.Text.Prettyprint.Doc.Render.Text".
-    SimpleDoc(..),
+    -- | Laying a 'Doc'ument out produces a straightforward 'SimpleDocStream'
+    -- based on parameters such as page width and ribbon size, by evaluating how
+    -- a 'Doc' fits these constraints the best. There are various ways to render
+    -- a 'SimpleDocStream'. For the common case of rendering a 'SimpleDocStream'
+    -- as plain 'Text' take a look at "Data.Text.Prettyprint.Doc.Render.Text".
+    SimpleDocStream(..),
     PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
 
@@ -249,6 +249,8 @@ import Data.Text.Prettyprint.Doc.Internal
 --     example conversion to plain 'Text' is in the
 --     "Data.Text.Prettyprint.Doc.Render.Text" module.
 --   - The /render/ functions are called /layout/ functions.
+--   - @SimpleDoc@ was renamed to @'SimpleDocStream'@, in order to make it
+--     clearer in the presence of @SimpleDocTree@.
 --   - Instead of providing an own colorization function for each
 --     color\/intensity\/layer combination, they have been combined in 'color',
 --     'colorDull', 'bgColor', and 'bgColorDull' functions.

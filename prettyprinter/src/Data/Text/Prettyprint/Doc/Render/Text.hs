@@ -2,7 +2,7 @@
 
 #include "version-compatibility-macros.h"
 
--- | Render an unannotated 'SimpleDoc' as plain 'Text'.
+-- | Render an unannotated 'SimpleDocStream' as plain 'Text'.
 module Data.Text.Prettyprint.Doc.Render.Text (
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
@@ -52,12 +52,12 @@ import Control.Applicative
 -- lorem ipsum dolor
 --       (foo bar)
 --       sit amet
-renderLazy :: SimpleDoc ann -> TL.Text
+renderLazy :: SimpleDocStream ann -> TL.Text
 renderLazy = TLB.toLazyText . renderSimplyDecorated TLB.fromText (pure mempty) (pure mempty)
 
 -- | @('renderLazy' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDoc ann -> Text
+renderStrict :: SimpleDocStream ann -> Text
 renderStrict = TL.toStrict . renderLazy
 
 
@@ -67,7 +67,7 @@ renderStrict = TL.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDoc ann -> IO ()
+renderIO :: Handle -> SimpleDocStream ann -> IO ()
 renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output. Uses the
