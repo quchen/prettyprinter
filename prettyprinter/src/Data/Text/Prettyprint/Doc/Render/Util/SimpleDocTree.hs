@@ -160,6 +160,15 @@ data SimpleDocTree ann
     | STConcat [SimpleDocTree ann]
     deriving (Eq, Ord, Show, Generic)
 
+-- | Alter the document’s annotations.
+--
+-- This instance makes 'SimpleDocTree' more flexible (because it can be used in
+-- 'Functor'-polymorphic values), but @'fmap'@ is much less readable compared to
+-- using @'reAnnotateST'@ in code that only works for @'SimpleDocTree'@ anyway.
+-- Consider using the latter when the type does not matter.
+instance Functor SimpleDocTree where
+    fmap = reAnnotateST
+
 -- | Get the next token, consuming it in the process.
 nextToken :: UniqueParser (SimpleDocStream ann) (SimpleDocTok ann)
 nextToken = UniqueParser (\case

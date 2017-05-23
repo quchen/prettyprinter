@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE DeriveFunctor       #-}
 {-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
@@ -160,6 +161,15 @@ instance Monoid (Doc ann) where
 -- 'line' conversion.
 instance IsString (Doc ann) where
     fromString = pretty . T.pack
+
+-- | Alter the document’s annotations.
+--
+-- This instance makes 'Doc' more flexible (because it can be used in
+-- 'Functor'-polymorphic values), but @'fmap'@ is much less readable compared to
+-- using @'reAnnotate'@ in code that only works for @'Doc'@ anyway. Consider
+-- using the latter when the type does not matter.
+instance Functor Doc where
+    fmap = reAnnotate
 
 -- | Overloaded conversion to 'Doc'.
 --
@@ -1447,6 +1457,15 @@ data SimpleDocStream ann =
     -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDocStream ann)
     deriving (Eq, Ord, Show, Generic)
+
+-- | Alter the document’s annotations.
+--
+-- This instance makes 'SimpleDocStream' more flexible (because it can be used in
+-- 'Functor'-polymorphic values), but @'fmap'@ is much less readable compared to
+-- using @'reAnnotateST'@ in code that only works for @'SimpleDocStream'@ anyway.
+-- Consider using the latter when the type does not matter.
+instance Functor SimpleDocStream where
+    fmap = reAnnotateS
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
