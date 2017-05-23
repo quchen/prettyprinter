@@ -53,17 +53,6 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 
 
--- $setup
---
--- (Definitions for the doctests)
---
--- >>> :set -XOverloadedStrings
--- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> import Data.Text.Prettyprint.Doc.Util as Util
--- >>> import Test.QuickCheck.Modifiers
-
-
-
 -- | The abstract data type @'Doc' ann@ represents pretty documents that have
 -- been annotated with data of type @ann@.
 --
@@ -809,8 +798,8 @@ fillSep = concatWith (\x y -> x <> softline <> y)
 
 -- | @('sep' xs)@ tries laying out the documents @xs@ separated with 'space's,
 -- and if this does not fit the page, separates them with newlines. This is what
--- differentiates it from 'vsep', which always layouts its contents beneath each
--- other.
+-- differentiates it from 'vsep', which always lays out its contents beneath
+-- each other.
 --
 -- >>> let doc = "prefix" <+> sep ["text", "to", "lay", "out"]
 -- >>> putDocW 80 doc
@@ -854,6 +843,8 @@ hcat = concatWith (<>)
 -- lorem
 -- ipsum
 -- dolor
+-- >>> group (vcat docs)
+-- loremipsumdolor
 --
 -- Since 'group'ing a 'vcat' is rather common, 'cat' is a built-in shortcut for
 -- it.
@@ -891,8 +882,8 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 
 -- | @('cat' xs)@ tries laying out the documents @xs@ separated with nothing,
 -- and if this does not fit the page, separates them with newlines. This is what
--- differentiates it from 'vcat', which always layouts its contents beneath each
--- other.
+-- differentiates it from 'vcat', which always lays out its contents beneath
+-- each other.
 --
 -- >>> let docs = Util.words "lorem ipsum dolor"
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
@@ -1746,3 +1737,14 @@ renderShowS = \case
     SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
+
+
+
+-- $setup
+--
+-- (Definitions for the doctests)
+--
+-- >>> :set -XOverloadedStrings
+-- >>> import Data.Text.Prettyprint.Doc.Render.Text
+-- >>> import Data.Text.Prettyprint.Doc.Util as Util
+-- >>> import Test.QuickCheck.Modifiers

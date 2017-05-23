@@ -13,12 +13,6 @@ import           System.IO
 
 import Data.Text.Prettyprint.Doc
 
--- $setup
---
--- (Definitions for the doctests)
---
--- >>> :set -XOverloadedStrings
-
 
 
 -- | Split an input into word-sized 'Doc's.
@@ -61,3 +55,11 @@ putDocW :: Int -> Doc ann -> IO ()
 putDocW w doc = renderIO System.IO.stdout (layoutPretty layoutOptions (unAnnotate doc))
   where
     layoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine w 1 }
+
+
+
+-- $setup
+--
+-- (Definitions for the doctests)
+--
+-- >>> :set -XOverloadedStrings
