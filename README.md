@@ -19,7 +19,7 @@ Text-based, extensible.
 
 ```haskell
 let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
-    prettySig name ty = pretty name <+> pretty ty
+    prettySig name ty = pretty name <+> prettyType ty
 in  prettySig "example" ["Int", "Bool", "Char", "IO ()"]
 ```
 
@@ -33,6 +33,7 @@ example :: Int
 -- Output for narrow formats:
 example :: Int -> Bool -> Char -> IO ()
 ```
+
 
 
 
