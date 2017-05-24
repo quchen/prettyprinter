@@ -17,6 +17,23 @@ A prettyprinter/text rendering engine. Easy to use, well-documented, ANSI
 terminal backend exists, HTML backend is trivial to implement, no name clashes,
 Text-based, extensible.
 
+```haskell
+let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
+    prettySig name ty = pretty name <+> pretty ty
+in  prettySig "example" ["Int", "Bool", "Char", "IO ()"]
+```
+
+```haskell
+-- Output for wide enough formats:
+example :: Int
+        -> Bool
+        -> Char
+        -> IO ()
+
+-- Output for narrow formats:
+example :: Int -> Bool -> Char -> IO ()
+```
+
 
 
 Longer; want to read
