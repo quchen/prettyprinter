@@ -25,13 +25,13 @@ in  prettySig "example" ["Int", "Bool", "Char", "IO ()"]
 
 ```haskell
 -- Output for wide enough formats:
+example :: Int -> Bool -> Char -> IO ()
+
+-- Output for narrow formats:
 example :: Int
         -> Bool
         -> Char
         -> IO ()
-
--- Output for narrow formats:
-example :: Int -> Bool -> Char -> IO ()
 ```
 
 

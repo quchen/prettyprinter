@@ -47,13 +47,13 @@ readmeContents = (mconcat . L.intersperse vspace)
             , ""
             , "```haskell"
             , "-- Output for wide enough formats:"
+            , "example :: Int -> Bool -> Char -> IO ()"
+            , ""
+            , "-- Output for narrow formats:"
             , "example :: Int"
             , "        -> Bool"
             , "        -> Char"
             , "        -> IO ()"
-            , ""
-            , "-- Output for narrow formats:"
-            , "example :: Int -> Bool -> Char -> IO ()"
             , "```" ]
 
 
