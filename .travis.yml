@@ -85,7 +85,7 @@ before_install:
     - stack $STACK_ARGS --no-terminal setup
     - |
       if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          stack $STACK_ARGS --no-terminal install hlint-2.0.7 hscolour stylish-haskell-0.8.0.0
+          stack $STACK_ARGS --no-terminal install hlint-2.0.8 hscolour stylish-haskell-0.8.0.0
       fi
 
 
