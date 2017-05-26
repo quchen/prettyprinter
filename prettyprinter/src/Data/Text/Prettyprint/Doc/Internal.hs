@@ -41,10 +41,16 @@ import Data.Semigroup
 import Numeric.Natural
 #endif
 
-#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
-import Data.Foldable (Foldable (..))
-import Prelude       hiding (foldr, foldr1)
+#if !(APPLICATIVE_MONAD)
+import Control.Applicative
 #endif
+
+#if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
+import Data.Foldable    (Foldable (..))
+import Data.Traversable (Traversable (..))
+import Prelude          hiding (foldr, foldr1)
+#endif
+
 #if !(MONOID_IN_PRELUDE)
 import Data.Monoid hiding ((<>))
 #endif
@@ -1283,11 +1289,12 @@ unAnnotate = \case
 -- Useful in particular to embed documents with one form of annotation in a more
 -- generlly annotated document.
 --
--- Since this traverses the entire 'Doc' tree, it is preferrable to reannotate
--- after producing the layout by using 'reAnnotateS'.
+-- Since this traverses the entire @'Doc'@ tree, including parts that are not
+-- rendered due to other layouts fitting better, it is preferrable to reannotate
+-- after producing the layout by using @'reAnnotateS'@.
 --
--- Technically 'reAnnotate' makes 'Doc' a 'Functor', but since reannotation is
--- hardly intuitive we omit the instance.
+-- Since @'reAnnotate'@ has the right type and satisfies @'reAnnotate id = id'@,
+-- it is used to define the @'Functor'@ instance of @'Doc'@.
 reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
 reAnnotate re = go
   where
@@ -1429,10 +1436,10 @@ fuse depth = go
 -- by the display functions.
 --
 -- A simplified view is that @'Doc' = ['SimpleDocStream']@, and the layout
--- functions pick one of the 'SimpleDocStream's. This means that
--- 'SimpleDocStream' has all complexity contained in 'Doc' resolved, making it
--- very easy to convert it to other formats, such as plain text or terminal
--- output.
+-- functions pick one of the 'SimpleDocStream's based on which one fits the
+-- layout constraints best. This means that 'SimpleDocStream' has all complexity
+-- contained in 'Doc' resolved, making it very easy to convert it to other
+-- formats, such as plain text or terminal output.
 --
 -- To write your own @'Doc'@ to X converter, it is therefore sufficient to
 -- convert from @'SimpleDocStream'@. The »Render« submodules provide some
@@ -1465,6 +1472,29 @@ data SimpleDocStream ann =
 -- Consider using the latter when the type does not matter.
 instance Functor SimpleDocStream where
     fmap = reAnnotateS
+
+-- | Collect all annotations from a document.
+instance Foldable SimpleDocStream where
+    foldMap f = \case
+        SFail             -> mempty
+        SEmpty            -> mempty
+        SChar _ rest      -> foldMap f rest
+        SText _ _ rest    -> foldMap f rest
+        SLine _ rest      -> foldMap f rest
+        SAnnPush ann rest -> f ann `mappend` foldMap f rest
+        SAnnPop rest      -> foldMap f rest
+
+-- | Transform a document based on its annotations, possibly leveraging
+-- 'Applicative' effects.
+instance Traversable SimpleDocStream where
+    traverse f = \case
+        SFail             -> pure SFail
+        SEmpty            -> pure SEmpty
+        SChar c rest      -> SChar c   <$> traverse f rest
+        SText l t rest    -> SText l t <$> traverse f rest
+        SLine i rest      -> SLine i   <$> traverse f rest
+        SAnnPush ann rest -> SAnnPush  <$> f ann <*> traverse f rest
+        SAnnPop rest      -> SAnnPop   <$> traverse f rest
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --

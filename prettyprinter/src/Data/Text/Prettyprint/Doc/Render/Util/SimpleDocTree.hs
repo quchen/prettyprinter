@@ -235,3 +235,24 @@ reAnnotateST f = go
         STLine i       -> STLine i
         STAnn ann rest -> STAnn (f ann) (go rest)
         STConcat xs    -> STConcat (map go xs)
+
+-- | Collect all annotations from a document.
+instance Foldable SimpleDocTree where
+    foldMap f = \case
+        STEmpty        -> mempty
+        STChar _       -> mempty
+        STText _ _     -> mempty
+        STLine _       -> mempty
+        STAnn ann rest -> f ann `mappend` foldMap f rest
+        STConcat xs    -> mconcat (map (foldMap f) xs)
+
+-- | Transform a document based on its annotations, possibly leveraging
+-- 'Applicative' effects.
+instance Traversable SimpleDocTree where
+    traverse f = \case
+        STEmpty        -> pure STEmpty
+        STChar c       -> pure (STChar c)
+        STText l t     -> pure (STText l t)
+        STLine i       -> pure (STLine i)
+        STAnn ann rest -> STAnn <$> f ann <*> traverse f rest
+        STConcat xs    -> STConcat <$> traverse (traverse f) xs
