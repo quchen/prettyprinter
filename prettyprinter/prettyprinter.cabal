@@ -8,6 +8,7 @@ license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
                    , misc/version-compatibility-macros.h
+                   , CONTRIBUTORS.md
 author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
