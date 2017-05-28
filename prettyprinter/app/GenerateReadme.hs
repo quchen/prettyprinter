@@ -29,15 +29,18 @@ readmeContents = (mconcat . L.intersperse vspace)
 
     , h1 "A modern Wadler/Leijen Prettyprinter"
 
-    , cat
-        [ "[![status](https://img.shields.io/github/release/quchen/prettyprinter.svg?style=flat-square&label=Latest%20version)](https://github.com/quchen/prettyprinter/releases)"
-        , "[![status](https://img.shields.io/travis/quchen/prettyprinter/master.svg?style=flat-square&label=Master%20build)](https://travis-ci.org/quchen/prettyprinter)"
-        ]
+    , mconcat
+        [ "[![](https://img.shields.io/travis/quchen/prettyprinter/master.svg?style=flat-square&label=Master%20build)](https://travis-ci.org/quchen/prettyprinter)"
+        , "  " <> hardline -- Awkwardly enough, two trailing spaces are a small break in Markdown.
+        , hsep
+            [ "[![](https://img.shields.io/github/release/quchen/prettyprinter.svg?style=flat-square&label=Latest%20version&colorB=0a7bbb)](https://github.com/quchen/prettyprinter/releases)"
+            , "[![](https://img.shields.io/hackage/v/prettyprinter.svg?style=flat-square&label=Hackage&colorB=0a7bbb)](https://hackage.haskell.org/package/prettyprinter)"
+            , "[![](https://www.stackage.org/package/prettyprinter/badge/lts?style=flat-square&label=Stackage&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)" ]]
 
     , h2 "tl;dr"
         , paragraph [multiline| A prettyprinter/text rendering engine. Easy to
         use, well-documented, ANSI terminal backend exists, HTML backend is
-        trivial to implement, no name clashes, Text-based, extensible. |]
+        trivial to implement, no name clashes, `Text`-based, extensible. |]
         , (pretty . T.unlines)
             [ "```haskell"
             , "let prettyType = align . sep . zipWith (<+>) (\"::\" : repeat \"->\")"
@@ -74,10 +77,10 @@ readmeContents = (mconcat . L.intersperse vspace)
 
     , h3 "`Text` instead of `String`"
         , paragraph [multiline| `String` has exactly one use, and that’s showing
-        Hello World in tutorials. For all other uses, Text is what people should
-        be using. The prettyprinter uses no `String` definitions anywhere; using
-        a `String` means an immediate conversion to the internal `Text`-based
-        format. |]
+        Hello World in tutorials. For all other uses, `Text` is what people
+        should be using. The prettyprinter uses no `String` definitions
+        anywhere; using a `String` means an immediate conversion to the internal
+        `Text`-based format. |]
 
     , h3 "Extensive documentation"
         , paragraph [multiline| The library is stuffed with runnable examples,
@@ -101,8 +104,9 @@ readmeContents = (mconcat . L.intersperse vspace)
         , paragraph [multiline| More complex uses of annotations include e.g.
         adding type annotations for mouse-over hovers when printing a syntax
         tree, adding URLs to documentation, or adding source locations to show
-        where a certain piece of output comes from. Idris is a project that
-        makes extensive use of such a feature. |]
+        where a certain piece of output comes from.
+        [Idris](https://github.com/idris-lang/Idris-dev) is a project that makes
+        extensive use of such a feature. |]
 
         , paragraph [multiline| Special care has been applied to make
         annotations unobtrusive, so that if you don’t need or care about them
@@ -126,13 +130,14 @@ readmeContents = (mconcat . L.intersperse vspace)
         cases for the programmer. |]
 
     , h3 "Open implementation"
-        , paragraph [multiline| The type of documents is unanimously (!)
-        abstract in the other Wadler/Leijen prettyprinters, making it impossible
-        to write adaptors from one library to another. The type should be
-        exposed for such purposes so it is possible to write adaptors from
-        library to library, or each of them is doomed to live on its own small
-        island of incompatibility. For this reason, the `Doc` type is fully
-        exposed in a semi-internal module for this specific use case. |]
+
+        , paragraph [multiline| The type of documents is abstract in most of the
+        other Wadler/Leijen prettyprinters, making it hard to impossible to
+        write adaptors from one library to another. The type should be exposed
+        for such purposes so it is possible to write adaptors from library to
+        library, or each of them is doomed to live on its own small island of
+        incompatibility. For this reason, the `Doc` type is fully exposed in a
+        semi-internal module for this specific use case. |]
 
     , h2 "The prettyprinter family"
     , paragraph "The `prettyprinter` family of packages consists of:"
@@ -174,9 +179,10 @@ readmeContents = (mconcat . L.intersperse vspace)
           rendering for efficiency. |]
         , [multiline| SimpleDoc was renamed `SimpleDocStream`, to contrast the
           new `SimpleDocTree`. |]
-        , [multiline| Instead of providing an own colorization function for each
-          color/intensity/layer combination, they have been combined in 'color'
-          'colorDull', 'bgColor', and 'bgColorDull' functions. |]
+        , [multiline| In the ANSI backend, instead of providing an own
+          colorization function for each color/intensity/layer combination, they
+          have been combined in /color/ /colorDull/, /bgColor/, and
+          /bgColorDull/ functions. |]
         ]
 
     , h2 "Historical notes"
