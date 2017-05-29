@@ -1,5 +1,5 @@
 name:                prettyprinter-compat-ansi-wl-pprint
-version:             0.1
+version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            Prettyprinter compatibility module for previous users of the ansi-wl-pprint package.
@@ -32,5 +32,5 @@ library
     build-depends:
           base < 127
         , text
-        , prettyprinter >= 0 && < 0.2
-        , prettyprinter-ansi-terminal >= 0 && < 0.2
+        , prettyprinter < 1.1
+        , prettyprinter-ansi-terminal < 1.1
