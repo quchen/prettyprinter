@@ -83,8 +83,6 @@ executable generate_readme
     other-modules: MultilineTh
     other-extensions: OverloadedStrings
                     , TemplateHaskell
-    if impl (ghc < 7.10)
-        buildable: False
     if flag(buildReadme)
         buildable: True
     else
