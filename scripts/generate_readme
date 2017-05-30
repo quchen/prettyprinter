@@ -3,5 +3,5 @@
 set -euo pipefail
 
 cd "$(stack path --project-root)"
-stack build prettyprinter:exe:generate_readme
+stack build prettyprinter:exe:generate_readme --flag prettyprinter:buildReadme
 stack exec generate_readme > README.md

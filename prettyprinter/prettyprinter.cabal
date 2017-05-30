@@ -65,6 +65,11 @@ library
 
 
 
+Flag buildReadme
+  Description: Build the readme generator
+  Default:     False
+
+
 executable generate_readme
     hs-source-dirs: app
     main-is: GenerateReadme.hs
@@ -78,6 +83,10 @@ executable generate_readme
     other-extensions: OverloadedStrings
                     , TemplateHaskell
     if impl (ghc < 7.10)
+        buildable: False
+    if flag(buildReadme)
+        buildable: True
+    else
         buildable: False
 
 
