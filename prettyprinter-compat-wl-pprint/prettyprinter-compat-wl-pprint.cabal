@@ -30,6 +30,6 @@ library
         , OverloadedStrings
 
     build-depends:
-          base < 127
-        , text
+          base >= 4.7 && < 5
+        , text == 1.2.*
         , prettyprinter < 1.1
