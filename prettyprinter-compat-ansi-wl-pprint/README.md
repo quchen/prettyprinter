@@ -1,13 +1,14 @@
-wl-pprint-ansi compatibility module
-===================================
+ansi-wl-pprint compatibility package
+====================================
 
-This module defines a compatibility layer between the old `wl-pprint-ansi`
-module, and the new one (version 1+).
+This package defines a compatibility layer between the old `ansi-wl-pprint`
+package, and the new `prettyprinter`/`prettyprinter-ansi-terminal` ones.
 
 This allows easily transitioning dependent packages from the old to the new
-package, by simply replacing `wl-pprint-ansi` with `wl-pprint-compat-old-ansi`
+package, by simply replacing `ansi-wl-pprint` with `prettyprinter-ansi-terminal`
 in the `.cabal` file.
 
-Note that this module is **only for transitional purposes**, and therefore
+Note that this package is **only for transitional purposes**, and therefore
 deprecated and wholly undocumented. For new development, use the current version
-of `wl-pprint`, and the ANSI terminal backend provided in `wl-pprint-ansi`.
+of `prettyprinter`, and the ANSI terminal backend provided in
+`prettyprinter-ansi-terminal`.
