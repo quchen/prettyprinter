@@ -357,7 +357,11 @@ instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.spl
 -- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 
--- | I tried finding a good example to show here but could not find one
+-- | Finding a good example for printing something that does not exist is hard,
+-- so here is an example of printing a list full of nothing.
+--
+-- >>> pretty ([] :: [Void])
+-- []
 instance Pretty Void where pretty = absurd
 
 
