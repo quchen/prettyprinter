@@ -1,5 +1,8 @@
 # Next version: 1.0.0.*
 
+- Fix »group« potentially taking exponential time, by making the (internal)
+  `flatten` function detect whether it is going to have any effect inside
+  `group`.
 - Add proper version bounds for all dependencies and backport them to version 1
 - Haddock: example for `Pretty Void`
 

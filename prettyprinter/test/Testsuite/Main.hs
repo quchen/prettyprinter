@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -7,15 +8,18 @@ module Main (main) where
 
 
 
+import           Control.Exception     (evaluate)
 import qualified Data.ByteString.Lazy  as BSL
 import qualified Data.Text             as T
 import           Data.Text.PgpWordlist
 import           Data.Word
+import           System.Timeout        (timeout)
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Text
 
 import Test.Tasty
+import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
 #if !(APPLICATIVE_MONAD)
@@ -31,11 +35,17 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "Fusion"
-    [ testProperty "Shallow fusion does not change rendering"
-                   (fusionDoesNotChangeRendering Shallow)
-    , testProperty "Deep fusion does not change rendering"
-                   (fusionDoesNotChangeRendering Deep)
+tests = testGroup "Tests"
+    [ testGroup "Fusion"
+        [ testProperty "Shallow fusion does not change rendering"
+                       (fusionDoesNotChangeRendering Shallow)
+        , testProperty "Deep fusion does not change rendering"
+                       (fusionDoesNotChangeRendering Deep)
+        ]
+    , testGroup "Regression tests"
+        [ testCase "Pathological grouping performance"
+                   pathologicalGroupingPerformance
+        ]
     ]
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
@@ -139,3 +149,17 @@ enclosingOfMany = frequency
 -- releases we hand-code it here
 dampen :: Gen a -> Gen a
 dampen gen = sized (\n -> resize ((n*2) `quot` 3) gen)
+
+
+
+-- Deeply nested group/flatten calls can result in exponential performance.
+--
+-- See https://github.com/quchen/prettyprinter/issues/22
+pathologicalGroupingPerformance :: Assertion
+pathologicalGroupingPerformance
+  = timeout 10000000 (poorMansForce (pathological 1000)) >>= \case
+        Nothing -> assertFailure "Timeout!"
+        Just _success -> pure ()
+  where
+    pathological n = iterate (\x ->  hsep [x, sep []] ) "foobar" !! n
+    poorMansForce = evaluate . length . show

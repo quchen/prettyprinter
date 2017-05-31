@@ -22,16 +22,17 @@ module Data.Text.Prettyprint.Doc.Internal (
 
 
 
+import           Control.Applicative
 import           Data.Int
-import           Data.List.NonEmpty (NonEmpty (..))
+import           Data.List.NonEmpty  (NonEmpty (..))
 import           Data.Maybe
-import           Data.String        (IsString (..))
-import           Data.Text          (Text)
-import qualified Data.Text          as T
-import qualified Data.Text.Lazy     as Lazy
+import           Data.String         (IsString (..))
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import qualified Data.Text.Lazy      as Lazy
 import           Data.Void
 import           Data.Word
-import           GHC.Generics       (Generic)
+import           GHC.Generics        (Generic)
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
 -- from the semigroups package.
@@ -39,10 +40,6 @@ import Data.Semigroup
 
 #if NATURAL_IN_BASE
 import Numeric.Natural
-#endif
-
-#if !(APPLICATIVE_MONAD)
-import Control.Applicative
 #endif
 
 #if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
@@ -253,19 +250,19 @@ viaShow :: Show a => a -> Doc ann
 viaShow = pretty . T.pack . show
 
 -- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
--- If there are newlines, use 'viaShow' instead.
+-- If there may be newlines, use 'viaShow' instead.
 unsafeViaShow :: Show a => a -> Doc ann
 unsafeViaShow = unsafeTextWithoutNewlines . T.pack . show
 
 -- | >>> pretty (123 :: Int)
 -- 123
-instance Pretty Int where pretty = unsafeViaShow
-instance Pretty Int8 where pretty = unsafeViaShow
-instance Pretty Int16 where pretty = unsafeViaShow
-instance Pretty Int32 where pretty = unsafeViaShow
-instance Pretty Int64 where pretty = unsafeViaShow
-instance Pretty Word where pretty = unsafeViaShow
-instance Pretty Word8 where pretty = unsafeViaShow
+instance Pretty Int    where pretty = unsafeViaShow
+instance Pretty Int8   where pretty = unsafeViaShow
+instance Pretty Int16  where pretty = unsafeViaShow
+instance Pretty Int32  where pretty = unsafeViaShow
+instance Pretty Int64  where pretty = unsafeViaShow
+instance Pretty Word   where pretty = unsafeViaShow
+instance Pretty Word8  where pretty = unsafeViaShow
 instance Pretty Word16 where pretty = unsafeViaShow
 instance Pretty Word32 where pretty = unsafeViaShow
 instance Pretty Word64 where pretty = unsafeViaShow
@@ -407,7 +404,8 @@ nest
     :: Int -- ^ Change of nesting level
     -> Doc ann
     -> Doc ann
-nest = Nest
+nest 0 x = x -- Optimization
+nest i x = Nest i x
 
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
@@ -502,26 +500,71 @@ hardline = Line
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
 group :: Doc ann -> Doc ann
-group x = Union (flatten x) x
+-- See note [Group: special flattening]
+group x = case changesUponFlattening x of
+    Nothing -> x
+    Just x' -> Union x' x
 
--- Choose the first element of each @Union@, and discard the first field of all
--- @FlatAlt@s.
-flatten :: Doc ann -> Doc ann
-flatten = \case
-    FlatAlt _ y     -> flatten y
-    Cat x y         -> Cat (flatten x) (flatten y)
-    Nest i x        -> Nest i (flatten x)
-    Line            -> Fail
-    Union x _       -> flatten x
-    Column f        -> Column (flatten . f)
-    WithPageWidth f -> WithPageWidth (flatten . f)
-    Nesting f       -> Nesting (flatten . f)
-    Annotated ann x -> Annotated ann (flatten x)
+-- Note [Group: special flattening]
+--
+-- Since certain documents do not change under removal of newlines etc, there is
+-- no point in creating a 'Union' of the flattened and unflattened version – all
+-- this does is introducing two branches for the layout algorithm to take,
+-- resulting in potentially exponential behavior on deeply nested examples, such
+-- as
+--
+--     pathological n = iterate (\x ->  hsep [x, sep []] ) "foobar" !! n
+--
+-- See https://github.com/quchen/prettyprinter/issues/22 for the  corresponding
+-- ticket.
 
-    x@Fail   -> x
-    x@Empty  -> x
-    x@Char{} -> x
-    x@Text{} -> x
+-- | Choose the first element of each @Union@, and discard the first field of
+-- all @FlatAlt@s.
+--
+-- The result is 'Just' if the element might change depending on the layout
+-- algorithm (i.e. contains differently renderable sub-documents), and 'Nothing'
+-- if the document is static (e.g. contains only a plain 'Empty' node). See
+-- [Group: special flattening] for further explanations.
+changesUponFlattening :: Doc ann -> Maybe (Doc ann)
+changesUponFlattening = \case
+    FlatAlt _ y     -> Just (flatten y)
+    Line            -> Just Fail
+    Union x _       -> changesUponFlattening x <|> Just x
+    Nest i x        -> fmap (Nest i) (changesUponFlattening x)
+    Annotated ann x -> fmap (Annotated ann) (changesUponFlattening x)
+
+    Column f        -> Just (Column (flatten . f))
+    Nesting f       -> Just (Nesting (flatten . f))
+    WithPageWidth f -> Just (WithPageWidth (flatten . f))
+
+    Cat x y -> case (changesUponFlattening x, changesUponFlattening y) of
+        (Nothing, Nothing) -> Nothing
+        (Just x', Nothing) -> Just (Cat x' y )
+        (Nothing, Just y') -> Just (Cat x  y')
+        (Just x', Just y') -> Just (Cat x' y')
+
+    Empty  -> Nothing
+    Char{} -> Nothing
+    Text{} -> Nothing
+    Fail   -> Nothing
+  where
+    -- Flatten, but don’t report whether anything changes.
+    flatten :: Doc ann -> Doc ann
+    flatten = \case
+        FlatAlt _ y     -> flatten y
+        Cat x y         -> Cat (flatten x) (flatten y)
+        Nest i x        -> Nest i (flatten x)
+        Line            -> Fail
+        Union x _       -> flatten x
+        Column f        -> Column (flatten . f)
+        WithPageWidth f -> WithPageWidth (flatten . f)
+        Nesting f       -> Nesting (flatten . f)
+        Annotated ann x -> Annotated ann (flatten x)
+
+        x@Fail   -> x
+        x@Empty  -> x
+        x@Char{} -> x
+        x@Text{} -> x
 
 
 
@@ -1076,9 +1119,9 @@ plural
     -> doc -- ^ other cases
     -> amount
     -> doc
-plural one many n
+plural one multiple n
     | n == 1    = one
-    | otherwise = many
+    | otherwise = multiple
 
 -- | @('enclose' l r x)@ encloses document @x@ between documents @l@ and @r@
 -- using @'<>'@.

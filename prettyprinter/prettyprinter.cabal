@@ -115,6 +115,7 @@ test-suite testsuite
         , pgp-wordlist     == 0.1.*
         , bytestring       == 0.10.*
         , tasty            >= 0.10 && < 0.12
+        , tasty-hunit      == 0.9.*
         , tasty-quickcheck == 0.8.*
         , text             == 1.2.*
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
