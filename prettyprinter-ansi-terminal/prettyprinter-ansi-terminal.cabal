@@ -2,7 +2,7 @@ name:                prettyprinter-ansi-terminal
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            ANSI terminal backend for the modern, extensible and well-documented prettyprinter.
+synopsis:            ANSI terminal backend for the »prettyprinter« package.
 description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md

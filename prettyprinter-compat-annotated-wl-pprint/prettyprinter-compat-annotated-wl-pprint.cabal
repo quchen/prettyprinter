@@ -2,7 +2,7 @@ name:                prettyprinter-compat-annotated-wl-pprint
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            Prettyprinter compatibility module for previous users of the annotated-wl-pprint package.
+synopsis:            Drop-in compatibility package to migrate from »annotated-wl-pprint« to »prettyprinter«.
 description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md

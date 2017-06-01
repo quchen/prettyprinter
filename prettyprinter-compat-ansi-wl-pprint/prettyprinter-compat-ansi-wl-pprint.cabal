@@ -2,7 +2,7 @@ name:                prettyprinter-compat-ansi-wl-pprint
 version:             1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
-synopsis:            Prettyprinter compatibility module for previous users of the ansi-wl-pprint package.
+synopsis:            Drop-in compatibility package to migrate from »ansi-wl-pprint« to »prettyprinter«.
 description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md
