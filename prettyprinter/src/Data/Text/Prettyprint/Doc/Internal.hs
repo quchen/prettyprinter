@@ -1111,8 +1111,8 @@ spaces n = unsafeTextWithoutNewlines (T.replicate n " ")
 --
 -- >>> let things = [True]
 -- >>> let amount = length things
--- >>> "The list has" <+> pretty amount <+> plural "entry" "entries" amount
--- The list has 1 entry
+-- >>> pretty things <+> "has" <+> pretty amount <+> plural "entry" "entries" amount
+-- [True] has 1 entry
 plural
     :: (Num amount, Eq amount)
     => doc -- ^ @1@ case
@@ -1521,33 +1521,42 @@ instance Functor SimpleDocStream where
 
 -- | Collect all annotations from a document.
 instance Foldable SimpleDocStream where
-    foldMap f = \case
-        SFail             -> mempty
-        SEmpty            -> mempty
-        SChar _ rest      -> foldMap f rest
-        SText _ _ rest    -> foldMap f rest
-        SLine _ rest      -> foldMap f rest
-        SAnnPush ann rest -> f ann `mappend` foldMap f rest
-        SAnnPop rest      -> foldMap f rest
+    foldMap f = go
+      where
+        go = \case
+            SFail             -> mempty
+            SEmpty            -> mempty
+            SChar _ rest      -> go rest
+            SText _ _ rest    -> go rest
+            SLine _ rest      -> go rest
+            SAnnPush ann rest -> f ann `mappend` go rest
+            SAnnPop rest      -> go rest
 
 -- | Transform a document based on its annotations, possibly leveraging
 -- 'Applicative' effects.
 instance Traversable SimpleDocStream where
-    traverse f = \case
-        SFail             -> pure SFail
-        SEmpty            -> pure SEmpty
-        SChar c rest      -> SChar c   <$> traverse f rest
-        SText l t rest    -> SText l t <$> traverse f rest
-        SLine i rest      -> SLine i   <$> traverse f rest
-        SAnnPush ann rest -> SAnnPush  <$> f ann <*> traverse f rest
-        SAnnPop rest      -> SAnnPop   <$> traverse f rest
+    traverse f = go
+      where
+        go = \case
+            SFail             -> pure SFail
+            SEmpty            -> pure SEmpty
+            SChar c rest      -> SChar c   <$> go rest
+            SText l t rest    -> SText l t <$> go rest
+            SLine i rest      -> SLine i   <$> go rest
+            SAnnPush ann rest -> SAnnPush  <$> f ann <*> go rest
+            SAnnPop rest      -> SAnnPop   <$> go rest
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
 --   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line; Nothing is unbounded
-newtype FittingPredicate ann = FP (PageWidth -> Int -> Maybe Int -> SimpleDocStream ann -> Bool)
+newtype FittingPredicate ann
+  = FittingPredicate (PageWidth
+                   -> Int
+                   -> Maybe Int
+                   -> SimpleDocStream ann
+                   -> Bool)
 
 -- | List of nesting level/document pairs yet to be laid out.
 data LayoutPipeline ann =
@@ -1605,24 +1614,22 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutPretty = layout fits1
+layoutPretty = layoutWadlerLeijen
+    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> case maxWidth of
+        Nothing -> True
+        Just w -> fits w sdoc ))
   where
-    -- | @fits1@ does 1 line lookahead.
-    fits1 :: FittingPredicate ann
-    fits1 = FP (\_p _m w -> go w)
-      where
-        go :: Maybe Int -- ^ Width in which to fit the first line; Nothing is infinite
-           -> SimpleDocStream ann
-           -> Bool
-        go Nothing _               = True
-        go (Just w) _ | w < 0      = False
-        go _ SFail                 = False
-        go _ SEmpty                = True
-        go (Just w) (SChar _ x)    = go (Just (w - 1)) x
-        go (Just w) (SText l _t x) = go (Just (w - l)) x
-        go _ SLine{}               = True
-        go (Just w) (SAnnPush _ x) = go (Just w) x
-        go (Just w) (SAnnPop x)    = go (Just w) x
+    fits :: Int -- ^ Width in which to fit the first line
+         -> SimpleDocStream ann
+         -> Bool
+    fits w _ | w < 0      = False
+    fits _ SFail          = False
+    fits _ SEmpty         = True
+    fits w (SChar _ x)    = fits (w - 1) x
+    fits w (SText l _t x) = fits (w - l) x
+    fits _ SLine{}        = True
+    fits w (SAnnPush _ x) = fits w x
+    fits w (SAnnPop x)    = fits w x
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
 -- line breaks earlier if the content does not (or will not, rather) fit into
@@ -1673,44 +1680,41 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layout fitsR
+layoutSmart = layoutWadlerLeijen
+    (FittingPredicate (\pWidth minNestingLevel maxWidth sdoc -> case maxWidth of
+        Nothing -> False
+        Just w -> fits pWidth minNestingLevel w sdoc ))
   where
-    -- @fitsR@ has a little more lookahead: assuming that nesting roughly
-    -- corresponds to syntactic depth, @fitsR@ checks that not only the current
-    -- line fits, but the entire syntactic structure being formatted at this
-    -- level of indentation fits. If we were to remove the second case for
-    -- @SLine@, we would check that not only the current structure fits, but
-    -- also the rest of the document, which would be slightly more intelligent
-    -- but would have exponential runtime (and is prohibitively expensive in
-    -- practice).
-    fitsR :: FittingPredicate ann
-    fitsR = FP go
-      where
-        go :: PageWidth
-           -> Int       -- ^ Minimum nesting level to fit in
-           -> Maybe Int -- ^ Width in which to fit the first line
-           -> SimpleDocStream ann
-           -> Bool
-        go _ _ Nothing _                        = False
-        go _ _ (Just w) _ | w < 0               = False
-        go _ _ _ SFail                          = False
-        go _ _ _ SEmpty                         = True
-        go pw m (Just w) (SChar _ x)            = go pw m (Just (w - 1)) x
-        go pw m (Just w) (SText l _t x)         = go pw m (Just (w - l)) x
-        go pw m _ (SLine i x)
-          | m < i, AvailablePerLine cpl _ <- pw = go pw m (Just (cpl - i)) x
-          | otherwise                           = True
-        go pw m w (SAnnPush _ x)                = go pw m w x
-        go pw m w (SAnnPop x)                   = go pw m w x
+    -- Search with more lookahead: assuming that nesting roughly corresponds to
+    -- syntactic depth, @fits@ checks that not only the current line fits, but
+    -- the entire syntactic structure being formatted at this level of
+    -- indentation fits. If we were to remove the second case for @SLine@, we
+    -- would check that not only the current structure fits, but also the rest
+    -- of the document, which would be slightly more intelligent but would have
+    -- exponential runtime (and is prohibitively expensive in practice).
+    fits :: PageWidth
+         -> Int -- ^ Minimum nesting level to fit in
+         -> Int -- ^ Width in which to fit the first line
+         -> SimpleDocStream ann
+         -> Bool
+    fits _ _ w _ | w < 0                    = False
+    fits _ _ _ SFail                        = False
+    fits _ _ _ SEmpty                       = True
+    fits pw m w (SChar _ x)                 = fits pw m (w - 1) x
+    fits pw m w (SText l _t x)              = fits pw m (w - l) x
+    fits pw m _ (SLine i x)
+      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (cpl - i) x
+      | otherwise                           = True
+    fits pw m w (SAnnPush _ x)              = fits pw m w x
+    fits pw m w (SAnnPop x)                 = fits pw m w x
 
-
-
-layout
+-- | The Wadler/Leijen layout algorithm
+layoutWadlerLeijen
     :: forall ann. FittingPredicate ann
     -> LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layout
+layoutWadlerLeijen
     fittingPredicate
     LayoutOptions { layoutPageWidth = pWidth }
     doc
@@ -1750,7 +1754,7 @@ layout
         -> SimpleDocStream ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
         -> SimpleDocStream ann -- ^ Choice B.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
-    selectNicer (FP fits) lineIndent currentColumn x y
+    selectNicer (FittingPredicate fits) lineIndent currentColumn x y
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
       where
@@ -1795,20 +1799,20 @@ layoutCompact :: Doc ann -> SimpleDocStream ann
 layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
-    scan !k (d:ds) = case d of
+    scan !col (d:ds) = case d of
         Fail            -> SFail
-        Empty           -> scan k ds
-        Char c          -> SChar c (scan (k+1) ds)
-        Text l t        -> let !k' = k+l in SText l t (scan k' ds)
-        FlatAlt x _     -> scan k (x:ds)
+        Empty           -> scan col ds
+        Char c          -> SChar c (scan (col+1) ds)
+        Text l t        -> let !col' = col+l in SText l t (scan col' ds)
+        FlatAlt x _     -> scan col (x:ds)
         Line            -> SLine 0 (scan 0 ds)
-        Cat x y         -> scan k (x:y:ds)
-        Nest _ x        -> scan k (x:ds)
-        Union _ y       -> scan k (y:ds)
-        Column f        -> scan k (f k:ds)
-        WithPageWidth f -> scan k (f Unbounded : ds)
-        Nesting f       -> scan k (f 0 : ds)
-        Annotated _ x   -> scan k (x:ds)
+        Cat x y         -> scan col (x:y:ds)
+        Nest _ x        -> scan col (x:ds)
+        Union _ y       -> scan col (y:ds)
+        Column f        -> scan col (f col:ds)
+        WithPageWidth f -> scan col (f Unbounded : ds)
+        Nesting f       -> scan col (f 0 : ds)
+        Annotated _ x   -> scan col (x:ds)
 
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions',
 -- ignoring all annotations.
