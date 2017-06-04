@@ -7,15 +7,15 @@
 -- | Render 'SimpleDocStream' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
-    AnsiTerminal, Color(..),
+    AnsiTerminal(..), Color(..), Intensity(..), Layer(..),
 
-    -- ** Font color
+    -- ** Font color convenience definitions
     color, colorDull,
     --
-    -- ** Background color
+    -- ** Background color convenience definitions
     bgColor, bgColorDull,
 
-    -- ** Font style
+    -- ** Font style convenience definitions
     bold, italics, underline,
 
     -- * Conversion to ANSI-infused 'Text'
