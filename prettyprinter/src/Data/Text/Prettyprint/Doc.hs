@@ -83,15 +83,18 @@
 --                        │  'SimpleDocStream'  │
 --                        │ (simple document) │
 --                        ╰─────────┬─────────╯
---                                  │
---                                  │ Renderers
---                                  │
---              ╭───────────────────┼───────────────────╮
---              │                   │                   │
---              ▽                   ▽                   ▽
---      ╭───────────────╮   ╭───────────────╮   ╭───────────────╮
---      │  Plain 'Text'   │   │ ANSI terminal │   │ other/custom  │
---      ╰───────────────╯   ╰───────────────╯   ╰───────────────╯
+--              ╭───────────────────┤
+--              │                   │
+--     'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.treeForm' │                   │
+--              ▽                   │    Renderers
+--      ╭───────────────╮           │
+--      │ 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' │           │
+--      ╰───────┬───────╯           ├───────────────────┬───────────────────╮
+--              │                   │                   │                   │
+--              ▽                   ▽                   ▽                   ▽
+--      ╭───────────────╮    ╭───────────────╮   ╭───────────────╮   ╭───────────────╮
+--      │     HTML      │    │  Plain 'Text'   │   │ ANSI terminal │   │ other/custom  │
+--      ╰───────────────╯    ╰───────────────╯   ╰───────────────╯   ╰───────────────╯
 -- @
 --
 -- = How the layout works
