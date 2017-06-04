@@ -1314,21 +1314,7 @@ annotate = Annotated
 -- entire contained document. If possible, it is preferrable to unannotate after
 -- producing the layout by using 'unAnnotateS'.
 unAnnotate :: Doc ann -> Doc xxx
-unAnnotate = \case
-    Fail     -> Fail
-    Empty    -> Empty
-    Char c   -> Char c
-    Text l t -> Text l t
-    Line     -> Line
-
-    FlatAlt x y     -> FlatAlt (unAnnotate x) (unAnnotate y)
-    Cat x y         -> Cat (unAnnotate x) (unAnnotate y)
-    Nest i x        -> Nest i (unAnnotate x)
-    Union x y       -> Union (unAnnotate x) (unAnnotate y)
-    Column f        -> Column (unAnnotate . f)
-    WithPageWidth f -> WithPageWidth (unAnnotate . f)
-    Nesting f       -> Nesting (unAnnotate . f)
-    Annotated _ x   -> unAnnotate x
+unAnnotate = alterAnnotations (const Nothing)
 
 -- | Change the annotation of a 'Doc'ument.
 --
@@ -1342,7 +1328,20 @@ unAnnotate = \case
 -- Since @'reAnnotate'@ has the right type and satisfies @'reAnnotate id = id'@,
 -- it is used to define the @'Functor'@ instance of @'Doc'@.
 reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
-reAnnotate re = go
+reAnnotate re = alterAnnotations (Just . re)
+
+-- | Change the annotation of a 'Doc'ument to a different one, or none at all.
+--
+-- This is a general function that combines 'unAnnotate' and 'reAnnotate', and
+-- it is useful for mapping semantic annotations (such as »this is a keyword«)
+-- to display annotations (such as »this is red«), because some backends may not
+-- care about certain annotations, while others may.
+--
+-- Since this traverses the entire @'Doc'@ tree, including parts that are not
+-- rendered due to other layouts fitting better, it is preferrable to reannotate
+-- after producing the layout by using @'alterAnnotationsS'@.
+alterAnnotations :: (ann -> Maybe ann') -> Doc ann -> Doc ann'
+alterAnnotations re = go
   where
     go = \case
         Fail     -> Fail
@@ -1358,24 +1357,22 @@ reAnnotate re = go
         Column f        -> Column (go . f)
         WithPageWidth f -> WithPageWidth (go . f)
         Nesting f       -> Nesting (go . f)
-        Annotated ann x -> Annotated (re ann) (go x)
+        Annotated ann x -> case re ann of
+            Nothing   -> go x
+            Just ann' -> Annotated ann' (go x)
 
 -- | Remove all annotations. 'unAnnotate' for 'SimpleDocStream'.
 unAnnotateS :: SimpleDocStream ann -> SimpleDocStream xxx
-unAnnotateS = go
-  where
-    go = \case
-        SFail           -> SFail
-        SEmpty          -> SEmpty
-        SChar c rest    -> SChar c (go rest)
-        SText l t rest  -> SText l t (go rest)
-        SLine l rest    -> SLine l (go rest)
-        SAnnPush _ rest -> go rest
-        SAnnPop rest    -> go rest
+unAnnotateS = alterAnnotationsS (const Nothing)
 
 -- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocStream'.
 reAnnotateS :: (ann -> ann') -> SimpleDocStream ann -> SimpleDocStream ann'
-reAnnotateS f = go
+reAnnotateS re = alterAnnotationsS (Just . re)
+
+-- | Change the annotation of a document to a different annotation, or none at
+-- all. 'alterAnnotations' for 'SimpleDocStream'.
+alterAnnotationsS :: (ann -> Maybe ann') -> SimpleDocStream ann -> SimpleDocStream ann'
+alterAnnotationsS re = go
   where
     go = \case
         SFail             -> SFail
@@ -1383,9 +1380,10 @@ reAnnotateS f = go
         SChar c rest      -> SChar c (go rest)
         SText l t rest    -> SText l t (go rest)
         SLine l rest      -> SLine l (go rest)
-        SAnnPush ann rest -> SAnnPush (f ann) (go rest)
         SAnnPop rest      -> SAnnPop (go rest)
-
+        SAnnPush ann rest -> case re ann of
+            Nothing   -> go rest
+            Just ann' -> SAnnPush ann' (go rest)
 
 
 -- | Fusion depth parameter, used by 'fuse'.

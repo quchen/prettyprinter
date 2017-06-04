@@ -1,5 +1,7 @@
-# Next version: 1.0.0.*
+# Next version: 1.0.*
 
+- Add `alterAnnotations`, which allows changing or removing annotations.
+  `reAnnotate` and `unAnnotate` are now special cases of this.
 - Fix »group« potentially taking exponential time, by making the (internal)
   `flatten` function detect whether it is going to have any effect inside
   `group`.

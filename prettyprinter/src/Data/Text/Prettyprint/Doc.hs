@@ -198,8 +198,10 @@ module Data.Text.Prettyprint.Doc (
     annotate,
     unAnnotate,
     reAnnotate,
+    alterAnnotations,
     unAnnotateS,
     reAnnotateS,
+    alterAnnotationsS,
 
     -- * Optimization
     --

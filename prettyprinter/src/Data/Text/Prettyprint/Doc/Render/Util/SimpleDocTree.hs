@@ -17,6 +17,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
     -- * Manipulating annotations
     unAnnotateST,
     reAnnotateST,
+    alterAnnotationsST,
 
     -- * Common use case shortcut definitions
     renderSimplyDecorated,
@@ -216,25 +217,26 @@ treeForm sdoc = case runParser sdocToTreeParser sdoc of
 
 -- | Remove all annotations. 'unAnnotate' for 'SimpleDocTree'.
 unAnnotateST :: SimpleDocTree ann -> SimpleDocTree xxx
-unAnnotateST = \case
-    STEmpty      -> STEmpty
-    STChar c     -> STChar c
-    STText l t   -> STText l t
-    STLine i     -> STLine i
-    STAnn _ rest -> unAnnotateST rest
-    STConcat xs  -> STConcat (map unAnnotateST xs)
+unAnnotateST = alterAnnotationsST (const Nothing)
 
 -- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocTree'.
 reAnnotateST :: (ann -> ann') -> SimpleDocTree ann -> SimpleDocTree ann'
-reAnnotateST f = go
+reAnnotateST f = alterAnnotationsST (Just . f)
+
+-- | Change the annotation of a document to a different annotation, or none at
+-- all. 'alterAnnotations' for 'SimpleDocTree'.
+alterAnnotationsST :: (ann -> Maybe ann') -> SimpleDocTree ann -> SimpleDocTree ann'
+alterAnnotationsST re = go
   where
     go = \case
         STEmpty        -> STEmpty
         STChar c       -> STChar c
         STText l t     -> STText l t
         STLine i       -> STLine i
-        STAnn ann rest -> STAnn (f ann) (go rest)
         STConcat xs    -> STConcat (map go xs)
+        STAnn ann rest -> case re ann of
+            Nothing   -> go rest
+            Just ann' -> STAnn ann' (go rest)
 
 -- | Collect all annotations from a document.
 instance Foldable SimpleDocTree where
