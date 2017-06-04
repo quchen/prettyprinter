@@ -1,4 +1,11 @@
-# Next version: 1.0.*
+# Next version
+
+**Breaking changes introduced, change version accordingly**
+
+- Allow `alterAnnotations` to convert one annotation to multiple ones, to
+  support e.g. `Keyword ---> Green+Bold`
+- Remove `Pretty` instance for `Doc`: the implicit un-annotation done by it did
+  more harm than good.
 
 # 1.0.1
 

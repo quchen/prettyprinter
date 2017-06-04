@@ -203,17 +203,6 @@ instance Pretty a => Pretty [a] where
 instance Pretty a => Pretty (NonEmpty a) where
     pretty (x:|xs) = prettyList (x:xs)
 
--- | Does not change the text, but removes all annotations. __Pitfall__: since
--- this un-annotates its argument, nesting it means multiple, potentially
--- costly, traversals over the 'Doc'.
---
--- >>> pretty 123
--- 123
--- >>> pretty (pretty 123)
--- 123
-instance Pretty (Doc ann) where
-    pretty = unAnnotate
-
 -- | >>> pretty ()
 -- ()
 --
@@ -1314,7 +1303,7 @@ annotate = Annotated
 -- entire contained document. If possible, it is preferrable to unannotate after
 -- producing the layout by using 'unAnnotateS'.
 unAnnotate :: Doc ann -> Doc xxx
-unAnnotate = alterAnnotations (const Nothing)
+unAnnotate = alterAnnotations (const [])
 
 -- | Change the annotation of a 'Doc'ument.
 --
@@ -1328,19 +1317,24 @@ unAnnotate = alterAnnotations (const Nothing)
 -- Since @'reAnnotate'@ has the right type and satisfies @'reAnnotate id = id'@,
 -- it is used to define the @'Functor'@ instance of @'Doc'@.
 reAnnotate :: (ann -> ann') -> Doc ann -> Doc ann'
-reAnnotate re = alterAnnotations (Just . re)
+reAnnotate re = alterAnnotations (pure . re)
 
--- | Change the annotation of a 'Doc'ument to a different one, or none at all.
+-- | Change the annotations of a 'Doc'ument. Individual annotations can be
+-- removed, changed, or replaced by multiple ones.
 --
 -- This is a general function that combines 'unAnnotate' and 'reAnnotate', and
 -- it is useful for mapping semantic annotations (such as »this is a keyword«)
--- to display annotations (such as »this is red«), because some backends may not
--- care about certain annotations, while others may.
+-- to display annotations (such as »this is red and underlined«), because some
+-- backends may not care about certain annotations, while others may.
+--
+-- Annotations earlier in the new list will be applied earlier, i.e. returning
+-- @[Bold, Green]@ will result in a bold document that contains green text, and
+-- not vice-versa.
 --
 -- Since this traverses the entire @'Doc'@ tree, including parts that are not
 -- rendered due to other layouts fitting better, it is preferrable to reannotate
 -- after producing the layout by using @'alterAnnotationsS'@.
-alterAnnotations :: (ann -> Maybe ann') -> Doc ann -> Doc ann'
+alterAnnotations :: (ann -> [ann']) -> Doc ann -> Doc ann'
 alterAnnotations re = go
   where
     go = \case
@@ -1357,9 +1351,13 @@ alterAnnotations re = go
         Column f        -> Column (go . f)
         WithPageWidth f -> WithPageWidth (go . f)
         Nesting f       -> Nesting (go . f)
-        Annotated ann x -> case re ann of
-            Nothing   -> go x
-            Just ann' -> Annotated ann' (go x)
+        Annotated ann x -> foldr Annotated (go x) (re ann)
+
+-- $
+-- >>> let doc = "lorem" <+> annotate () "ipsum" <+> "dolor"
+-- >>> let re () = ["FOO", "BAR"]
+-- >>> layoutPretty defaultLayoutOptions (alterAnnotations re doc)
+-- SText 5 "lorem" (SChar ' ' (SAnnPush "FOO" (SAnnPush "BAR" (SText 5 "ipsum" (SAnnPop (SAnnPop (SChar ' ' (SText 5 "dolor" SEmpty))))))))
 
 -- | Remove all annotations. 'unAnnotate' for 'SimpleDocStream'.
 unAnnotateS :: SimpleDocStream ann -> SimpleDocStream xxx
@@ -1371,6 +1369,11 @@ reAnnotateS re = alterAnnotationsS (Just . re)
 
 -- | Change the annotation of a document to a different annotation, or none at
 -- all. 'alterAnnotations' for 'SimpleDocStream'.
+--
+-- Note that the 'Doc' version is more flexible, since it allows changing a
+-- single annotation to multiple ones.
+-- ('Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' restores
+-- this flexibility again.)
 alterAnnotationsS :: (ann -> Maybe ann') -> SimpleDocStream ann -> SimpleDocStream ann'
 alterAnnotationsS re = go
   where

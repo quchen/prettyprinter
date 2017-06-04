@@ -217,15 +217,19 @@ treeForm sdoc = case runParser sdocToTreeParser sdoc of
 
 -- | Remove all annotations. 'unAnnotate' for 'SimpleDocTree'.
 unAnnotateST :: SimpleDocTree ann -> SimpleDocTree xxx
-unAnnotateST = alterAnnotationsST (const Nothing)
+unAnnotateST = alterAnnotationsST (const [])
 
 -- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocTree'.
 reAnnotateST :: (ann -> ann') -> SimpleDocTree ann -> SimpleDocTree ann'
-reAnnotateST f = alterAnnotationsST (Just . f)
+reAnnotateST f = alterAnnotationsST (pure . f)
 
 -- | Change the annotation of a document to a different annotation, or none at
 -- all. 'alterAnnotations' for 'SimpleDocTree'.
-alterAnnotationsST :: (ann -> Maybe ann') -> SimpleDocTree ann -> SimpleDocTree ann'
+--
+-- Note that this is as powerful as 'alterAnnotations', allowing one annotation
+-- to become multiple ones, contrary to 'alterAnnotationsS', which cannot do
+-- this.
+alterAnnotationsST :: (ann -> [ann']) -> SimpleDocTree ann -> SimpleDocTree ann'
 alterAnnotationsST re = go
   where
     go = \case
@@ -234,9 +238,7 @@ alterAnnotationsST re = go
         STText l t     -> STText l t
         STLine i       -> STLine i
         STConcat xs    -> STConcat (map go xs)
-        STAnn ann rest -> case re ann of
-            Nothing   -> go rest
-            Just ann' -> STAnn ann' (go rest)
+        STAnn ann rest -> Prelude.foldr STAnn (go rest) (re ann)
 
 -- | Collect all annotations from a document.
 instance Foldable SimpleDocTree where
