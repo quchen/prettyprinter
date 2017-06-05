@@ -7,21 +7,16 @@
 -- | Render 'SimpleDocStream' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
-    AnsiStyle(..),
+    AnsiStyle,
     Color(..),
-    Intensity(..),
-    Layer(..),
-    Bold(..),
-    Underlined(..),
-    Italicized(..),
 
-    -- ** Font color convenience definitions
+    -- ** Font color
     color, colorDull,
-    --
-    -- ** Background color convenience definitions
+
+    -- ** Background color
     bgColor, bgColorDull,
 
-    -- ** Font style convenience definitions
+    -- ** Font style
     bold, italicized, underlined,
 
     -- * Conversion to ANSI-infused 'Text'
@@ -172,12 +167,14 @@ build = \case
         writeOutput (styleToRaw newStyle)
         build x
 
--- | Begin rendering in a certain style. 'Just' values make the decision to e.g.
--- start with italics, while 'Nothing's make no decision, effectively inheriting
--- the setting from the environment.
+-- | Begin rendering in a certain style. Instead of using this type directly,
+-- use the 'Semigroup' instance to create new styles out of the smart
+-- constructors, such as
 --
--- Instead of using this type directly, use the 'Semigroup' instance to create
--- new styles, such as @'color' 'Green' '<>' 'bold'@.
+-- @
+-- style = 'color' 'Green' '<>' 'bold'
+-- styledDoc = 'annotate' style "hello world"
+-- @
 data AnsiStyle = SetAnsiStyle
     { ansiForeground  :: Maybe (Intensity, Color)
     , ansiBackground  :: Maybe (Intensity, Color)
@@ -186,7 +183,16 @@ data AnsiStyle = SetAnsiStyle
     , ansiUnderlining :: Maybe Underlined }
     deriving (Eq, Ord, Show)
 
--- | »Keep the first positive decision«
+-- | Keep the first decision for each of foreground color, background color,
+-- boldness, italication, and underlining.
+--
+-- Example:
+--
+-- @
+-- 'color' 'Red' '<>' 'color' 'Green'
+-- @
+--
+-- is red.
 instance Semigroup AnsiStyle where
     cs1 <> cs2 = SetAnsiStyle
         { ansiForeground  = ansiForeground  cs1 <|> ansiForeground  cs2
