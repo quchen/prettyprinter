@@ -68,7 +68,7 @@ import Control.Applicative
 
 
 
--- | 8 different colors, so that all can be displayed in an ANSI terminal.
+-- | The 8 ANSI terminal colors.
 data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
     deriving (Eq, Ord, Show)
 
@@ -86,31 +86,31 @@ data Italicized = Italicized deriving (Eq, Ord, Show)
 
 -- | Style the foreground with a vivid color.
 color :: Color -> AnsiStyle
-color c = mempty { cForeground = Just (Vivid, c) }
+color c = mempty { ansiForeground = Just (Vivid, c) }
 
 -- | Style the background with a vivid color.
 bgColor :: Color -> AnsiStyle
-bgColor c =  mempty { cBackground = Just (Vivid, c) }
+bgColor c =  mempty { ansiBackground = Just (Vivid, c) }
 
 -- | Style the foreground with a dull color.
 colorDull :: Color -> AnsiStyle
-colorDull c =  mempty { cForeground = Just (Dull, c) }
+colorDull c =  mempty { ansiForeground = Just (Dull, c) }
 
 -- | Style the background with a dull color.
 bgColorDull :: Color -> AnsiStyle
-bgColorDull c =  mempty { cBackground = Just (Dull, c) }
+bgColorDull c =  mempty { ansiBackground = Just (Dull, c) }
 
 -- | Render in __bold__.
 bold :: AnsiStyle
-bold = mempty { cBold = Just Bold }
+bold = mempty { ansiBold = Just Bold }
 
 -- | Render in /italics/.
 italicized :: AnsiStyle
-italicized = mempty { cItalics = Just Italicized }
+italicized = mempty { ansiItalics = Just Italicized }
 
 -- | Render underlined.
 underlined :: AnsiStyle
-underlined = mempty { cUnderlining = Just Underlined }
+underlined = mempty { ansiUnderlining = Just Underlined }
 
 
 
@@ -177,33 +177,33 @@ build = \case
 -- the setting from the environment.
 --
 -- Instead of using this type directly, use the 'Semigroup' instance to create
--- new styles, such as @'color' 'Green' <> 'bold'@.
-data AnsiStyle = AnsiStyle
-    { cForeground  :: Maybe (Intensity, Color)
-    , cBackground  :: Maybe (Intensity, Color)
-    , cBold        :: Maybe Bold
-    , cItalics     :: Maybe Italicized
-    , cUnderlining :: Maybe Underlined }
+-- new styles, such as @'color' 'Green' '<>' 'bold'@.
+data AnsiStyle = SetAnsiStyle
+    { ansiForeground  :: Maybe (Intensity, Color)
+    , ansiBackground  :: Maybe (Intensity, Color)
+    , ansiBold        :: Maybe Bold
+    , ansiItalics     :: Maybe Italicized
+    , ansiUnderlining :: Maybe Underlined }
     deriving (Eq, Ord, Show)
 
 -- | »Keep the first positive decision«
 instance Semigroup AnsiStyle where
-    cs1 <> cs2 = AnsiStyle
-        { cForeground  = cForeground  cs1 <|> cForeground  cs2
-        , cBackground  = cBackground  cs1 <|> cBackground  cs2
-        , cBold        = cBold        cs1 <|> cBold        cs2
-        , cItalics     = cItalics     cs1 <|> cItalics     cs2
-        , cUnderlining = cUnderlining cs1 <|> cUnderlining cs2 }
+    cs1 <> cs2 = SetAnsiStyle
+        { ansiForeground  = ansiForeground  cs1 <|> ansiForeground  cs2
+        , ansiBackground  = ansiBackground  cs1 <|> ansiBackground  cs2
+        , ansiBold        = ansiBold        cs1 <|> ansiBold        cs2
+        , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
+        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
 
 instance Monoid AnsiStyle where
-    mempty = AnsiStyle Nothing Nothing Nothing Nothing Nothing
+    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
 styleToRaw :: AnsiStyle -> TLB.Builder
 styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
   where
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
-    stylesToSgrs (AnsiStyle fg bg b i u) = catMaybes
+    stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
         [ Just ANSI.Reset
         , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) fg
         , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) bg
