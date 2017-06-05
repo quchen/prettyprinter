@@ -33,4 +33,4 @@ library
           base >= 4.7 && < 5
         , text == 1.2.*
         , prettyprinter < 1.1
-        , prettyprinter-ansi-terminal < 1.1
+        , prettyprinter-ansi-terminal >= 1.1 && < 1.2

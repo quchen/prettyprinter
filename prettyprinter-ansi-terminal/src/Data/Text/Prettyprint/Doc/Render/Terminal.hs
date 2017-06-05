@@ -7,16 +7,17 @@
 -- | Render 'SimpleDocStream' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
-    AnsiTerminal(..), Color(..), Intensity(..), Layer(..),
+    AnsiStyle,
+    Color(..),
 
-    -- ** Font color convenience definitions
+    -- ** Font color
     color, colorDull,
-    --
-    -- ** Background color convenience definitions
+
+    -- ** Background color
     bgColor, bgColorDull,
 
-    -- ** Font style convenience definitions
-    bold, italics, underline,
+    -- ** Font style
+    bold, italicized, underlined,
 
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
@@ -30,9 +31,9 @@ module Data.Text.Prettyprint.Doc.Render.Terminal (
 
 
 
-import           Control.Monad
-import           Data.Functor
+import           Control.Applicative
 import           Data.Maybe
+import           Data.Semigroup
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
@@ -62,16 +63,7 @@ import Control.Applicative
 
 
 
--- | A general ANSI style. Use e.g. 'color' or 'bold' to apply a style to a
--- 'Doc'ument.
-data AnsiTerminal =
-      Italicized
-    | Bold
-    | Underlined
-    | Color Layer Intensity Color
-    deriving (Eq, Ord, Show)
-
--- | 8 different colors, so that all can be displayed in an ANSI terminal.
+-- | The 8 ANSI terminal colors.
 data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
     deriving (Eq, Ord, Show)
 
@@ -83,33 +75,38 @@ data Intensity = Vivid | Dull
 data Layer = Foreground | Background
     deriving (Eq, Ord, Show)
 
+data Bold       = Bold       deriving (Eq, Ord, Show)
+data Underlined = Underlined deriving (Eq, Ord, Show)
+data Italicized = Italicized deriving (Eq, Ord, Show)
+
 -- | Style the foreground with a vivid color.
-color :: Color -> Doc AnsiTerminal -> Doc AnsiTerminal
-color c = annotate (Color Foreground Vivid c)
+color :: Color -> AnsiStyle
+color c = mempty { ansiForeground = Just (Vivid, c) }
 
 -- | Style the background with a vivid color.
-bgColor :: Color -> Doc AnsiTerminal -> Doc AnsiTerminal
-bgColor c = annotate (Color Background Vivid c)
+bgColor :: Color -> AnsiStyle
+bgColor c =  mempty { ansiBackground = Just (Vivid, c) }
 
 -- | Style the foreground with a dull color.
-colorDull :: Color -> Doc AnsiTerminal -> Doc AnsiTerminal
-colorDull c = annotate (Color Foreground Dull c)
+colorDull :: Color -> AnsiStyle
+colorDull c =  mempty { ansiForeground = Just (Dull, c) }
 
 -- | Style the background with a dull color.
-bgColorDull :: Color -> Doc AnsiTerminal -> Doc AnsiTerminal
-bgColorDull c = annotate (Color Background Dull c)
+bgColorDull :: Color -> AnsiStyle
+bgColorDull c =  mempty { ansiBackground = Just (Dull, c) }
 
--- | Render the enclosed document in __bold__.
-bold :: Doc AnsiTerminal -> Doc AnsiTerminal
-bold = annotate Bold
+-- | Render in __bold__.
+bold :: AnsiStyle
+bold = mempty { ansiBold = Just Bold }
 
--- | Render the enclosed document in /italics/.
-italics :: Doc AnsiTerminal -> Doc AnsiTerminal
-italics = annotate Italicized
+-- | Render in /italics/.
+italicized :: AnsiStyle
+italicized = mempty { ansiItalics = Just Italicized }
 
--- | Render the enclosed document underlined.
-underline :: Doc AnsiTerminal -> Doc AnsiTerminal
-underline = annotate Underlined
+-- | Render underlined.
+underlined :: AnsiStyle
+underlined = mempty { ansiUnderlining = Just Underlined }
+
 
 
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
@@ -124,18 +121,18 @@ underline = annotate Underlined
 -- that would render colored in an ANSI terminal:
 --
 -- >>> let render = TL.putStrLn . TL.replace "\ESC" "\\e" . renderLazy . layoutPretty defaultLayoutOptions
--- >>> let doc = color Red ("red" <+> align (vsep [color Blue ("blue" <+> bold "bold" <+> "blue"), "red"]))
+-- >>> let doc = annotate (color Red) ("red" <+> align (vsep [annotate (color Blue <> underlined) ("blue+u" <+> annotate bold "bold" <+> "blue+u"), "red"]))
 -- >>> render (unAnnotate doc)
--- red blue bold blue
+-- red blue+u bold blue+u
 --     red
 -- >>> render doc
--- \e[0;91mred \e[0;94mblue \e[0;94;1mbold\e[0;94m blue\e[0;91m
+-- \e[0;91mred \e[0;94;4mblue+u \e[0;94;1;4mbold\e[0;94;4m blue+u\e[0;91m
 --     red\e[0m
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
-renderLazy :: SimpleDocStream AnsiTerminal -> TL.Text
+renderLazy :: SimpleDocStream AnsiStyle -> TL.Text
 renderLazy doc
-  = let (resultBuilder, remainingStyles) = execStackMachine [emptyStyle] (build doc)
+  = let (resultBuilder, remainingStyles) = execStackMachine [mempty] (build doc)
     in case remainingStyles of
         [] -> error ("There is no empty style left at the end of rendering" ++
                      " (but there should be). Please report this as a bug.")
@@ -144,7 +141,7 @@ renderLazy doc
                      "end of rendering (there should be only 1). Please report" ++
                      " this as a bug.")
 
-build :: SimpleDocStream AnsiTerminal -> StackMachine TLB.Builder CombinedStyle ()
+build :: SimpleDocStream AnsiStyle -> StackMachine TLB.Builder AnsiStyle ()
 build = \case
     SFail -> panicUncaughtFail
     SEmpty -> pure ()
@@ -160,47 +157,67 @@ build = \case
         build x
     SAnnPush s x -> do
         currentStyle <- unsafePeekStyle
-        let newStyle = currentStyle `addStyle` s
-        writeOutput (styleToBuilder newStyle)
+        let newStyle = s <> currentStyle
+        writeOutput (styleToRaw newStyle)
         pushStyle newStyle
         build x
     SAnnPop x -> do
         _currentStyle <- unsafePopStyle
         newStyle <- unsafePeekStyle
-        writeOutput (styleToBuilder newStyle)
+        writeOutput (styleToRaw newStyle)
         build x
 
-styleToBuilder :: CombinedStyle -> TLB.Builder
-styleToBuilder = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
+-- | Begin rendering in a certain style. Instead of using this type directly,
+-- use the 'Semigroup' instance to create new styles out of the smart
+-- constructors, such as
+--
+-- @
+-- style = 'color' 'Green' '<>' 'bold'
+-- styledDoc = 'annotate' style "hello world"
+-- @
+data AnsiStyle = SetAnsiStyle
+    { ansiForeground  :: Maybe (Intensity, Color)
+    , ansiBackground  :: Maybe (Intensity, Color)
+    , ansiBold        :: Maybe Bold
+    , ansiItalics     :: Maybe Italicized
+    , ansiUnderlining :: Maybe Underlined }
+    deriving (Eq, Ord, Show)
 
-data CombinedStyle = CombinedStyle
-    (Maybe (Intensity, Color)) -- Foreground
-    (Maybe (Intensity, Color)) -- Background
-    Bool                       -- Bold
-    Bool                       -- Italics
-    Bool                       -- Underlining
+-- | Keep the first decision for each of foreground color, background color,
+-- boldness, italication, and underlining.
+--
+-- Example:
+--
+-- @
+-- 'color' 'Red' '<>' 'color' 'Green'
+-- @
+--
+-- is red.
+instance Semigroup AnsiStyle where
+    cs1 <> cs2 = SetAnsiStyle
+        { ansiForeground  = ansiForeground  cs1 <|> ansiForeground  cs2
+        , ansiBackground  = ansiBackground  cs1 <|> ansiBackground  cs2
+        , ansiBold        = ansiBold        cs1 <|> ansiBold        cs2
+        , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
+        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
 
-addStyle :: CombinedStyle -> AnsiTerminal -> CombinedStyle
-addStyle (CombinedStyle m'fg m'bg b i u) = \case
-    Italicized              -> CombinedStyle m'fg m'bg b True u
-    Bold                    -> CombinedStyle m'fg m'bg True i u
-    Underlined              -> CombinedStyle m'fg m'bg b i True
-    Color Foreground dv col -> CombinedStyle (Just (dv, col)) m'bg b i u
-    Color Background dv col -> CombinedStyle m'fg (Just (dv, col)) b i u
+instance Monoid AnsiStyle where
+    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
+    mappend = (<>)
 
-emptyStyle :: CombinedStyle
-emptyStyle = CombinedStyle Nothing Nothing False False False
-
-stylesToSgrs :: CombinedStyle -> [ANSI.SGR]
-stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
-    [ Just ANSI.Reset
-    , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) m'fg
-    , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) m'bg
-    , guard b $> ANSI.SetConsoleIntensity ANSI.BoldIntensity
-    , guard i $> ANSI.SetItalicized True
-    , guard u $> ANSI.SetUnderlining ANSI.SingleUnderline
-    ]
+styleToRaw :: AnsiStyle -> TLB.Builder
+styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
   where
+    stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
+    stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
+        [ Just ANSI.Reset
+        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) fg
+        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) bg
+        , fmap (\_              -> ANSI.SetConsoleIntensity ANSI.BoldIntensity) b
+        , fmap (\_              -> ANSI.SetItalicized True) i
+        , fmap (\_              -> ANSI.SetUnderlining ANSI.SingleUnderline) u
+        ]
+
     convertIntensity :: Intensity -> ANSI.ColorIntensity
     convertIntensity = \case
         Vivid -> ANSI.Vivid
@@ -221,21 +238,19 @@ stylesToSgrs (CombinedStyle m'fg m'bg b i u) = catMaybes
 
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
-renderStrict :: SimpleDocStream AnsiTerminal -> Text
+renderStrict :: SimpleDocStream AnsiStyle -> Text
 renderStrict = TL.toStrict . renderLazy
-
-
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
-renderIO :: Handle -> SimpleDocStream AnsiTerminal -> IO ()
+renderIO :: Handle -> SimpleDocStream AnsiStyle -> IO ()
 renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
--- | @('putDoc' doc)@ prettyprints document @doc@ to standard output, with a page
--- width of 80 characters and a ribbon width of 32 characters.
+-- | @('putDoc' doc)@ prettyprints document @doc@ to standard output using
+-- 'defaultLayoutOptions'.
 --
 -- >>> putDoc ("hello" <+> "world")
 -- hello world
@@ -243,17 +258,16 @@ renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 -- @
 -- 'putDoc' = 'hPutDoc' 'stdout'
 -- @
-putDoc :: Doc AnsiTerminal -> IO ()
+putDoc :: Doc AnsiStyle -> IO ()
 putDoc = hPutDoc stdout
 
 -- | Like 'putDoc', but instead of using 'stdout', print to a user-provided
--- handle, e.g. a file or a socket. Uses a line length of 80, and a ribbon width
--- of 32 characters.
+-- handle, e.g. a file or a socket using 'defaultLayoutOptions'.
 --
 -- > main = withFile "someFile.txt" (\h -> hPutDoc h (vcat ["vertical", "text"]))
 --
 -- @
 -- 'hPutDoc' h doc = 'renderIO' h ('layoutPretty' 'defaultLayoutOptions' doc)
 -- @
-hPutDoc :: Handle -> Doc AnsiTerminal -> IO ()
+hPutDoc :: Handle -> Doc AnsiStyle -> IO ()
 hPutDoc h doc = renderIO h (layoutPretty defaultLayoutOptions doc)
