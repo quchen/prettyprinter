@@ -1,5 +1,5 @@
 name:                prettyprinter-ansi-terminal
-version:             1.0.1
+version:             1.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            ANSI terminal backend for the »prettyprinter« package.
@@ -9,6 +9,7 @@ license-file:        LICENSE.md
 extra-source-files:  README.md
                    , misc/version-compatibility-macros.h
                    , CONTRIBUTORS.md
+                   , CHANGELOG.md
 author:              David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -40,6 +41,8 @@ library
 
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
+    if impl(ghc < 8.0)
+        build-depends: semigroups >= 0.1 && < 0.19
 
 test-suite doctest
     type: exitcode-stdio-1.0

@@ -31,8 +31,8 @@ import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewT
 
 
 
-type Doc = New.Doc NewT.AnsiTerminal
-type SimpleDoc = New.SimpleDocStream NewT.AnsiTerminal
+type Doc = New.Doc NewT.AnsiStyle
+type SimpleDoc = New.SimpleDocStream NewT.AnsiStyle
 
 
 
@@ -163,42 +163,42 @@ black, red, green, yellow, blue, magenta, cyan, white, dullblack, dullred,
     onred, ongreen, onyellow, onblue, onmagenta, oncyan, onwhite, ondullblack,
     ondullred, ondullgreen, ondullyellow, ondullblue, ondullmagenta, ondullcyan,
     ondullwhite, bold, debold, underline, deunderline :: Doc -> Doc
-black         = NewT.color       NewT.Black
-red           = NewT.color       NewT.Red
-green         = NewT.color       NewT.Green
-yellow        = NewT.color       NewT.Yellow
-blue          = NewT.color       NewT.Blue
-magenta       = NewT.color       NewT.Magenta
-cyan          = NewT.color       NewT.Cyan
-white         = NewT.color       NewT.White
-dullblack     = NewT.colorDull   NewT.Black
-dullred       = NewT.colorDull   NewT.Red
-dullgreen     = NewT.colorDull   NewT.Green
-dullyellow    = NewT.colorDull   NewT.Yellow
-dullblue      = NewT.colorDull   NewT.Blue
-dullmagenta   = NewT.colorDull   NewT.Magenta
-dullcyan      = NewT.colorDull   NewT.Cyan
-dullwhite     = NewT.colorDull   NewT.White
-onblack       = NewT.bgColor     NewT.Black
-onred         = NewT.bgColor     NewT.Red
-ongreen       = NewT.bgColor     NewT.Green
-onyellow      = NewT.bgColor     NewT.Yellow
-onblue        = NewT.bgColor     NewT.Blue
-onmagenta     = NewT.bgColor     NewT.Magenta
-oncyan        = NewT.bgColor     NewT.Cyan
-onwhite       = NewT.bgColor     NewT.White
-ondullblack   = NewT.bgColorDull NewT.Black
-ondullred     = NewT.bgColorDull NewT.Red
-ondullgreen   = NewT.bgColorDull NewT.Green
-ondullyellow  = NewT.bgColorDull NewT.Yellow
-ondullblue    = NewT.bgColorDull NewT.Blue
-ondullmagenta = NewT.bgColorDull NewT.Magenta
-ondullcyan    = NewT.bgColorDull NewT.Cyan
-ondullwhite   = NewT.bgColorDull NewT.White
-bold = NewT.bold
+black         = New.annotate (NewT.color       NewT.Black)
+red           = New.annotate (NewT.color       NewT.Red)
+green         = New.annotate (NewT.color       NewT.Green)
+yellow        = New.annotate (NewT.color       NewT.Yellow)
+blue          = New.annotate (NewT.color       NewT.Blue)
+magenta       = New.annotate (NewT.color       NewT.Magenta)
+cyan          = New.annotate (NewT.color       NewT.Cyan)
+white         = New.annotate (NewT.color       NewT.White)
+dullblack     = New.annotate (NewT.colorDull   NewT.Black)
+dullred       = New.annotate (NewT.colorDull   NewT.Red)
+dullgreen     = New.annotate (NewT.colorDull   NewT.Green)
+dullyellow    = New.annotate (NewT.colorDull   NewT.Yellow)
+dullblue      = New.annotate (NewT.colorDull   NewT.Blue)
+dullmagenta   = New.annotate (NewT.colorDull   NewT.Magenta)
+dullcyan      = New.annotate (NewT.colorDull   NewT.Cyan)
+dullwhite     = New.annotate (NewT.colorDull   NewT.White)
+onblack       = New.annotate (NewT.bgColor     NewT.Black)
+onred         = New.annotate (NewT.bgColor     NewT.Red)
+ongreen       = New.annotate (NewT.bgColor     NewT.Green)
+onyellow      = New.annotate (NewT.bgColor     NewT.Yellow)
+onblue        = New.annotate (NewT.bgColor     NewT.Blue)
+onmagenta     = New.annotate (NewT.bgColor     NewT.Magenta)
+oncyan        = New.annotate (NewT.bgColor     NewT.Cyan)
+onwhite       = New.annotate (NewT.bgColor     NewT.White)
+ondullblack   = New.annotate (NewT.bgColorDull NewT.Black)
+ondullred     = New.annotate (NewT.bgColorDull NewT.Red)
+ondullgreen   = New.annotate (NewT.bgColorDull NewT.Green)
+ondullyellow  = New.annotate (NewT.bgColorDull NewT.Yellow)
+ondullblue    = New.annotate (NewT.bgColorDull NewT.Blue)
+ondullmagenta = New.annotate (NewT.bgColorDull NewT.Magenta)
+ondullcyan    = New.annotate (NewT.bgColorDull NewT.Cyan)
+ondullwhite   = New.annotate (NewT.bgColorDull NewT.White)
+bold = New.annotate NewT.bold
 debold = id
 {-# WARNING debold "Debold does not do anything" #-}
-underline = NewT.underline
+underline = New.annotate NewT.underlined
 deunderline = id
 {-# WARNING deunderline "Debold does not do anything" #-}
 
