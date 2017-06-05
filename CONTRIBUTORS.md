@@ -7,8 +7,6 @@ Ordered by earliest appearance in the git log.
 
 ## `prettyprinter` library (this one)
 
-- Moritz Kiefer, @cocreature
-- Daniel Mendler, @minad – several ideas after the preliminary release
 - David Luposchainsky, @quchen – current maintainer
 
 ## `ansi-wl-pprint` (origin forked from)
