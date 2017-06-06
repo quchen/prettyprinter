@@ -1781,8 +1781,6 @@ layoutWadlerLeijen
 -- fast. The resulting output contains fewer characters than a prettyprinted
 -- version and can be used for output that is read by other programs.
 --
--- This layout function does not add any colorisation information.
---
 -- >>> let doc = hang 4 (vsep ["lorem", "ipsum", hang 4 (vsep ["dolor", "sit"])])
 -- >>> doc
 -- lorem
