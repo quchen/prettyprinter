@@ -1,6 +1,4 @@
-# Next version
-
-**Breaking changes introduced, change version accordingly**
+# 1.1
 
 - Allow `alterAnnotations` to convert one annotation to multiple ones, to
   support e.g. `Keyword ---> Green+Bold`
