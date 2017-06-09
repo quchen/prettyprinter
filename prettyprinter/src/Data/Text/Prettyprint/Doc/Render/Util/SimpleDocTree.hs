@@ -80,6 +80,7 @@ renderSimplyDecorated text renderAnn = go
         STLine i -> text (T.singleton '\n' <> T.replicate i " ")
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs -> foldMap go xs
+{-# INLINE renderSimplyDecorated #-}
 
 -- | Version of 'renderSimplyDecoratedA' that allows for 'Applicative' effects.
 renderSimplyDecoratedA
@@ -97,6 +98,7 @@ renderSimplyDecoratedA text renderAnn = go
         STLine i -> text (T.singleton '\n' <> T.replicate i " ")
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs -> fmap mconcat (traverse go xs)
+{-# INLINE renderSimplyDecoratedA #-}
 
 
 

@@ -157,3 +157,23 @@ benchmark faster-unsafe-text
     ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
     default-language:    Haskell2010
     type:                exitcode-stdio-1.0
+
+
+benchmark large-output
+    build-depends:
+          base >= 4.7 && < 5
+        , prettyprinter
+        , ansi-wl-pprint
+
+        , criterion >= 1.1 && < 1.3
+        , text      == 1.2.*
+        , QuickCheck >= 2.7
+        , containers
+        , text
+        , deepseq
+
+    hs-source-dirs:      bench
+    main-is:             LargeOutput.hs
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+    default-language:    Haskell2010
+    type:                exitcode-stdio-1.0

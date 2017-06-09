@@ -777,6 +777,7 @@ concatWith f ds
 #endif
     | otherwise = foldr1 f ds
 {-# INLINE concatWith #-}
+{-# SPECIALIZE concatWith :: (Doc ann -> Doc ann -> Doc ann) -> [Doc ann] -> Doc ann #-}
 
 -- | @('hsep' xs)@ concatenates all documents @xs@ horizontally with @'<+>'@,
 -- i.e. it puts a space between all entries.
