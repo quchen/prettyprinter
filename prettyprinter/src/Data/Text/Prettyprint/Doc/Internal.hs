@@ -195,6 +195,8 @@ class Pretty a where
     prettyList :: [a] -> Doc ann
     prettyList = list . map pretty
 
+    {-# MINIMAL pretty #-}
+
 -- | >>> pretty [1,2,3]
 -- [1, 2, 3]
 instance Pretty a => Pretty [a] where
