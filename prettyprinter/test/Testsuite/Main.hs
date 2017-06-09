@@ -42,9 +42,11 @@ tests = testGroup "Tests"
         , testProperty "Deep fusion does not change rendering"
                        (fusionDoesNotChangeRendering Deep)
         ]
-    , testGroup "Regression tests"
-        [ testCase "Pathological grouping performance"
-                   pathologicalGroupingPerformance
+    , testGroup "Performance tests"
+        [ testCase "Grouping performance"
+                   groupingPerformance
+        , testCase "fillSep performance"
+                   fillSepPerformance
         ]
     ]
 
@@ -150,16 +152,30 @@ enclosingOfMany = frequency
 dampen :: Gen a -> Gen a
 dampen gen = sized (\n -> resize ((n*2) `quot` 3) gen)
 
-
+docPerformanceTest :: Doc ann -> Assertion
+docPerformanceTest doc
+  = timeout 10000000 (forceDoc doc) >>= \case
+    Nothing -> assertFailure "Timeout!"
+    Just _success -> pure ()
+  where
+    forceDoc :: Doc ann -> IO ()
+    forceDoc = evaluate . foldr seq () . show
 
 -- Deeply nested group/flatten calls can result in exponential performance.
 --
 -- See https://github.com/quchen/prettyprinter/issues/22
-pathologicalGroupingPerformance :: Assertion
-pathologicalGroupingPerformance
-  = timeout 10000000 (poorMansForce (pathological 1000)) >>= \case
-        Nothing -> assertFailure "Timeout!"
-        Just _success -> pure ()
+groupingPerformance :: Assertion
+groupingPerformance = docPerformanceTest (pathological 1000)
   where
+    pathological :: Int -> Doc ann
     pathological n = iterate (\x ->  hsep [x, sep []] ) "foobar" !! n
-    poorMansForce = evaluate . length . show
+
+-- This test case was written because the `pretty` package had an issue with
+-- this specific example.
+--
+-- See https://github.com/haskell/pretty/issues/32
+fillSepPerformance :: Assertion
+fillSepPerformance = docPerformanceTest (pathological 1000)
+  where
+    pathological :: Int -> Doc ann
+    pathological n = iterate (\x -> fillSep ["a", x <+> "b"] ) "foobar" !! n
