@@ -1,4 +1,6 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
 
@@ -17,12 +19,14 @@ module Data.Text.Prettyprint.Doc.Render.Text (
 
 
 import           Data.Text              (Text)
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as TL
 import           System.IO
 
 import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !(SEMIGROUP_IN_BASE)
@@ -67,8 +71,26 @@ renderStrict = TL.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
+--
+-- This function is more efficient than @'T.hPutStr' h ('renderStrict' sdoc)@,
+-- since it writes to the handle directly, skipping the intermediate 'Text'
+-- representation.
 renderIO :: Handle -> SimpleDocStream ann -> IO ()
-renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
+renderIO h = go
+  where
+    go :: SimpleDocStream ann -> IO ()
+    go = \case
+        SFail              -> panicUncaughtFail
+        SEmpty             -> pure ()
+        SChar c rest       -> do hPutChar h c
+                                 go rest
+        SText _ t rest     -> do T.hPutStr h t
+                                 go rest
+        SLine n rest       -> do hPutChar h '\n'
+                                 T.hPutStr h (T.replicate n " ")
+                                 go rest
+        SAnnPush _ann rest -> go rest
+        SAnnPop rest       -> go rest
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output. Uses the
 -- 'defaultLayoutOptions'.

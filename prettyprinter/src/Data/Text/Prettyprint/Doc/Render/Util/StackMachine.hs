@@ -59,6 +59,8 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 -- >>> let sdoc = layoutPretty defaultLayoutOptions doc
 -- >>> T.putStrLn (renderSimplyDecorated id (\() -> ">>>") (\() -> "<<<") sdoc)
 -- hello >>>world<<<!
+--
+-- The monoid will be concatenated in a /right associative/ fashion.
 renderSimplyDecorated
     :: Monoid out
     => (Text -> out) -- ^ Render plain 'Text'
