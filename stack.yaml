@@ -4,7 +4,12 @@ packages:
     - 'prettyprinter-ansi-terminal'
     - 'prettyprinter-compat-wl-pprint'
     - 'prettyprinter-compat-ansi-wl-pprint'
+    - 'prettyprinter-convert-ansi-wl-pprint'
     - 'prettyprinter-compat-annotated-wl-pprint'
+
+    - location: /home/david/Coding/haskell/ansi-wl-pprint
+      extra-dep: true
+
 extra-deps: []
 flags: {}
 extra-package-dbs: []
