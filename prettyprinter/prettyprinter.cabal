@@ -30,7 +30,6 @@ library
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Internal.Type
         , Data.Text.Prettyprint.Doc.Render.String
-        , Data.Text.Prettyprint.Doc.Render.ShowS
         , Data.Text.Prettyprint.Doc.Render.Text
         , Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
         , Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial
@@ -40,6 +39,10 @@ library
         , Data.Text.Prettyprint.Doc.Util
         -- Hidden for now, until I figure out where to put it:
         -- , Data.Text.Prettyprint.Doc.Unicode
+
+        -- Deprecated
+        , Data.Text.Prettyprint.Doc.Render.ShowS
+
     ghc-options: -Wall
     hs-source-dirs: src
     include-dirs: misc
