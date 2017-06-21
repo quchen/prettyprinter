@@ -31,7 +31,7 @@ import qualified Data.Text.IO        as T
 import           System.IO
 
 import           Data.Text.Prettyprint.Doc
-import qualified Data.Text.Prettyprint.Doc.Render.ShowS      as New
+import qualified Data.Text.Prettyprint.Doc.Render.String     as New
 import qualified Data.Text.Prettyprint.Doc.Render.Text       as New
 import           Data.Text.Prettyprint.Doc.Render.Util.Panic
 
