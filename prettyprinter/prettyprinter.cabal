@@ -29,6 +29,7 @@ library
           Data.Text.Prettyprint.Doc
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Internal.Type
+        , Data.Text.Prettyprint.Doc.Render.String
         , Data.Text.Prettyprint.Doc.Render.ShowS
         , Data.Text.Prettyprint.Doc.Render.Text
         , Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
