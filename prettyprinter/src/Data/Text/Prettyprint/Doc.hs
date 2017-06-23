@@ -136,6 +136,40 @@
 --     Linux @tree@ tool for example
 --   * Multi-column layouts, in particular tables with multiple cells of equal
 --     width adjacent to each other
+--
+-- = Some helpful tips
+--
+-- == Which kind of annotation should I use?
+--
+-- __Summary:__ Use semantic annotations for @'Doc'@, and after layouting map to
+-- backend-specific ones.
+--
+-- For example, suppose you want to prettyprint some programming language code.
+-- If you want keywords to be red, you should annotate the @'Doc'@ with a type
+-- that has a 'Keyword' field (without any notion of color), and then after
+-- layouting convert the annotations to map @'Keyword'@ to e.g. @'Red'@ (using
+-- @'reAnnotateS'@). The alternative that I /do not/ recommend is directly
+-- annotating the @'Doc'@ with 'Red'.
+--
+-- While both versions would superficially work equally well and would create
+-- identical output, the recommended way has two significant advantages:
+-- modularity and extensibility.
+--
+-- /Modularity:/ To change the color of keywords later, you have to touch one
+-- point, namely the mapping in @'reAnnotateS'@, where @'Keyword'@ is mapped to
+-- 'Red'. If you have @'annotate Red …'@ everywher, you’ll have to do a full
+-- text replacement, producing a large diff and touching lots of places for a
+-- very small change.
+--
+-- /Extensibility:/ Addng a different backend in the recommended version is
+-- simply adding another @'reAnnotateS'@ to convert the @'Doc'@ annotation to
+-- something else. On the other hand, if you have @'Red'@ as an annotation in
+-- the @'Doc'@ already and the other backend does not support anything red
+-- (think of plain text or a website where red doesn’t work well with the rest
+-- of the style), you’ll have to worry about what to map »redness« to, which has
+-- no canonical answer. Should it be omitted? What does »red« mean anyway –
+-- maybe keywords and variables are red, and you want to change only the color
+-- of variables?
 module Data.Text.Prettyprint.Doc (
     -- * Documents
     Doc,
