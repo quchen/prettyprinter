@@ -124,6 +124,18 @@
 -- constraints (given by page and ribbon widths), the document is rendered
 -- unaltered. This allows fallback definitions, so that we get nice results even
 -- when the original document would exceed the layout constraints.
+--
+-- = Things the prettyprinter /cannot/ do
+--
+-- Due to how the Wadler/Leijen algorithm is designed, a couple of things are
+-- unsupported right now, with a high possibility of having no sensible
+-- implementation without significantly changing the layout algorithm. In
+-- particular, this includes
+--
+--   * Leading symbols instead of just spaces for indentation, as used by the
+--     Linux @tree@ tool for example
+--   * Multi-column layouts, in particular tables with multiple cells of equal
+--     width adjacent to each other
 module Data.Text.Prettyprint.Doc (
     -- * Documents
     Doc,
