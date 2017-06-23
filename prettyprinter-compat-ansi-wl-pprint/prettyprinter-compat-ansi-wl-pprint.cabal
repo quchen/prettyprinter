@@ -7,7 +7,6 @@ description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
-                   , CONTRIBUTORS.md
 author:              David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
