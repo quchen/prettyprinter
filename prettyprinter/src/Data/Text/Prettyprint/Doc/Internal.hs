@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -196,6 +197,11 @@ class Pretty a where
     prettyList = list . map pretty
 
     {-# MINIMAL pretty #-}
+
+-- | >>> pretty (pretty [1,2,3] :: Doc Void)
+-- [1, 2, 3]
+instance Pretty (Doc Void) where
+    pretty = fmap absurd
 
 -- | >>> pretty [1,2,3]
 -- [1, 2, 3]
