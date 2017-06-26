@@ -7,7 +7,7 @@ packages:
     - 'prettyprinter-convert-ansi-wl-pprint'
     - 'prettyprinter-compat-annotated-wl-pprint'
 
-    - location: /home/david/Coding/haskell/ansi-wl-pprint
+    - location: ../ansi-wl-pprint
       extra-dep: true
 
 extra-deps: []

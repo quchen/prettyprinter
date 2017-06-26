@@ -9,3 +9,10 @@ Note the difference to the `prettyprinter-compat-ansi-wl-pprint` module, which
 does *not* convert any data, and instead provides an API that mimicks
 `ansi-wl-pprint`, while secretly being `prettyprinter`-based behind the
 curtains. This package on the other hand does a proper conversion.
+
+```
+╭────────────────────╮    fromAnsiWlPprint    ╭────────────────────╮
+│        Doc         ├───────────────────────▷│   Doc AnsiStyle    │
+│  (ansi-wl-pprint)  │◁───────────────────────┤  (prettyprinter)   │
+╰────────────────────╯     toAnsiWlPprint     ╰────────────────────╯
+```
