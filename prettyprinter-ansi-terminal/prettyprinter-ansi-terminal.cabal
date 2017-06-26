@@ -1,5 +1,5 @@
 name:                prettyprinter-ansi-terminal
-version:             1.1
+version:             1.1.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            ANSI terminal backend for the »prettyprinter« package.

@@ -32,7 +32,7 @@ library
           base >= 4.7 && < 5
         , text == 1.2.*
         , prettyprinter < 1.2
-        , prettyprinter-ansi-terminal >= 1.1 && < 1.2
+        , prettyprinter-ansi-terminal >= 1.1.1 && < 1.2
         , ansi-wl-pprint >= 0.6.7.4
         , ansi-terminal
 
@@ -41,9 +41,8 @@ test-suite doctest
     hs-source-dirs: test/Doctest
     main-is: Main.hs
     build-depends:
-          base       >= 4.7 && < 5
-        , doctest    >= 0.9 && < 0.12
-        , QuickCheck >= 2.7
+          base    >= 4.7 && < 5
+        , doctest >= 0.9 && < 0.12
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
     if impl (ghc < 7.10)

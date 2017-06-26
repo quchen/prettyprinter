@@ -7,7 +7,7 @@
 -- | Render 'SimpleDocStream' in a terminal.
 module Data.Text.Prettyprint.Doc.Render.Terminal (
     -- * Styling
-    AnsiStyle,
+    AnsiStyle(..),
     Color(..),
 
     -- ** Font color
@@ -18,6 +18,15 @@ module Data.Text.Prettyprint.Doc.Render.Terminal (
 
     -- ** Font style
     bold, italicized, underlined,
+
+    -- ** Internal markers
+    --
+    -- | These should only be used for writing adaptors to other libraries; for
+    -- the average use case, use 'bold', 'bgColorDull', etc.
+    Intensity(..),
+    Bold(..),
+    Underlined(..),
+    Italicized(..),
 
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
@@ -168,7 +177,7 @@ build = \case
         build x
 
 -- | Begin rendering in a certain style. Instead of using this type directly,
--- use the 'Semigroup' instance to create new styles out of the smart
+-- consider using the 'Semigroup' instance to create new styles out of the smart
 -- constructors, such as
 --
 -- @
@@ -176,12 +185,12 @@ build = \case
 -- styledDoc = 'annotate' style "hello world"
 -- @
 data AnsiStyle = SetAnsiStyle
-    { ansiForeground  :: Maybe (Intensity, Color)
-    , ansiBackground  :: Maybe (Intensity, Color)
-    , ansiBold        :: Maybe Bold
-    , ansiItalics     :: Maybe Italicized
-    , ansiUnderlining :: Maybe Underlined }
-    deriving (Eq, Ord, Show)
+    { ansiForeground  :: Maybe (Intensity, Color) -- ^ Set the foreground color, or keep the old one.
+    , ansiBackground  :: Maybe (Intensity, Color) -- ^ Set the background color, or keep the old one.
+    , ansiBold        :: Maybe Bold               -- ^ Switch on boldness, or don’t do anything.
+    , ansiItalics     :: Maybe Italicized         -- ^ Switch on italics, or don’t do anything.
+    , ansiUnderlining :: Maybe Underlined         -- ^ Switch on underlining, or don’t do anything.
+    } deriving (Eq, Ord, Show)
 
 -- | Keep the first decision for each of foreground color, background color,
 -- boldness, italication, and underlining.
