@@ -130,9 +130,6 @@ instance WL.Pretty Binds where
 instance WL.Pretty Text where
     pretty = WL.string . T.unpack
 
-instance Semigroup WL.Doc where
-    (<>) = (WL.<>)
-
 instance WL.Pretty LambdaForm where
     pretty (LambdaForm free bound body) = (prettyExp . (WL.<+> "->") . prettyBound . prettyFree) "\\"
       where
