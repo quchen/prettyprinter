@@ -102,12 +102,12 @@ toAnsiWlPprint = \case
         convert (Just width) = New.AvailablePerLine width 1.0
     New.Nesting f -> Old.Nesting (go . f)
 
-    New.Annotated (NewTerm.SetAnsiStyle
+    New.Annotated NewTerm.SetAnsiStyle
         { NewTerm.ansiForeground  = ann_ansiForeground
         , NewTerm.ansiBackground  = ann_ansiBackground
         , NewTerm.ansiBold        = ann_ansiBold
         , NewTerm.ansiItalics     = _ann_ansiItalics -- Unsupported by ansi-wl-pprint
-        , NewTerm.ansiUnderlining = ann_ansiUnderlining })
+        , NewTerm.ansiUnderlining = ann_ansiUnderlining }
         x -> (convertFg . convertBg . convertBold . convertUnderlining) (go x)
       where
         convertFg :: Old.Doc -> Old.Doc
