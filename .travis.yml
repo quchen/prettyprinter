@@ -24,37 +24,21 @@ addons:
 # The different configurations we want to test. You could also do things like
 # change flags or use --stack-yaml to point to a different file.
 env:
-    - >
-      STACK_ARGS="--resolver lts-1 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+    # LTS 1 and 2 use uses GHC 7.8.4
     - >
       STACK_ARGS="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
       SKIP_RELEASE_CHECKS=1
-    - >
-      STACK_ARGS="--resolver lts-3 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
-    - >
-      STACK_ARGS="--resolver lts-4"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
-    - >
-      STACK_ARGS="--resolver lts-5"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+    # LTS 3 to 6 all use GHC 7.10.{2,3}
     - >
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
       SKIP_RELEASE_CHECKS=1
-    - >
-      STACK_ARGS="--resolver lts-7"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+    # LTS 7 and 8 use GHC 8.0.{1,2}
     - >
       STACK_ARGS="--resolver lts-8"
       STACK_BUILD_ARGS="--ghc-options -Werror"
+
     - >
       STACK_ARGS="--resolver lts"
       STACK_BUILD_ARGS=""
