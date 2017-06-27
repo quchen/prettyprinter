@@ -102,63 +102,64 @@ toAnsiWlPprint = \case
         convert (Just width) = New.AvailablePerLine width 1.0
     New.Nesting f -> Old.Nesting (go . f)
 
-    New.Annotated NewTerm.SetAnsiStyle
-        { NewTerm.ansiForeground  = ann_ansiForeground
-        , NewTerm.ansiBackground  = ann_ansiBackground
-        , NewTerm.ansiBold        = ann_ansiBold
-        , NewTerm.ansiItalics     = _ann_ansiItalics -- Unsupported by ansi-wl-pprint
-        , NewTerm.ansiUnderlining = ann_ansiUnderlining }
-        x -> (convertFg . convertBg . convertBold . convertUnderlining) (go x)
+    New.Annotated style x -> (convertFg . convertBg . convertBold . convertUnderlining) (go x)
+                               -- Italics are unsupported by ansi-wl-pprint so we skip them
       where
-        convertFg :: Old.Doc -> Old.Doc
-        convertFg = case ann_ansiForeground of
+        convertFg, convertBg, convertBold, convertUnderlining :: Old.Doc -> Old.Doc
+        convertFg = case NewTerm.ansiForeground style of
             Nothing -> id
-            Just (NewTerm.Vivid, NewTerm.Black)   -> Old.black
-            Just (NewTerm.Vivid, NewTerm.Red)     -> Old.red
-            Just (NewTerm.Vivid, NewTerm.Green)   -> Old.green
-            Just (NewTerm.Vivid, NewTerm.Yellow)  -> Old.yellow
-            Just (NewTerm.Vivid, NewTerm.Blue)    -> Old.blue
-            Just (NewTerm.Vivid, NewTerm.Magenta) -> Old.magenta
-            Just (NewTerm.Vivid, NewTerm.Cyan)    -> Old.cyan
-            Just (NewTerm.Vivid, NewTerm.White)   -> Old.white
-            Just (NewTerm.Dull,  NewTerm.Black)   -> Old.dullblack
-            Just (NewTerm.Dull,  NewTerm.Red)     -> Old.dullred
-            Just (NewTerm.Dull,  NewTerm.Green)   -> Old.dullgreen
-            Just (NewTerm.Dull,  NewTerm.Yellow)  -> Old.dullyellow
-            Just (NewTerm.Dull,  NewTerm.Blue)    -> Old.dullblue
-            Just (NewTerm.Dull,  NewTerm.Magenta) -> Old.dullmagenta
-            Just (NewTerm.Dull,  NewTerm.Cyan)    -> Old.dullcyan
-            Just (NewTerm.Dull,  NewTerm.White)   -> Old.dullwhite
-
-        convertBg :: Old.Doc -> Old.Doc
-        convertBg = case ann_ansiBackground of
+            Just (intensity, color) -> convertColor True intensity color
+        convertBg = case NewTerm.ansiBackground style of
             Nothing -> id
-            Just (NewTerm.Vivid, NewTerm.Black)   -> Old.onblack
-            Just (NewTerm.Vivid, NewTerm.Red)     -> Old.onred
-            Just (NewTerm.Vivid, NewTerm.Green)   -> Old.ongreen
-            Just (NewTerm.Vivid, NewTerm.Yellow)  -> Old.onyellow
-            Just (NewTerm.Vivid, NewTerm.Blue)    -> Old.onblue
-            Just (NewTerm.Vivid, NewTerm.Magenta) -> Old.onmagenta
-            Just (NewTerm.Vivid, NewTerm.Cyan)    -> Old.oncyan
-            Just (NewTerm.Vivid, NewTerm.White)   -> Old.onwhite
-            Just (NewTerm.Dull,  NewTerm.Black)   -> Old.ondullblack
-            Just (NewTerm.Dull,  NewTerm.Red)     -> Old.ondullred
-            Just (NewTerm.Dull,  NewTerm.Green)   -> Old.ondullgreen
-            Just (NewTerm.Dull,  NewTerm.Yellow)  -> Old.ondullyellow
-            Just (NewTerm.Dull,  NewTerm.Blue)    -> Old.ondullblue
-            Just (NewTerm.Dull,  NewTerm.Magenta) -> Old.ondullmagenta
-            Just (NewTerm.Dull,  NewTerm.Cyan)    -> Old.ondullcyan
-            Just (NewTerm.Dull,  NewTerm.White)   -> Old.ondullwhite
-
-        convertBold :: Old.Doc -> Old.Doc
-        convertBold = case ann_ansiBold of
-            Nothing           -> id
+            Just (intensity, color) -> convertColor False intensity color
+        convertBold = case NewTerm.ansiBold style of
+            Nothing -> id
             Just NewTerm.Bold -> Old.bold
-
-        convertUnderlining :: Old.Doc -> Old.Doc
-        convertUnderlining = case ann_ansiUnderlining of
-            Nothing                 -> id
+        convertUnderlining = case NewTerm.ansiUnderlining style of
+            Nothing -> id
             Just NewTerm.Underlined -> Old.underline
+
+        convertColor
+            :: Bool -- True = foreground, False = background
+            -> NewTerm.Intensity
+            -> NewTerm.Color
+            -> Old.Doc
+            -> Old.Doc
+        convertColor True  NewTerm.Vivid NewTerm.Black   = Old.black
+        convertColor True  NewTerm.Vivid NewTerm.Red     = Old.red
+        convertColor True  NewTerm.Vivid NewTerm.Green   = Old.green
+        convertColor True  NewTerm.Vivid NewTerm.Yellow  = Old.yellow
+        convertColor True  NewTerm.Vivid NewTerm.Blue    = Old.blue
+        convertColor True  NewTerm.Vivid NewTerm.Magenta = Old.magenta
+        convertColor True  NewTerm.Vivid NewTerm.Cyan    = Old.cyan
+        convertColor True  NewTerm.Vivid NewTerm.White   = Old.white
+
+        convertColor True  NewTerm.Dull  NewTerm.Black   = Old.dullblack
+        convertColor True  NewTerm.Dull  NewTerm.Red     = Old.dullred
+        convertColor True  NewTerm.Dull  NewTerm.Green   = Old.dullgreen
+        convertColor True  NewTerm.Dull  NewTerm.Yellow  = Old.dullyellow
+        convertColor True  NewTerm.Dull  NewTerm.Blue    = Old.dullblue
+        convertColor True  NewTerm.Dull  NewTerm.Magenta = Old.dullmagenta
+        convertColor True  NewTerm.Dull  NewTerm.Cyan    = Old.dullcyan
+        convertColor True  NewTerm.Dull  NewTerm.White   = Old.dullwhite
+
+        convertColor False NewTerm.Vivid NewTerm.Black   = Old.onblack
+        convertColor False NewTerm.Vivid NewTerm.Red     = Old.onred
+        convertColor False NewTerm.Vivid NewTerm.Green   = Old.ongreen
+        convertColor False NewTerm.Vivid NewTerm.Yellow  = Old.onyellow
+        convertColor False NewTerm.Vivid NewTerm.Blue    = Old.onblue
+        convertColor False NewTerm.Vivid NewTerm.Magenta = Old.onmagenta
+        convertColor False NewTerm.Vivid NewTerm.Cyan    = Old.oncyan
+        convertColor False NewTerm.Vivid NewTerm.White   = Old.onwhite
+
+        convertColor False NewTerm.Dull  NewTerm.Black   = Old.ondullblack
+        convertColor False NewTerm.Dull  NewTerm.Red     = Old.ondullred
+        convertColor False NewTerm.Dull  NewTerm.Green   = Old.ondullgreen
+        convertColor False NewTerm.Dull  NewTerm.Yellow  = Old.ondullyellow
+        convertColor False NewTerm.Dull  NewTerm.Blue    = Old.ondullblue
+        convertColor False NewTerm.Dull  NewTerm.Magenta = Old.ondullmagenta
+        convertColor False NewTerm.Dull  NewTerm.Cyan    = Old.ondullcyan
+        convertColor False NewTerm.Dull  NewTerm.White   = Old.ondullwhite
 
   where
     go = toAnsiWlPprint
