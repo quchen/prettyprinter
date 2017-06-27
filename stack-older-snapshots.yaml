@@ -4,7 +4,13 @@ packages:
     - 'prettyprinter-ansi-terminal'
     - 'prettyprinter-compat-wl-pprint'
     - 'prettyprinter-compat-ansi-wl-pprint'
+    - 'prettyprinter-convert-ansi-wl-pprint'
     - 'prettyprinter-compat-annotated-wl-pprint'
+
+    - location:
+        git: https://github.com/quchen/ansi-wl-pprint.git
+        commit: d3fbc6b05593bd76c9bdb3caf36a8362d354fe7f
+      extra-dep: true
 extra-deps:
     - pgp-wordlist-0.1.0.2
 flags: {}
