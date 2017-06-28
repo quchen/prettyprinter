@@ -11,6 +11,11 @@
 -- │  (ansi-wl-pprint)  │◁───────────────────────┤  (prettyprinter)   │
 -- ╰────────────────────╯     'toAnsiWlPprint'     ╰────────────────────╯
 -- @
+--
+-- These conversion functions work well, but strictly speaking they are __not__
+-- inverses of each other. @ansi-wl-pprint@ supports slightly less features than
+-- @prettyprinter@ – the latter has italics, and allows reacting on the
+-- configured ribbon width via 'New.withPageWidth'.
 module Data.Text.Prettyprint.Convert.AnsiWlPprint (
     fromAnsiWlPprint,
     toAnsiWlPprint,
@@ -20,10 +25,10 @@ module Data.Text.Prettyprint.Convert.AnsiWlPprint (
 
 import qualified Data.Text as T
 
-import qualified Data.Text.Prettyprint.Doc.Internal        as New
-import qualified Data.Text.Prettyprint.Doc.Render.Terminal as NewTerm
-import qualified System.Console.ANSI                       as Ansi
-import qualified Text.PrettyPrint.ANSI.Leijen.Internal     as Old
+import qualified Data.Text.Prettyprint.Doc.Internal                 as New
+import qualified Data.Text.Prettyprint.Doc.Render.Terminal.Internal as NewTerm
+import qualified System.Console.ANSI                                as Ansi
+import qualified Text.PrettyPrint.ANSI.Leijen.Internal              as Old
 
 
 
