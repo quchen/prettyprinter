@@ -29,6 +29,6 @@ library
         , OverloadedStrings
 
     build-depends:
-          base          >= 4.7
+          base          >= 4.7 && < 5
         , text          >= 1.2
         , prettyprinter >= 1
