@@ -287,6 +287,14 @@ import Data.Text.Prettyprint.Doc.Internal
 
 -- $migration
 --
+-- There are 3 main ways to migrate:
+--
+--   1. Direct: just replace the previous package and fix the errors
+--   2. Using a drop-in replacement mimicing the API of the former module, see
+--      the @prettyprinter-compat-<former package>@ packages
+--   3. Using a converter from the old @Doc@ type to the new one, see the
+--      @prettyprinter-convert-<former package>@ packages
+--
 -- If you're already familiar with (ansi-)wl-pprint, you'll recognize many
 -- functions in this module, and they work just the same way. However, a couple
 -- of definitions are missing:
@@ -295,7 +303,8 @@ import Data.Text.Prettyprint.Doc.Internal
 --     overloaded @'pretty'@ function.
 --   - @\<$>@, @\<$$>@, @\</>@, @\<//>@ are special cases of
 --     @'vsep'@, @'vcat'@, @'fillSep'@, @'fillCat'@ with only two documents.
---   - If you need 'String' output, use 'T.unpack' on the generated renderings.
+--   - If you need 'String' output, use the backends in the
+--     "Data.Text.Prettyprint.Doc.Render.String" module.
 --   - The /display/ functions are moved to the rendering submodules, for
 --     example conversion to plain 'Text' is in the
 --     "Data.Text.Prettyprint.Doc.Render.Text" module.
