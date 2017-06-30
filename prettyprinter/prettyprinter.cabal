@@ -56,13 +56,13 @@ library
         , ScopedTypeVariables
 
     build-depends:
-          base >= 4.7 && < 5
-        , text == 1.2.*
+          base >= 4.7
+        , text >= 1.2
 
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
     if impl(ghc < 8.0)
-        build-depends: semigroups >= 0.1 && < 0.19
+        build-depends: semigroups >= 0.1
     if impl(ghc < 7.10)
         build-depends: void
 
@@ -77,11 +77,11 @@ executable generate_readme
     hs-source-dirs: app
     main-is: GenerateReadme.hs
     build-depends:
-          base >= 4.7 && < 5
+          base >= 4.7
         , prettyprinter
 
-        , text             == 1.2.*
-        , template-haskell >= 2.9 && < 2.12
+        , text
+        , template-haskell >= 2.9
     default-language: Haskell2010
     other-modules: MultilineTh
     other-extensions: OverloadedStrings
@@ -98,9 +98,8 @@ test-suite doctest
     hs-source-dirs: test/Doctest
     main-is: Main.hs
     build-depends:
-          base       >= 4.7 && < 5
-        , doctest    >= 0.9 && < 0.12
-        , QuickCheck >= 2.7
+          base       >= 4.7
+        , doctest    >= 0.9
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
     if impl (ghc < 7.10)
@@ -115,17 +114,17 @@ test-suite testsuite
           base
         , prettyprinter
 
-        , pgp-wordlist     == 0.1.*
-        , bytestring       == 0.10.*
-        , tasty            >= 0.10 && < 0.12
-        , tasty-hunit      == 0.9.*
-        , tasty-quickcheck == 0.8.*
-        , text             == 1.2.*
+        , pgp-wordlist     >= 0.1
+        , bytestring       >= 0.10
+        , tasty            >= 0.10
+        , tasty-hunit      >= 0.9
+        , tasty-quickcheck >= 0.8
+        , text
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
     default-language: Haskell2010
 
     if impl(ghc < 8.0)
-        build-depends: semigroups >= 0.6 && < 0.19
+        build-depends: semigroups >= 0.6
 
 
 
@@ -134,26 +133,26 @@ benchmark fusion
     hs-source-dirs: bench
     main-is: Fusion.hs
     build-depends:
-          base >= 4.7 && < 5
+          base >= 4.7
         , prettyprinter
 
-        , criterion      >= 1.1 && < 1.3
-        , mtl            >= 2.1 && < 2.3
-        , random         >= 1.0 && < 1.2
-        , text           == 1.2.*
-        , transformers   >= 0.3 && < 0.6
-        , ansi-wl-pprint == 0.6.*
+        , criterion      >= 1.1
+        , mtl            >= 2.1
+        , random         >= 1.0
+        , text
+        , transformers   >= 0.3
+        , ansi-wl-pprint >= 0.6
     ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
     default-language: Haskell2010
     other-extensions: NumDecimals, OverloadedStrings
 
 benchmark faster-unsafe-text
     build-depends:
-          base >= 4.7 && < 5
+          base >= 4.7
         , prettyprinter
 
-        , criterion >= 1.1 && < 1.3
-        , text      == 1.2.*
+        , criterion >= 1.1
+        , text
 
     hs-source-dirs:      bench
     main-is:             FasterUnsafeText.hs
@@ -164,12 +163,11 @@ benchmark faster-unsafe-text
 
 benchmark large-output
     build-depends:
-          base >= 4.7 && < 5
+          base >= 4.7
         , prettyprinter
         , ansi-wl-pprint
 
-        , criterion >= 1.1 && < 1.3
-        , text      == 1.2.*
+        , criterion  >= 1.1
         , QuickCheck >= 2.7
         , containers
         , text
