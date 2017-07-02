@@ -83,18 +83,20 @@
 --                        │  'SimpleDocStream'  │
 --                        │ (simple document) │
 --                        ╰─────────┬─────────╯
---              ╭───────────────────┤
---              │                   │
---     'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.treeForm' │                   │
---              ▽                   │    Renderers
---      ╭───────────────╮           │
---      │ 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' │           │
---      ╰───────┬───────╯           ├───────────────────┬───────────────────╮
---              │                   │                   │                   │
---              ▽                   ▽                   ▽                   ▽
---      ╭───────────────╮    ╭───────────────╮   ╭───────────────╮   ╭───────────────╮
---      │     HTML      │    │  Plain 'Text'   │   │ ANSI terminal │   │ other/custom  │
---      ╰───────────────╯    ╰───────────────╯   ╰───────────────╯   ╰───────────────╯
+--                                  │
+--              ╭───────────────────┴───────────────────╮
+--     'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.treeForm' │                                       │
+--              ▽                                       │
+--      ╭───────────────╮                               │
+--      │ 'Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' │       Renderers               │
+--      ╰───────┬───────╯                               │
+--              │                                       │
+--              ├───────────────╮       ╭───────────────┼───────────────────╮
+--              │               │       │               │                   │
+--              ▽               ▽       ▽               ▽                   ▽
+--      ╭───────────────╮   ╭───────────────╮   ╭───────────────╮   ╭───────────────╮
+--      │     HTML      │   │ other/custom  │   │  Plain 'Text'   │   │ ANSI terminal │
+--      ╰───────────────╯   ╰───────────────╯   ╰───────────────╯   ╰───────────────╯
 -- @
 --
 -- = How the layout works
