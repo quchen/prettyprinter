@@ -274,6 +274,7 @@ module Data.Text.Prettyprint.Doc (
 
 import Data.Semigroup
 import Data.Text.Prettyprint.Doc.Internal
+import Data.Text.Prettyprint.Doc.Symbols.Ascii
 
 -- $setup
 --

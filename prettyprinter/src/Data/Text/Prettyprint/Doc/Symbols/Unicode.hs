@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- | A collection of predefined unicode values.
-module Data.Text.Prettyprint.Doc.Unicode {-# WARNING "This module is unstable, and will likely be split up into multiple different ones in the future." #-} (
+-- | A collection of predefined Unicode values outside of ASCII range. For
+-- ASCII, see "Data.Text.Prettyprint.Doc.Symbols.Ascii".
+module Data.Text.Prettyprint.Doc.Symbols.Unicode (
     -- * Quotes
 
     -- ** Enclosing
@@ -44,16 +45,6 @@ import Data.Text.Prettyprint.Doc
 
 
 
--- $setup
---
--- (Definitions for the doctests)
---
--- >>> :set -XOverloadedStrings
--- >>> import Data.Text.Prettyprint.Doc.Render.Text
--- >>> import Data.Text.Prettyprint.Doc.Util
-
-
-
 -- | Double „99-66“ quotes, as used in German typography.
 --
 -- >>> putDoc (d9966quotes "·")
@@ -61,56 +52,56 @@ import Data.Text.Prettyprint.Doc
 d9966quotes :: Doc ann -> Doc ann
 d9966quotes = enclose b99dquote t66dquote
 
--- | Double „66-99“ quotes, as used in English typography.
+-- | Double “66-99” quotes, as used in English typography.
 --
 -- >>> putDoc (d6699quotes "·")
 -- “·”
 d6699quotes :: Doc ann -> Doc ann
 d6699quotes = enclose t66dquote t99dquote
 
--- | Single „9-6“ quotes, as used in German typography.
+-- | Single ‚9-6‘ quotes, as used in German typography.
 --
 -- >>> putDoc (s96quotes "·")
 -- ‚·‘
 s96quotes :: Doc ann -> Doc ann
 s96quotes = enclose b9quote t6quote
 
--- | Single „6-9“ quotes, as used in English typography.
+-- | Single ‘6-9’ quotes, as used in English typography.
 --
 -- >>> putDoc (s69quotes "·")
 -- ‘·’
 s69quotes :: Doc ann -> Doc ann
 s69quotes = enclose t6quote t9quote
 
--- | Double guillemets, pointing outwards (without adding any spacing).
+-- | Double «guillemets», pointing outwards (without adding any spacing).
 --
 -- >>> putDoc (dGuillemetsOut "·")
 -- «·»
 dGuillemetsOut :: Doc ann -> Doc ann
 dGuillemetsOut = enclose ldGuillemet rdGuillemet
 
--- | Double guillemets, pointing inwards (without adding any spacing).
+-- | Double »guillemets«, pointing inwards (without adding any spacing).
 --
 -- >>> putDoc (dGuillemetsIn "·")
 -- »·«
 dGuillemetsIn :: Doc ann -> Doc ann
 dGuillemetsIn = enclose rdGuillemet ldGuillemet
 
--- | Single guillemets, pointing outwards (without adding any spacing).
+-- | Single ‹guillemets›, pointing outwards (without adding any spacing).
 --
 -- >>> putDoc (sGuillemetsOut "·")
 -- ‹·›
 sGuillemetsOut :: Doc ann -> Doc ann
 sGuillemetsOut = enclose lsGuillemet rsGuillemet
 
--- | Single guillemets, pointing inwards (without adding any spacing).
+-- | Single ›guillemets‹, pointing inwards (without adding any spacing).
 --
 -- >>> putDoc (sGuillemetsIn "·")
 -- ›·‹
 sGuillemetsIn :: Doc ann -> Doc ann
 sGuillemetsIn = enclose rsGuillemet lsGuillemet
 
--- | Bottom “99” style double quotes.
+-- | Bottom „99“ style double quotes.
 --
 -- >>> putDoc b99dquote
 -- „
@@ -131,21 +122,21 @@ t66dquote = "“"
 t99dquote :: Doc ann
 t99dquote = "”"
 
--- | Bottom “9” style single quote.
+-- | Bottom ‚9‘ style single quote.
 --
 -- >>> putDoc b9quote
 -- ‚
 b9quote :: Doc ann
 b9quote = "‚"
 
--- | Top “66” style single quote.
+-- | Top ‘66’ style single quote.
 --
 -- >>> putDoc t6quote
 -- ‘
 t6quote :: Doc ann
 t6quote = "‘"
 
--- | Top “9” style single quote.
+-- | Top ‘9’ style single quote.
 --
 -- >>> putDoc t9quote
 -- ’
@@ -209,3 +200,13 @@ yen = "¥"
 -- £
 pound :: Doc ann
 pound = "£"
+
+
+
+-- $setup
+--
+-- (Definitions for the doctests)
+--
+-- >>> :set -XOverloadedStrings
+-- >>> import Data.Text.Prettyprint.Doc.Render.Text
+-- >>> import Data.Text.Prettyprint.Doc.Util

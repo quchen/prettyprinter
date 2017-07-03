@@ -36,8 +36,9 @@ library
         , Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
         , Data.Text.Prettyprint.Doc.Render.Util.StackMachine
         , Data.Text.Prettyprint.Doc.Util
-        -- Hidden for now, until I figure out where to put it:
-        -- , Data.Text.Prettyprint.Doc.Unicode
+
+        , Data.Text.Prettyprint.Doc.Symbols.Unicode
+        , Data.Text.Prettyprint.Doc.Symbols.Ascii
 
         -- Deprecated
         , Data.Text.Prettyprint.Doc.Render.ShowS
