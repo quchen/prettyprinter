@@ -157,9 +157,19 @@ data SimpleDocTok ann
 data SimpleDocTree ann
     = STEmpty
     | STChar Char
+
+    -- | Some layout algorithms use the Since the frequently used 'T.length' of
+    -- the 'Text', which scales linearly with its length, we cache it in this
+    -- constructor.
     | STText !Int Text
+
+    -- | @Int@ = indentation level for the (next) line
     | STLine !Int
+
+    -- | Annotate the contained document.
     | STAnn ann (SimpleDocTree ann)
+
+    -- | Horizontal concatenation of multiple documents.
     | STConcat [SimpleDocTree ann]
     deriving (Eq, Ord, Show, Generic)
 
