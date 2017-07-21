@@ -1,10 +1,10 @@
 -- http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
 
-packages: 'prettyprinter'
-        , 'prettyprinter-ansi-terminal'
-        , 'prettyprinter-compat-wl-pprint'
-        , 'prettyprinter-compat-ansi-wl-pprint'
-        , 'prettyprinter-compat-annotated-wl-pprint'
+packages: prettyprinter
+        , prettyprinter-ansi-terminal
+        , prettyprinter-compat-wl-pprint
+        , prettyprinter-compat-ansi-wl-pprint
+        , prettyprinter-compat-annotated-wl-pprint
 
 tests: true
 benchmarks: true
