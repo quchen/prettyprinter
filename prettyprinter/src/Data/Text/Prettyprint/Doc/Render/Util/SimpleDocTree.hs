@@ -157,8 +157,8 @@ data SimpleDocTok ann
 data SimpleDocTree ann
     = STEmpty
     | STChar Char
-    | STText !Int Text
-    | STLine !Int
+    | STText !Int Text -- ^ The integer is the length of the contained text
+    | STLine !Int      -- ^ The number of spaces of indentation on the newline
     | STAnn ann (SimpleDocTree ann)
     | STConcat [SimpleDocTree ann]
     deriving (Eq, Ord, Show, Generic)
