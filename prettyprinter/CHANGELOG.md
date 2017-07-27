@@ -2,6 +2,7 @@
 
 - Rendering directly to a handle is now more efficient in the `Text` renderer,
   since no intermediate `Text` is generated anymore.
+- Remove upper version bounds from `.cabal` files
 
 # 1.1
 
