@@ -1,4 +1,9 @@
-# 1.1.0.1
+# 1.2.0.0 (Next release)
+
+- Add collapsible newlines via `hardlineCollapse`. This changes the `Doc` type,
+  because the `Line` constructor now takes an argument.
+
+# 1.1.0.1 (Next release)
 
 - Rendering directly to a handle is now more efficient in the `Text` renderer,
   since no intermediate `Text` is generated anymore.

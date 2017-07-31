@@ -97,8 +97,8 @@ data Doc ann =
     -- it in this constructor.
     | Text !Int !Text
 
-    -- | Hard line break
-    | Line
+    -- | Hard line break.
+    | Line LineCollapse
 
     -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
     -- the second. The flattened version should in general be higher and
@@ -129,6 +129,11 @@ data Doc ann =
     -- styling directives or alt texts that can then be used by the renderer.
     | Annotated ann (Doc ann)
     deriving (Generic)
+
+-- | Specify whether and how many consecutive newlines are allowed. Used by
+-- 'hardlineCollapse'.
+data LineCollapse = NoCollapse | CollapseTo Int
+    deriving (Eq, Ord, Show)
 
 -- |
 -- @
@@ -411,7 +416,7 @@ nest i x = Nest i x
 -- >>> group doc
 -- lorem ipsum dolor sit amet
 line :: Doc ann
-line = FlatAlt Line (Char ' ')
+line = FlatAlt (Line NoCollapse) (Char ' ')
 
 -- | @'line''@ is like @'line'@, but behaves like @'mempty'@ if the line break
 -- is undone by 'group' (instead of @'space'@).
@@ -423,7 +428,7 @@ line = FlatAlt Line (Char ' ')
 -- >>> group doc
 -- lorem ipsumdolor sit amet
 line' :: Doc ann
-line' = FlatAlt Line mempty
+line' = FlatAlt (Line NoCollapse) mempty
 
 -- | @softline@ behaves like @'space'@ if the resulting output fits the page,
 -- otherwise like @'line'@.
@@ -481,7 +486,43 @@ softline' = group line'
 -- lorem ipsum
 -- dolor sit amet
 hardline :: Doc ann
-hardline = Line
+hardline = Line NoCollapse
+
+-- | @('hardlineCollapse' n)@ is like @'hardline'@, but allows for a parameter
+-- that limits the number of consecutive newlines: when @n@ newlines have been
+-- printed already, @'hardlineCollapse' n@ renders as @'emptyDoc'@.
+--
+-- This functionality is sometimes useful when combining multiple independent
+-- document chunks, some of which may be empty. If there are multiple empty
+-- elements, the newlines might pile up and yield a large gap in the resulting
+-- layout; using @'hardlineCollapse'@ allows avoiding such chunks of newlines.
+--
+-- For example, we omit adding newlines when more than @1@ have been printed
+-- here:
+--
+-- >>> "foo" <> hardlineCollapse 1 <> hardlineCollapse 1 <> hardlineCollapse 1 <> "bar"
+-- foo
+-- bar
+--
+-- This function acts as a hard line break, just like @'hardline'@, and
+-- currently lacks the convenience definitions analogous to @'softline'@ and
+-- @'line'@. This is simply to avoid having an explosion in different newline
+-- values in this library; there is no reason you should not define these values
+-- yourself should you need them in a collapsible version.
+hardlineCollapse :: Int -> Doc ann
+hardlineCollapse i = Line (CollapseTo i)
+
+-- $
+-- Some more hidden tests for hardlineCollapse
+--
+-- Check that the counter is reset properly and does not spill over. If the
+-- counter is not reset properly, the last hardlineCollapse is ignored, because
+-- the counter is set to 2 after the first two newlines.
+--
+-- >>> "foo" <> hardlineCollapse 1 <> hardlineCollapse 1 <> "bar" <> hardlineCollapse 1 <> "baz"
+-- foo
+-- bar
+-- baz
 
 -- | @('group' x)@ tries laying out @x@ into a single line by removing the
 -- contained line breaks; if this does not fit the page, @x@ is laid out without
@@ -519,7 +560,7 @@ group x = case changesUponFlattening x of
 changesUponFlattening :: Doc ann -> Maybe (Doc ann)
 changesUponFlattening = \case
     FlatAlt _ y     -> Just (flatten y)
-    Line            -> Just Fail
+    Line{}          -> Just Fail
     Union x _       -> changesUponFlattening x <|> Just x
     Nest i x        -> fmap (Nest i) (changesUponFlattening x)
     Annotated ann x -> fmap (Annotated ann) (changesUponFlattening x)
@@ -545,7 +586,7 @@ changesUponFlattening = \case
         FlatAlt _ y     -> flatten y
         Cat x y         -> Cat (flatten x) (flatten y)
         Nest i x        -> Nest i (flatten x)
-        Line            -> Fail
+        Line{}          -> Fail
         Union x _       -> flatten x
         Column f        -> Column (flatten . f)
         WithPageWidth f -> WithPageWidth (flatten . f)
@@ -1217,7 +1258,7 @@ alterAnnotations re = go
         Empty    -> Empty
         Char c   -> Char c
         Text l t -> Text l t
-        Line     -> Line
+        Line i   -> Line i
 
         FlatAlt x y     -> FlatAlt (go x) (go y)
         Cat x y         -> Cat (go x) (go y)
@@ -1594,7 +1635,7 @@ layoutWadlerLeijen
     fittingPredicate
     LayoutOptions { layoutPageWidth = pWidth }
     doc
-  = best 0 0 (Cons 0 doc Nil)
+  = best 0 0 0 (Cons 0 doc Nil)
   where
 
     -- * current column >= current nesting level
@@ -1602,26 +1643,29 @@ layoutWadlerLeijen
     best
         :: Int -- Current nesting level
         -> Int -- Current column, i.e. "where the cursor is"
+        -> Int -- How many newlines have already (just) been printed
         -> LayoutPipeline ann -- Documents remaining to be handled (in order)
         -> SimpleDocStream ann
-    best !_ !_ Nil           = SEmpty
-    best nl cc (UndoAnn ds)  = SAnnPop (best nl cc ds)
-    best nl cc (Cons i d ds) = case d of
+    best !_ !_ !_ Nil            = SEmpty
+    best nl cc lp (UndoAnn ds)  = SAnnPop (best nl cc lp ds)
+    best nl cc lp (Cons i d ds) = case d of
         Fail            -> SFail
-        Empty           -> best nl cc ds
-        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
-        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
-        Line            -> SLine i (best i i ds)
-        FlatAlt x _     -> best nl cc (Cons i x ds)
-        Cat x y         -> best nl cc (Cons i x (Cons i y ds))
-        Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
-        Union x y       -> let x' = best nl cc (Cons i x ds)
-                               y' = best nl cc (Cons i y ds)
+        Empty           -> best nl cc lp ds
+        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' 0 ds)
+        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' 0 ds)
+        Line collapse
+            | CollapseTo n <- collapse, lp >= n -> best nl cc lp ds
+            | otherwise -> let !lp' = lp+1 in SLine i (best i i lp' ds)
+        FlatAlt x _     -> best nl cc lp (Cons i x ds)
+        Cat x y         -> best nl cc lp (Cons i x (Cons i y ds))
+        Nest j x        -> let !ij = i+j in best nl cc lp (Cons ij x ds)
+        Union x y       -> let x' = best nl cc lp (Cons i x ds)
+                               y' = best nl cc lp (Cons i y ds)
                            in selectNicer fittingPredicate nl cc x' y'
-        Column f        -> best nl cc (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
-        Nesting f       -> best nl cc (Cons i (f i) ds)
-        Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
+        Column f        -> best nl cc lp (Cons i (f cc) ds)
+        WithPageWidth f -> best nl cc lp (Cons i (f pWidth) ds)
+        Nesting f       -> best nl cc lp (Cons i (f i) ds)
+        Annotated ann x -> SAnnPush ann (best nl cc lp (Cons i x (UndoAnn ds)))
 
     selectNicer
         :: FittingPredicate ann
@@ -1679,7 +1723,7 @@ layoutCompact doc = scan 0 [doc]
         Char c          -> SChar c (scan (col+1) ds)
         Text l t        -> let !col' = col+l in SText l t (scan col' ds)
         FlatAlt x _     -> scan col (x:ds)
-        Line            -> SLine 0 (scan 0 ds)
+        Line _          -> SLine 0 (scan 0 ds)
         Cat x y         -> scan col (x:y:ds)
         Nest _ x        -> scan col (x:ds)
         Union _ y       -> scan col (y:ds)
