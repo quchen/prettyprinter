@@ -1,4 +1,4 @@
-# 1.1.0.1 (Next release)
+# 1.1.0.1
 
 - Rendering directly to a handle is now more efficient in the `Text` renderer,
   since no intermediate `Text` is generated anymore.
