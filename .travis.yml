@@ -34,9 +34,9 @@ env:
       STACK_ARGS="--resolver lts-6"
       STACK_BUILD_ARGS=""
       SKIP_RELEASE_CHECKS=1
-    # LTS 7 and 8 use GHC 8.0.{1,2}
+    # LTS 7, 8 and 9 use GHC 8.0.{1,2}
     - >
-      STACK_ARGS="--resolver lts-8"
+      STACK_ARGS="--resolver lts-9"
       STACK_BUILD_ARGS="--ghc-options -Werror"
 
     - >

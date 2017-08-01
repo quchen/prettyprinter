@@ -1376,7 +1376,7 @@ data SimpleDocStream ann =
     -- constructor.
     | SText !Int Text (SimpleDocStream ann)
 
-    -- | @Int@ = indentation level for the line
+    -- | @Int@ = indentation level for the (next) line
     | SLine !Int (SimpleDocStream ann)
 
     -- | Add an annotation to the remaining document.
