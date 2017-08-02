@@ -45,6 +45,7 @@ env:
     - >
       STACK_ARGS="--resolver nightly"
       STACK_BUILD_ARGS="--ghc-options \"-Wcompat -Werror\""
+      SKIP_RELEASE_CHECKS=1
 
 
 
