@@ -523,6 +523,9 @@ hardlineCollapse i = Line (CollapseTo i)
 -- foo
 -- bar
 -- baz
+--
+-- >>> "foo" <> hardlineCollapse 1 <> nest 5 "bar"
+-- foo  bar
 
 -- | @('group' x)@ tries laying out @x@ into a single line by removing the
 -- contained line breaks; if this does not fit the page, @x@ is laid out without
