@@ -4,7 +4,9 @@ packages:
     - 'prettyprinter-ansi-terminal'
     - 'prettyprinter-compat-wl-pprint'
     - 'prettyprinter-compat-ansi-wl-pprint'
+    - 'prettyprinter-convert-ansi-wl-pprint'
     - 'prettyprinter-compat-annotated-wl-pprint'
-extra-deps: []
+extra-deps:
+    - ansi-wl-pprint-0.6.8
 flags: {}
 extra-package-dbs: []

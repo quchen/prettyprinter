@@ -1,3 +1,7 @@
+# 1.1.1
+
+- Expose `AnsiStyle`’s constructors for adaptability
+
 # 1.1
 
 - Overhauled the API significantly – Styles are now combined using the
