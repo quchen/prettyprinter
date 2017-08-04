@@ -146,7 +146,7 @@ pushStyle style = StackMachine (\styles -> ((), mempty, style : styles))
 unsafePopStyle :: Monoid output => StackMachine output style style
 unsafePopStyle = StackMachine (\case
     x:xs -> (x, mempty, xs)
-    [] -> error "Popped an empty style stack! Please report this as a bug.")
+    [] -> panicPoppedEmpty )
 
 -- | View the topmost style, but do not modify the stack.
 --
@@ -154,7 +154,7 @@ unsafePopStyle = StackMachine (\case
 unsafePeekStyle :: Monoid output => StackMachine output style style
 unsafePeekStyle = StackMachine (\styles -> case styles of
     x:_ -> (x, mempty, styles)
-    [] -> error "Peeked an empty style stack! Please report this as a bug.")
+    [] -> panicPeekedEmpty )
 
 -- | Append a value to the output end.
 writeOutput :: output -> StackMachine output style ()

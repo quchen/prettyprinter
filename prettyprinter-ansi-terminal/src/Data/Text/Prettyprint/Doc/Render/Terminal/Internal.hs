@@ -254,7 +254,7 @@ renderIO h sdoc = do
                 go rest
             SAnnPush s rest -> do
                 currentStyle <- readIORef styleStackRef >>= \case
-                    [] -> error "Peeked an empty style stack! Please report this as a bug."
+                    [] -> panicPeekedEmpty
                     style : _ -> pure style
                 let newStyle = s <> currentStyle
                 T.putStr (styleToText newStyle)
@@ -262,10 +262,10 @@ renderIO h sdoc = do
                 go rest
             SAnnPop rest -> do
                 readIORef styleStackRef >>= \case
-                    [] -> error "Popped an empty style stack! Please report this as a bug."
+                    [] -> panicPoppedEmpty
                     _:styles -> writeIORef styleStackRef styles
                 newStyle <- readIORef styleStackRef >>= \case
-                    [] -> error "Peeked an empty style stack! Please report this as a bug."
+                    [] -> panicPeekedEmpty
                     style : _ -> pure style
                 T.putStr (styleToText newStyle)
                 go rest

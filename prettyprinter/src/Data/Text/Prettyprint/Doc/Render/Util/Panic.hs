@@ -3,6 +3,8 @@ module Data.Text.Prettyprint.Doc.Render.Util.Panic (
     panicUnpairedPop,
     panicSimpleDocTreeConversionFailed,
     panicInputNotFullyConsumed,
+    panicPeekedEmpty,
+    panicPoppedEmpty,
 ) where
 
 -- | Raise a hard 'error' if there is a 'Data.Text.Prettyprint.Doc.SFail' in a
@@ -29,3 +31,8 @@ panicInputNotFullyConsumed = error ("Conversion from SimpleDocStream to SimpleDo
 
 report :: String
 report = "Please report this as a bug"
+
+panicPeekedEmpty, panicPoppedEmpty :: a
+(panicPeekedEmpty, panicPoppedEmpty) = (mkErr "Peeked", mkErr "Popped")
+  where
+    mkErr x = error (x ++ " an empty style stack! Please report this as a bug.")
