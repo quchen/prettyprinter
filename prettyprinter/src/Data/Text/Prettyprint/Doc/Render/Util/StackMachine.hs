@@ -111,6 +111,7 @@ renderSimplyDecoratedA text push pop = go []
 -- The @output@ type is used to append data chunks to, the @style@ is the member
 -- of a stack of styles to model nested styles with.
 newtype StackMachine output style a = StackMachine ([style] -> (a, output, [style]))
+{-# DEPRECATED StackMachine "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
 
 instance Functor (StackMachine output style) where
     fmap f (StackMachine r) = StackMachine (\s ->
