@@ -138,13 +138,13 @@ build = \case
     SAnnPush s x -> do
         currentStyle <- unsafePeekStyle
         let newStyle = s <> currentStyle
-        writeOutput (styleToRaw newStyle)
+        writeOutput (TLB.fromText (styleToRawText newStyle))
         pushStyle newStyle
         build x
     SAnnPop x -> do
         _currentStyle <- unsafePopStyle
         newStyle <- unsafePeekStyle
-        writeOutput (styleToRaw newStyle)
+        writeOutput (TLB.fromText (styleToRawText newStyle))
         build x
 
 -- | Begin rendering in a certain style. Instead of using this type directly,
@@ -185,8 +185,8 @@ instance Monoid AnsiStyle where
     mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
-styleToRaw :: AnsiStyle -> TLB.Builder
-styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
+styleToRawText :: AnsiStyle -> Text
+styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
   where
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
     stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
@@ -221,7 +221,7 @@ styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
 renderStrict :: SimpleDocStream AnsiStyle -> Text
 renderStrict = TL.toStrict . renderLazy
 
--- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
+-- | @('renderIO' h sdoc)@ writes @sdoc@ to the handle @h@.
 --
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
@@ -238,8 +238,7 @@ renderStrict = TL.toStrict . renderLazy
 renderIO :: Handle -> SimpleDocStream AnsiStyle -> IO ()
 renderIO h sdoc = do
     styleStackRef <- newIORef []
-    let styleToText = TL.toStrict . TLB.toLazyText . styleToRaw
-        go = \case
+    let go = \case
             SFail -> panicUncaughtFail
             SEmpty -> pure ()
             SChar c rest -> do
@@ -257,7 +256,7 @@ renderIO h sdoc = do
                     [] -> panicPeekedEmpty
                     style : _ -> pure style
                 let newStyle = s <> currentStyle
-                T.putStr (styleToText newStyle)
+                T.putStr (styleToRawText newStyle)
                 modifyIORef styleStackRef (newStyle :)
                 go rest
             SAnnPop rest -> do
@@ -267,7 +266,7 @@ renderIO h sdoc = do
                 newStyle <- readIORef styleStackRef >>= \case
                     [] -> panicPeekedEmpty
                     style : _ -> pure style
-                T.putStr (styleToText newStyle)
+                T.putStr (styleToRawText newStyle)
                 go rest
     go sdoc
 
