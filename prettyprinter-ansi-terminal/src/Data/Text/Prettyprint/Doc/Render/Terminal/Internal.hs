@@ -88,7 +88,9 @@ italicized = mempty { ansiItalics = Just Italicized }
 underlined :: AnsiStyle
 underlined = mempty { ansiUnderlining = Just Underlined }
 
-
+-- | Lift Semigroup’s append into an Applicative
+(<++>) :: (Applicative f, Semigroup a) => f a -> f a -> f a
+(<++>) = liftA2 (<>)
 
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
@@ -136,12 +138,8 @@ renderLazy sdoc = runST (do
         [_] -> pure (TLB.toLazyText result)
         xs -> error ("There are " <> show (length xs) <> " styles left at the" ++
                      "end of rendering (there should be only 1). Please report" ++
-                     " this as a bug.")
-    )
+                     " this as a bug.") )
   where
-    (<++>) :: (Applicative f, Semigroup a) => f a -> f a -> f a
-    (<++>) = liftA2 (<>)
-
     unsafePeek :: STRef s [a] -> ST s a
     unsafePeek ref = readSTRef ref >>= \case
         [] -> panicPeekedEmpty

@@ -5,9 +5,9 @@
 
 #include "version-compatibility-macros.h"
 
--- | Definitions to write renderers based on looking at a 'SimpleDocStream' as an
--- instruction tape for a stack machine: text is written, annotations are added
--- (pushed) and later removed (popped).
+-- | Definitions to write renderers based on looking at a 'SimpleDocStream' as
+-- an instruction tape for a stack machine: text is written, annotations are
+-- added (pushed) and later removed (popped).
 module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
     -- * Simple, pre-defined stack machines
