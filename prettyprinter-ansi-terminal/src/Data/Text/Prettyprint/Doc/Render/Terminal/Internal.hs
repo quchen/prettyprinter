@@ -10,14 +10,16 @@ module Data.Text.Prettyprint.Doc.Render.Terminal.Internal where
 
 
 import           Control.Applicative
+import           Data.IORef
 import           Data.Maybe
 import           Data.Semigroup
 import           Data.Text              (Text)
 import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as TL
 import qualified System.Console.ANSI    as ANSI
+import           System.IO
 import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
@@ -224,8 +226,50 @@ renderStrict = TL.toStrict . renderLazy
 -- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
 -- hello
 -- world
+--
+-- This function behaves just like
+--
+-- @
+-- 'renderIO' h sdoc = 'TL.hPutStrLn' h ('renderLazy' sdoc)
+-- @
+--
+-- but will not generate any intermediate text, rendering directly to the
+-- handle.
 renderIO :: Handle -> SimpleDocStream AnsiStyle -> IO ()
-renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
+renderIO h sdoc = do
+    styleStackRef <- newIORef []
+    let styleToText = TL.toStrict . TLB.toLazyText . styleToRaw
+        go = \case
+            SFail -> panicUncaughtFail
+            SEmpty -> pure ()
+            SChar c rest -> do
+                hPutChar h c
+                go rest
+            SText _ t rest -> do
+                T.hPutStr h t
+                go rest
+            SLine i rest -> do
+                hPutChar h '\n'
+                T.hPutStr h (T.replicate i " ")
+                go rest
+            SAnnPush s rest -> do
+                currentStyle <- readIORef styleStackRef >>= \case
+                    [] -> error "Peeked an empty style stack! Please report this as a bug."
+                    style : _ -> pure style
+                let newStyle = s <> currentStyle
+                T.putStr (styleToText newStyle)
+                modifyIORef styleStackRef (newStyle :)
+                go rest
+            SAnnPop rest -> do
+                readIORef styleStackRef >>= \case
+                    [] -> error "Popped an empty style stack! Please report this as a bug."
+                    _:styles -> writeIORef styleStackRef styles
+                newStyle <- readIORef styleStackRef >>= \case
+                    [] -> error "Peeked an empty style stack! Please report this as a bug."
+                    style : _ -> pure style
+                T.putStr (styleToText newStyle)
+                go rest
+    go sdoc
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output using
 -- 'defaultLayoutOptions'.
