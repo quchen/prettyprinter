@@ -10,9 +10,11 @@ module Data.Text.Prettyprint.Doc.Render.Terminal.Internal where
 
 
 import           Control.Applicative
+import           Control.Monad.ST
 import           Data.IORef
 import           Data.Maybe
 import           Data.Semigroup
+import           Data.STRef
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
@@ -24,7 +26,6 @@ import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
-import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !(APPLICATIVE_MONAD)
 import Control.Applicative
@@ -111,41 +112,48 @@ underlined = mempty { ansiUnderlining = Just Underlined }
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
 renderLazy :: SimpleDocStream AnsiStyle -> TL.Text
-renderLazy doc
-  = let (resultBuilder, remainingStyles) = execStackMachine [mempty] (build doc)
-    in case remainingStyles of
+renderLazy sdoc = runST (do
+    styleStackRef <- newSTRef []
+    let go = \case
+            SFail             -> panicUncaughtFail
+            SEmpty            -> pure mempty
+            SChar c rest      -> pure (TLB.singleton c) <++> go rest
+            SText _ t rest    -> pure (TLB.fromText t) <++> go rest
+            SLine i rest      -> pure (TLB.singleton '\n' <> TLB.fromText (T.replicate i " ")) <++> go rest
+            SAnnPush style rest -> do
+                currentStyle <- unsafePeek styleStackRef
+                let newStyle = style <> currentStyle
+                push styleStackRef newStyle
+                pure (TLB.fromText (styleToRawText newStyle)) <++> go rest
+            SAnnPop rest -> do
+                _currentStyle <- unsafePop styleStackRef
+                newStyle <- unsafePeek styleStackRef
+                pure (TLB.fromText (styleToRawText newStyle)) <++> go rest
+    result <- go sdoc
+    readSTRef styleStackRef >>= \case
         [] -> error ("There is no empty style left at the end of rendering" ++
                      " (but there should be). Please report this as a bug.")
-        [_] -> TLB.toLazyText resultBuilder
+        [_] -> pure (TLB.toLazyText result)
         xs -> error ("There are " <> show (length xs) <> " styles left at the" ++
                      "end of rendering (there should be only 1). Please report" ++
                      " this as a bug.")
+    )
+  where
+    (<++>) :: (Applicative f, Semigroup a) => f a -> f a -> f a
+    (<++>) = liftA2 (<>)
 
-build :: SimpleDocStream AnsiStyle -> StackMachine TLB.Builder AnsiStyle ()
-build = \case
-    SFail -> panicUncaughtFail
-    SEmpty -> pure ()
-    SChar c x -> do
-        writeOutput (TLB.singleton c)
-        build x
-    SText _l t x -> do
-        writeOutput (TLB.fromText t)
-        build x
-    SLine i x -> do
-        writeOutput (TLB.singleton '\n')
-        writeOutput (TLB.fromText (T.replicate i " "))
-        build x
-    SAnnPush s x -> do
-        currentStyle <- unsafePeekStyle
-        let newStyle = s <> currentStyle
-        writeOutput (TLB.fromText (styleToRawText newStyle))
-        pushStyle newStyle
-        build x
-    SAnnPop x -> do
-        _currentStyle <- unsafePopStyle
-        newStyle <- unsafePeekStyle
-        writeOutput (TLB.fromText (styleToRawText newStyle))
-        build x
+    unsafePeek :: STRef s [a] -> ST s a
+    unsafePeek ref = readSTRef ref >>= \case
+        [] -> panicPeekedEmpty
+        x:_ -> pure x
+    unsafePop :: STRef s [a] -> ST s a
+    unsafePop ref = readSTRef ref >>= \case
+        [] -> panicPeekedEmpty
+        x:xs -> writeSTRef ref xs >> pure x
+    push :: STRef s [a] -> a -> ST s ()
+    push ref x = modifySTRef' ref (x :)
+
+
 
 -- | Begin rendering in a certain style. Instead of using this type directly,
 -- consider using the 'Semigroup' instance to create new styles out of the smart
