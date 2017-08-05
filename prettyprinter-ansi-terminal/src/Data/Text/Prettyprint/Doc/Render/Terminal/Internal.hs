@@ -10,19 +10,22 @@ module Data.Text.Prettyprint.Doc.Render.Terminal.Internal where
 
 
 import           Control.Applicative
+import           Control.Monad.ST
+import           Data.IORef
 import           Data.Maybe
 import           Data.Semigroup
+import           Data.STRef
 import           Data.Text              (Text)
 import qualified Data.Text              as T
+import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
-import qualified Data.Text.Lazy.IO      as TL
 import qualified System.Console.ANSI    as ANSI
+import           System.IO
 import           System.IO              (Handle, stdout)
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
-import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 #if !(APPLICATIVE_MONAD)
 import Control.Applicative
@@ -85,8 +88,6 @@ italicized = mempty { ansiItalics = Just Italicized }
 underlined :: AnsiStyle
 underlined = mempty { ansiUnderlining = Just Underlined }
 
-
-
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
 -- like colorization.
@@ -109,41 +110,132 @@ underlined = mempty { ansiUnderlining = Just Underlined }
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
 renderLazy :: SimpleDocStream AnsiStyle -> TL.Text
-renderLazy doc
-  = let (resultBuilder, remainingStyles) = execStackMachine [mempty] (build doc)
-    in case remainingStyles of
-        [] -> error ("There is no empty style left at the end of rendering" ++
-                     " (but there should be). Please report this as a bug.")
-        [_] -> TLB.toLazyText resultBuilder
-        xs -> error ("There are " <> show (length xs) <> " styles left at the" ++
-                     "end of rendering (there should be only 1). Please report" ++
-                     " this as a bug.")
+renderLazy sdoc = runST (do
+    styleStackRef <- newSTRef [mempty]
+    outputRef <- newSTRef mempty
 
-build :: SimpleDocStream AnsiStyle -> StackMachine TLB.Builder AnsiStyle ()
-build = \case
-    SFail -> panicUncaughtFail
-    SEmpty -> pure ()
-    SChar c x -> do
-        writeOutput (TLB.singleton c)
-        build x
-    SText _l t x -> do
-        writeOutput (TLB.fromText t)
-        build x
-    SLine i x -> do
-        writeOutput (TLB.singleton '\n')
-        writeOutput (TLB.fromText (T.replicate i " "))
-        build x
-    SAnnPush s x -> do
-        currentStyle <- unsafePeekStyle
-        let newStyle = s <> currentStyle
-        writeOutput (styleToRaw newStyle)
-        pushStyle newStyle
-        build x
-    SAnnPop x -> do
-        _currentStyle <- unsafePopStyle
-        newStyle <- unsafePeekStyle
-        writeOutput (styleToRaw newStyle)
-        build x
+    let push x = modifySTRef' styleStackRef (x :)
+        unsafePeek = readSTRef styleStackRef >>= \case
+            [] -> panicPeekedEmpty
+            x:_ -> pure x
+        unsafePop = readSTRef styleStackRef >>= \case
+            [] -> panicPeekedEmpty
+            x:xs -> writeSTRef styleStackRef xs >> pure x
+        writeOutput x = modifySTRef outputRef (<> x)
+
+    let go = \case
+            SFail -> panicUncaughtFail
+            SEmpty -> pure ()
+            SChar c rest -> do
+                writeOutput (TLB.singleton c)
+                go rest
+            SText _ t rest -> do
+                writeOutput (TLB.fromText t)
+                go rest
+            SLine i rest -> do
+                writeOutput (TLB.singleton '\n' <> TLB.fromText (T.replicate i " "))
+                go rest
+            SAnnPush style rest -> do
+                currentStyle <- unsafePeek
+                let newStyle = style <> currentStyle
+                push newStyle
+                writeOutput (TLB.fromText (styleToRawText newStyle))
+                go rest
+            SAnnPop rest -> do
+                _currentStyle <- unsafePop
+                newStyle <- unsafePeek
+                writeOutput (TLB.fromText (styleToRawText newStyle))
+                go rest
+    go sdoc
+    readSTRef styleStackRef >>= \case
+        []  -> panicStyleStackFullyConsumed
+        [_] -> fmap TLB.toLazyText (readSTRef outputRef)
+        xs  -> panicStyleStackNotFullyConsumed (length xs) )
+
+-- | @('renderIO' h sdoc)@ writes @sdoc@ to the handle @h@.
+--
+-- >>> let render = renderIO System.IO.stdout . layoutPretty defaultLayoutOptions
+-- >>> let doc = annotate (color Red) ("red" <+> align (vsep [annotate (color Blue <> underlined) ("blue+u" <+> annotate bold "bold" <+> "blue+u"), "red"]))
+--
+-- We render the 'unAnnotate'd version here, since the ANSI codes don’t display
+-- well in Haddock,
+--
+-- >>> render (unAnnotate doc)
+-- red blue+u bold blue+u
+--     red
+--
+-- This function behaves just like
+--
+-- @
+-- 'renderIO' h sdoc = 'TL.hPutStrLn' h ('renderLazy' sdoc)
+-- @
+--
+-- but will not generate any intermediate text, rendering directly to the
+-- handle.
+renderIO :: Handle -> SimpleDocStream AnsiStyle -> IO ()
+renderIO h sdoc = do
+    styleStackRef <- newIORef [mempty]
+
+    let push x = modifyIORef' styleStackRef (x :)
+        unsafePeek = readIORef styleStackRef >>= \case
+            [] -> panicPeekedEmpty
+            x:_ -> pure x
+        unsafePop = readIORef styleStackRef >>= \case
+            [] -> panicPeekedEmpty
+            x:xs -> writeIORef styleStackRef xs >> pure x
+
+    let go = \case
+            SFail -> panicUncaughtFail
+            SEmpty -> pure ()
+            SChar c rest -> do
+                hPutChar h c
+                go rest
+            SText _ t rest -> do
+                T.hPutStr h t
+                go rest
+            SLine i rest -> do
+                hPutChar h '\n'
+                T.hPutStr h (T.replicate i " ")
+                go rest
+            SAnnPush style rest -> do
+                currentStyle <- unsafePeek
+                let newStyle = style <> currentStyle
+                push newStyle
+                T.hPutStr h (styleToRawText newStyle)
+                go rest
+            SAnnPop rest -> do
+                _currentStyle <- unsafePop
+                newStyle <- unsafePeek
+                T.hPutStr h (styleToRawText newStyle)
+                go rest
+    go sdoc
+    readIORef styleStackRef >>= \case
+        []  -> panicStyleStackFullyConsumed
+        [_] -> pure ()
+        xs  -> panicStyleStackNotFullyConsumed (length xs)
+
+panicStyleStackFullyConsumed :: void
+panicStyleStackFullyConsumed
+  = error ("There is no empty style left at the end of rendering" ++
+           " (but there should be). Please report this as a bug.")
+
+panicStyleStackNotFullyConsumed :: Int -> void
+panicStyleStackNotFullyConsumed len
+  = error ("There are " <> show len <> " styles left at the" ++
+           "end of rendering (there should be only 1). Please report" ++
+           " this as a bug.")
+
+-- $
+-- >>> let render = renderIO System.IO.stdout . layoutPretty defaultLayoutOptions
+-- >>> let doc = annotate (color Red) ("red" <+> align (vsep [annotate (color Blue <> underlined) ("blue+u" <+> annotate bold "bold" <+> "blue+u"), "red"]))
+-- >>> render (unAnnotate doc)
+-- red blue+u bold blue+u
+--     red
+--
+-- This test won’t work since I don’t know how to type \ESC for doctest :-/
+-- -- >>> render doc
+-- -- \ESC[0;91mred \ESC[0;94;4mblue+u \ESC[0;94;1;4mbold\ESC[0;94;4m blue+u\ESC[0;91m
+-- --     red\ESC[0m
 
 -- | Begin rendering in a certain style. Instead of using this type directly,
 -- consider using the 'Semigroup' instance to create new styles out of the smart
@@ -183,8 +275,8 @@ instance Monoid AnsiStyle where
     mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
-styleToRaw :: AnsiStyle -> TLB.Builder
-styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
+styleToRawText :: AnsiStyle -> Text
+styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
   where
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
     stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
@@ -218,14 +310,6 @@ styleToRaw = TLB.fromString . ANSI.setSGRCode . stylesToSgrs
 -- transforms it to strict text.
 renderStrict :: SimpleDocStream AnsiStyle -> Text
 renderStrict = TL.toStrict . renderLazy
-
--- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
---
--- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
--- hello
--- world
-renderIO :: Handle -> SimpleDocStream AnsiStyle -> IO ()
-renderIO h sdoc = TL.hPutStrLn h (renderLazy sdoc)
 
 -- | @('putDoc' doc)@ prettyprints document @doc@ to standard output using
 -- 'defaultLayoutOptions'.

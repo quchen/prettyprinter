@@ -5,9 +5,9 @@
 
 #include "version-compatibility-macros.h"
 
--- | Definitions to write renderers based on looking at a 'SimpleDocStream' as an
--- instruction tape for a stack machine: text is written, annotations are added
--- (pushed) and later removed (popped).
+-- | Definitions to write renderers based on looking at a 'SimpleDocStream' as
+-- an instruction tape for a stack machine: text is written, annotations are
+-- added (pushed) and later removed (popped).
 module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
     -- * Simple, pre-defined stack machines
@@ -111,6 +111,7 @@ renderSimplyDecoratedA text push pop = go []
 -- The @output@ type is used to append data chunks to, the @style@ is the member
 -- of a stack of styles to model nested styles with.
 newtype StackMachine output style a = StackMachine ([style] -> (a, output, [style]))
+{-# DEPRECATED StackMachine "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
 
 instance Functor (StackMachine output style) where
     fmap f (StackMachine r) = StackMachine (\s ->
@@ -146,7 +147,7 @@ pushStyle style = StackMachine (\styles -> ((), mempty, style : styles))
 unsafePopStyle :: Monoid output => StackMachine output style style
 unsafePopStyle = StackMachine (\case
     x:xs -> (x, mempty, xs)
-    [] -> error "Popped an empty style stack! Please report this as a bug.")
+    [] -> panicPoppedEmpty )
 
 -- | View the topmost style, but do not modify the stack.
 --
@@ -154,7 +155,7 @@ unsafePopStyle = StackMachine (\case
 unsafePeekStyle :: Monoid output => StackMachine output style style
 unsafePeekStyle = StackMachine (\styles -> case styles of
     x:_ -> (x, mempty, styles)
-    [] -> error "Peeked an empty style stack! Please report this as a bug.")
+    [] -> panicPeekedEmpty )
 
 -- | Append a value to the output end.
 writeOutput :: output -> StackMachine output style ()

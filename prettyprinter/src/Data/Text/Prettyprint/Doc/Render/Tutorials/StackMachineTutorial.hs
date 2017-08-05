@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
+
 #include "version-compatibility-macros.h"
 
 -- | This module shows how to write a custom prettyprinter backend, based on
@@ -15,7 +17,9 @@
 --
 -- The module is written to be readable top-to-bottom in both Haddock and raw
 -- source form.
-module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial (
+module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
+    {-# DEPRECATED "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
+    (
     module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
 ) where
 
