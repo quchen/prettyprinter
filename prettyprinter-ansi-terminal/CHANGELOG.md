@@ -1,3 +1,8 @@
+# 1.1.1.1
+
+- `renderIO` now renders directly to STDOUT, instead of first building a textual
+  rendering and then printing that to STDOUT.
+
 # 1.1.1
 
 - Expose `AnsiStyle`’s constructors for adaptability
