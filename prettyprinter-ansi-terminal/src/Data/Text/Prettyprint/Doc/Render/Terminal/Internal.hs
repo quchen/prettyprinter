@@ -88,10 +88,6 @@ italicized = mempty { ansiItalics = Just Italicized }
 underlined :: AnsiStyle
 underlined = mempty { ansiUnderlining = Just Underlined }
 
--- | Lift Semigroup’s append into an Applicative
-(<++>) :: (Applicative f, Semigroup a) => f a -> f a -> f a
-(<++>) = liftA2 (<>)
-
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
 -- like colorization.
@@ -118,14 +114,14 @@ renderLazy sdoc = runST (do
     styleStackRef <- newSTRef [mempty]
     outputRef <- newSTRef mempty
 
-    let writeOutput x = modifySTRef outputRef (<> x)
+    let push x = modifySTRef' styleStackRef (x :)
         unsafePeek = readSTRef styleStackRef >>= \case
             [] -> panicPeekedEmpty
             x:_ -> pure x
         unsafePop = readSTRef styleStackRef >>= \case
             [] -> panicPeekedEmpty
             x:xs -> writeSTRef styleStackRef xs >> pure x
-        push x = modifySTRef' styleStackRef (x :)
+        writeOutput x = modifySTRef outputRef (<> x)
 
     let go = \case
             SFail -> panicUncaughtFail
@@ -158,9 +154,15 @@ renderLazy sdoc = runST (do
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the handle @h@.
 --
--- >>> renderIO System.IO.stdout (layoutPretty defaultLayoutOptions "hello\nworld")
--- hello
--- world
+-- >>> let render = renderIO System.IO.stdout . layoutPretty defaultLayoutOptions
+-- >>> let doc = annotate (color Red) ("red" <+> align (vsep [annotate (color Blue <> underlined) ("blue+u" <+> annotate bold "bold" <+> "blue+u"), "red"]))
+--
+-- We render the 'unAnnotate'd version here, since the ANSI codes don’t display
+-- well in Haddock,
+--
+-- >>> render (unAnnotate doc)
+-- red blue+u bold blue+u
+--     red
 --
 -- This function behaves just like
 --
