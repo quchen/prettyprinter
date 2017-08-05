@@ -21,15 +21,10 @@ import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import qualified System.Console.ANSI    as ANSI
-import           System.IO
-import           System.IO              (Handle, stdout)
+import           System.IO              (Handle, hPutChar, stdout)
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
-
-#if !(APPLICATIVE_MONAD)
-import Control.Applicative
-#endif
 
 
 

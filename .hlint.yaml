@@ -21,6 +21,9 @@
 - ignore: {name: "Use first"}
 - ignore: {name: "Use second"}
 
+# Not all 3-liners should be deduplicated
+- ignore: {name: "Reduce duplication"}
+
 # I don’t like $
 - error:
     name: Use parentheses instead of $
