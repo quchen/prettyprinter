@@ -1,3 +1,8 @@
+- arguments:
+    - --cpp-include=aux
+    - --cpp-define=MIN_VERSION_base=1
+
+
 # Avoiding lambdas is not always a good idea if you keep in mind that GHC's
 # inliner will only consider fully applied functions.
 - ignore: {name: "Avoid lambda"}
@@ -22,7 +27,7 @@
 - ignore: {name: "Use second"}
 
 # Not all 3-liners should be deduplicated
-- ignore: {name: "Reduce duplication"}
+- ignore: {name: Reduce duplication, within: Data.Text.Prettyprint.Doc.Render.Terminal.Internal}
 
 # I don’t like $
 - error:
