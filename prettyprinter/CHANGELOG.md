@@ -1,3 +1,7 @@
+# 1.1.1
+
+- Add `panicPeekedEmpty` and `panicPoppedEmpty` to the panic module
+
 # 1.1.0.1
 
 - Rendering directly to a handle is now more efficient in the `Text` renderer,
