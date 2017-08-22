@@ -35,6 +35,9 @@ instance Pretty1 [] where
 instance Pretty1 NonEmpty where
   liftPretty _ pl = pl . toList
 
+instance Pretty1 Maybe where
+  liftPretty p _ = maybe emptyDoc p
+
 instance Pretty2 Either where
   liftPretty2 pL _ _ _ (Left l)  = pL l
   liftPretty2 _ _ pR _ (Right r) = pR r
