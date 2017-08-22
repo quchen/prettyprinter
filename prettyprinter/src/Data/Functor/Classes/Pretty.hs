@@ -8,6 +8,8 @@ module Data.Functor.Classes.Pretty
 , Pretty2Of(..)
 ) where
 
+import Data.Foldable (toList)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Text.Prettyprint.Doc as Pretty
 import GHC.Generics
 
@@ -29,6 +31,9 @@ pretty1 = liftPretty pretty prettyList
 
 instance Pretty1 [] where
   liftPretty _ pl = pl
+
+instance Pretty1 NonEmpty where
+  liftPretty _ pl = pl . toList
 
 instance Pretty2 Either where
   liftPretty2 pL _ _ _ (Left l)  = pL l
