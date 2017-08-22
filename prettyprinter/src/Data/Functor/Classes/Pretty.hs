@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, TypeOperators #-}
+{-# LANGUAGE DefaultSignatures, FlexibleContexts, FlexibleInstances, TypeOperators #-}
 module Data.Functor.Classes.Pretty
 ( Pretty1(..)
 , Pretty2(..)
@@ -13,6 +13,9 @@ import GHC.Generics
 
 class Pretty1 f where
   liftPretty :: (a -> Doc ann) -> ([a] -> Doc ann) -> f a -> Doc ann
+  default liftPretty :: (Generic1 f, GPretty1 (Rep1 f)) => (a -> Doc ann) -> ([a] -> Doc ann) -> f a -> Doc ann
+  liftPretty p pl = gliftPretty p pl . from1
+
   liftPrettyList :: (a -> Doc ann) -> ([a] -> Doc ann) -> [f a] -> Doc ann
   liftPrettyList p pl = list . map (liftPretty p pl)
 
