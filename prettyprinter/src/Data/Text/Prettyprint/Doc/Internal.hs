@@ -390,7 +390,7 @@ instance Pretty1 NonEmpty where
 -- >>> braces (liftPretty (parens . pretty) (list . map (parens . pretty)) (Nothing :: Maybe Bool))
 -- {}
 instance Pretty1 Maybe where
-    liftPretty p _ = maybe emptyDoc p
+    liftPretty prettyJust _ = maybe mempty prettyJust
 
 -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (123, "hello")
 -- (123, (hello))
