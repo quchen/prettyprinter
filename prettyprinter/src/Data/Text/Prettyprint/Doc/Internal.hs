@@ -366,6 +366,8 @@ class Pretty1 f where
                -> f a
                -> Doc ann
 
+-- | >>> liftPretty (parens . pretty) [1,2,3]
+-- [(1), (2), (3)]
 instance Pretty1 [] where
     liftPretty _ prettyList' = prettyList'
 
