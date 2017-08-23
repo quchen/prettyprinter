@@ -363,9 +363,12 @@ instance Pretty Void where pretty = absurd
 
 -- | Overloaded conversion to 'Doc', lifted to unary type constructors.
 --
--- This is most useful for defining 'Pretty' instances for recursive types, and
--- for efficiently pretty-printing 'Functor's whose definitions of 'fmap' don’t
--- fuse.
+-- This is most useful for:
+-- 1. defining 'Pretty' instances for recursive types,
+-- 2. defining 'Pretty' instances for type constructors without 'Functor'
+--    instances, and
+-- 3. efficiently pretty-printing type constructors with 'Functor' instances
+--    whose 'fmap' traverses the whole structure.
 --
 -- Laws:
 --
@@ -413,9 +416,12 @@ instance Pretty a => Pretty1 ((,) a) where
 
 -- | Overloaded conversion to 'Doc', lifted to binary type constructors.
 --
--- This is most useful for defining 'Pretty' instances for recursive types, and
--- for efficiently pretty-printing 'Functor's whose definitions of 'fmap' don’t
--- fuse.
+-- This is most useful for:
+-- 1. defining 'Pretty' instances for recursive types,
+-- 2. defining 'Pretty' instances for type constructors without 'Functor'
+--    instances, and
+-- 3. efficiently pretty-printing type constructors with 'Functor' instances
+--    whose 'fmap' traverses the whole structure.
 --
 -- Laws:
 --
