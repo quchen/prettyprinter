@@ -396,6 +396,13 @@ instance Pretty1 NonEmpty where
 instance Pretty1 Maybe where
     liftPretty prettyJust _ = maybe mempty prettyJust
 
+-- | Print 'Left' contents with 'pretty', and 'Right' contents with the supplied
+-- function.
+--
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Left True)
+-- True
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Right True)
+-- (True)
 instance Pretty a => Pretty1 (Either a) where
     liftPretty prettyRight _ = either pretty prettyRight
 
