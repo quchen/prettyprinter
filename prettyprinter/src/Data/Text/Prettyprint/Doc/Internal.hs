@@ -359,14 +359,14 @@ instance Pretty Void where pretty = absurd
 --   1. output should be pretty. :-)
 class Pretty1 f where
 
-    -- | >>> liftPretty (parens . pretty) (Just "hello")
+    -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
     -- (hello)
     liftPretty :: (a -> Doc ann)
                -> ([a] -> Doc ann)
                -> f a
                -> Doc ann
 
--- | >>> liftPretty (parens . pretty) [1,2,3]
+-- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) [1,2,3]
 -- [(1), (2), (3)]
 instance Pretty1 [] where
     liftPretty _ prettyList' = prettyList'
@@ -376,14 +376,14 @@ instance Pretty1 NonEmpty where
 
 -- | Ignore 'Nothing's, print 'Just' contents.
 --
--- >>> liftPretty (parens . pretty) (Just True)
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just True)
 -- (True)
--- >>> braces (liftPretty (parens . pretty) (Nothing :: Maybe Bool))
+-- >>> braces (liftPretty (parens . pretty) (list . map (parens . pretty)) (Nothing :: Maybe Bool))
 -- {}
 instance Pretty1 Maybe where
     liftPretty p _ = maybe emptyDoc p
 
--- | >>> liftPretty (parens . pretty) (123, "hello")
+-- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (123, "hello")
 -- (123, (hello))
 instance Pretty a => Pretty1 ((,) a) where
     liftPretty pretty2 _ (x1, x2) = tupled [pretty x1, pretty2 x2]
