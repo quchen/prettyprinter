@@ -330,9 +330,9 @@ instance Pretty a => Pretty (Maybe a) where
 
 -- | Print 'Left' and 'Right' contents.
 --
--- >>> pretty (Left True)
+-- >>> pretty (Left True :: Either Bool Bool)
 -- True
--- >>> pretty (Right True)
+-- >>> pretty (Right True :: Either Bool Bool)
 -- True
 instance (Pretty a, Pretty b) => Pretty (Either a b) where
     pretty = either pretty pretty
