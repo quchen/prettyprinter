@@ -387,7 +387,7 @@ instance Pretty1 [] where
 instance Pretty1 NonEmpty where
     liftPretty _ prettyList' (x:|xs) = prettyList' (x:xs)
 
--- | Ignore 'Nothing's, print 'Just' contents.
+-- | Ignore 'Nothing's, print 'Just' contents with the supplied function.
 --
 -- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just True)
 -- (True)
