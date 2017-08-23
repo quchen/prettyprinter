@@ -358,6 +358,7 @@ instance Pretty Void where pretty = absurd
 --
 --   1. output should be pretty. :-)
 class Pretty1 f where
+
     liftPretty :: (a -> Doc ann)
                -> ([a] -> Doc ann)
                -> f a
@@ -369,6 +370,7 @@ class Pretty1 f where
 --
 --   1. output should be pretty. :-)
 class Pretty2 f where
+
     liftPretty2 :: (a -> Doc ann)
                 -> ([a] -> Doc ann)
                 -> (b -> Doc ann)
