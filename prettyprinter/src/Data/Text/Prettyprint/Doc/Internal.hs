@@ -377,7 +377,8 @@ class Pretty1 f where
 
     -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
     -- (hello)
-    liftPretty :: (a -> Doc ann)
+    liftPretty
+               :: (a -> Doc ann)
                -> ([a] -> Doc ann)
                -> f a
                -> Doc ann
@@ -428,7 +429,8 @@ instance Pretty a => Pretty1 ((,) a) where
 --   1. output should be pretty. :-)
 class Pretty2 f where
 
-    liftPretty2 :: (a -> Doc ann)
+    liftPretty2
+                :: (a -> Doc ann)
                 -> ([a] -> Doc ann)
                 -> (b -> Doc ann)
                 -> ([b] -> Doc ann)
