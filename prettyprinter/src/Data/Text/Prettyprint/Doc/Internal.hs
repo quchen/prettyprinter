@@ -366,6 +366,18 @@ class Pretty1 f where
                -> f a
                -> Doc ann
 
+instance Pretty1 [] where
+    liftPretty _ prettyList' = prettyList'
+
+instance Pretty1 NonEmpty where
+    liftPretty _ prettyList' (x:|xs) = prettyList' (x:xs)
+
+instance Pretty1 Maybe where
+    liftPretty p _ = maybe emptyDoc p
+
+instance Pretty a => Pretty1 ((,) a) where
+    liftPretty pretty2 _ (x1, x2) = tupled [pretty x1, pretty2 x2]
+
 -- | Overloaded conversion to 'Doc', lifted to binary type constructors.
 --
 -- Laws:
