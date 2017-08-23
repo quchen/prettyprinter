@@ -383,6 +383,8 @@ instance Pretty1 NonEmpty where
 instance Pretty1 Maybe where
     liftPretty p _ = maybe emptyDoc p
 
+-- | >>> liftPretty (parens . pretty) (123, "hello")
+-- (123, (hello))
 instance Pretty a => Pretty1 ((,) a) where
     liftPretty pretty2 _ (x1, x2) = tupled [pretty x1, pretty2 x2]
 
