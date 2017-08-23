@@ -378,10 +378,10 @@ class Pretty1 f where
     -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
     -- (hello)
     liftPretty
-               :: (a -> Doc ann)   -- ^ A function to print a single value.
-               -> ([a] -> Doc ann) -- ^ A function to print a list. Used for [].
-               -> f a
-               -> Doc ann
+        :: (a -> Doc ann)   -- ^ A function to print a single value.
+        -> ([a] -> Doc ann) -- ^ A function to print a list. Used for [].
+        -> f a
+        -> Doc ann
 
 -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) [1,2,3]
 -- [(1), (2), (3)]
@@ -430,12 +430,12 @@ instance Pretty a => Pretty1 ((,) a) where
 class Pretty2 f where
 
     liftPretty2
-                :: (a -> Doc ann)
-                -> ([a] -> Doc ann)
-                -> (b -> Doc ann)
-                -> ([b] -> Doc ann)
-                -> f a b
-                -> Doc ann
+        :: (a -> Doc ann)
+        -> ([a] -> Doc ann)
+        -> (b -> Doc ann)
+        -> ([b] -> Doc ann)
+        -> f a b
+        -> Doc ann
 
 -- | Print 'Left' and 'Right' contents with the supplied functions.
 --
