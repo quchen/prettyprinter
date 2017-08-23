@@ -361,9 +361,6 @@ instance Pretty Void where pretty = absurd
 class Pretty1 f where
     liftPretty :: (a -> Doc ann) -> ([a] -> Doc ann) -> f a -> Doc ann
 
-    liftPrettyList :: (a -> Doc ann) -> ([a] -> Doc ann) -> [f a] -> Doc ann
-    liftPrettyList p pl = list . map (liftPretty p pl)
-
 -- | Overloaded conversion to 'Doc', lifted to binary type constructors.
 --
 -- Laws:
@@ -371,9 +368,6 @@ class Pretty1 f where
 --   1. output should be pretty. :-)
 class Pretty2 f where
     liftPretty2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> f a b -> Doc ann
-
-    liftPrettyList2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> [f a b] -> Doc ann
-    liftPrettyList2 pa pla pb plb = list . map (liftPretty2 pa pla pb plb)
 
 
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
