@@ -403,6 +403,10 @@ instance Pretty a => Pretty1 ((,) a) where
 
 -- | Overloaded conversion to 'Doc', lifted to binary type constructors.
 --
+-- This is most useful for defining 'Pretty' instances for recursive types, and
+-- for efficiently pretty-printing 'Functor's whose definitions of 'fmap' don’t
+-- fuse.
+--
 -- Laws:
 --
 --   1. output should be pretty. :-)
