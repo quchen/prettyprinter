@@ -352,7 +352,6 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 -- []
 instance Pretty Void where pretty = absurd
 
-
 -- | Overloaded conversion to 'Doc', lifted to unary type constructors.
 --
 -- Laws:
@@ -368,7 +367,6 @@ class Pretty1 f where
 --   1. output should be pretty. :-)
 class Pretty2 f where
     liftPretty2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> f a b -> Doc ann
-
 
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --
