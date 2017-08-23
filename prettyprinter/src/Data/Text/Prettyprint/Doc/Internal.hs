@@ -403,9 +403,9 @@ instance Pretty1 Maybe where
 -- | Print 'Left' contents with 'pretty', and 'Right' contents with the supplied
 -- function.
 --
--- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Left True)
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Left True :: Either Bool Bool)
 -- True
--- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Right True)
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Right True :: Either Bool Bool)
 -- (True)
 instance Pretty a => Pretty1 (Either a) where
     liftPretty prettyRight _ = either pretty prettyRight
@@ -439,9 +439,9 @@ class Pretty2 f where
 
 -- | Print 'Left' and 'Right' contents with the supplied functions.
 --
--- >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (Left True)
+-- >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (Left True :: Either Bool Bool)
 -- (True)
--- >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (Right True)
+-- >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (Right True :: Either Bool Bool)
 -- (True)
 instance Pretty2 Either where
     liftPretty2 prettyLeft _ prettyRight _ = either prettyLeft prettyRight
