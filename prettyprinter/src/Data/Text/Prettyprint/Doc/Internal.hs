@@ -353,12 +353,22 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 instance Pretty Void where pretty = absurd
 
 
+-- | Overloaded conversion to 'Doc', lifted to unary type constructors.
+--
+-- Laws:
+--
+--   1. output should be pretty. :-)
 class Pretty1 f where
     liftPretty :: (a -> Doc ann) -> ([a] -> Doc ann) -> f a -> Doc ann
 
     liftPrettyList :: (a -> Doc ann) -> ([a] -> Doc ann) -> [f a] -> Doc ann
     liftPrettyList p pl = list . map (liftPretty p pl)
 
+-- | Overloaded conversion to 'Doc', lifted to binary type constructors.
+--
+-- Laws:
+--
+--   1. output should be pretty. :-)
 class Pretty2 f where
     liftPretty2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> f a b -> Doc ann
 
