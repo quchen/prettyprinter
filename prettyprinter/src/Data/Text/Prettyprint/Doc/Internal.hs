@@ -363,6 +363,10 @@ instance Pretty Void where pretty = absurd
 
 -- | Overloaded conversion to 'Doc', lifted to unary type constructors.
 --
+-- This is most useful for defining 'Pretty' instances for recursive types, and
+-- for efficiently pretty-printing 'Functor's whose definitions of 'fmap' don’t
+-- fuse.
+--
 -- Laws:
 --
 --   1. output should be pretty. :-)
