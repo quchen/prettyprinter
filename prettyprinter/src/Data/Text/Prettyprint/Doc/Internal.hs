@@ -359,8 +359,8 @@ instance Pretty Void where pretty = absurd
 --   1. output should be pretty. :-)
 class Pretty1 f where
 
-    -- | >>> liftPretty (\ s -> pretty s <> dot) (Just "hello")
-    -- hello.
+    -- | >>> liftPretty (parens . pretty) (Just "hello")
+    -- (hello)
     liftPretty :: (a -> Doc ann)
                -> ([a] -> Doc ann)
                -> f a
