@@ -378,8 +378,8 @@ class Pretty1 f where
     -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
     -- (hello)
     liftPretty
-               :: (a -> Doc ann)
-               -> ([a] -> Doc ann)
+               :: (a -> Doc ann)   -- ^ A function to print a single value.
+               -> ([a] -> Doc ann) -- ^ A function to print a list. Used for [].
                -> f a
                -> Doc ann
 
