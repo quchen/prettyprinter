@@ -328,6 +328,12 @@ instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
     prettyList = prettyList . catMaybes
 
+-- | Print 'Left' and 'Right' contents.
+--
+-- >>> pretty (Left True)
+-- True
+-- >>> pretty (Right True)
+-- True
 instance (Pretty a, Pretty b) => Pretty (Either a b) where
     pretty = either pretty pretty
 
