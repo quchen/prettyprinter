@@ -396,6 +396,9 @@ instance Pretty1 NonEmpty where
 instance Pretty1 Maybe where
     liftPretty prettyJust _ = maybe mempty prettyJust
 
+instance Pretty a => Pretty1 (Either a) where
+    liftPretty prettyRight _ = either pretty prettyRight
+
 -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (123, "hello")
 -- (123, (hello))
 instance Pretty a => Pretty1 ((,) a) where
@@ -419,6 +422,8 @@ class Pretty2 f where
                 -> f a b
                 -> Doc ann
 
+instance Pretty2 Either where
+    liftPretty2 prettyLeft _ prettyRight _ = either prettyLeft prettyRight
 
 -- | >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (123, "hello")
 -- ((123), (hello))
