@@ -403,6 +403,8 @@ class Pretty2 f where
                 -> Doc ann
 
 
+-- | >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (123, "hello")
+-- ((123), (hello))
 instance Pretty2 (,) where
     liftPretty2 pretty1 _ pretty2 _ (x1, x2) = tupled [pretty1 x1, pretty2 x2]
 
