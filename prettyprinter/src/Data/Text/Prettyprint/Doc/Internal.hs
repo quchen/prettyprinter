@@ -430,10 +430,10 @@ instance Pretty a => Pretty1 ((,) a) where
 class Pretty2 f where
 
     liftPretty2
-        :: (a -> Doc ann)
-        -> ([a] -> Doc ann)
-        -> (b -> Doc ann)
-        -> ([b] -> Doc ann)
+        :: (a -> Doc ann)   -- ^ A function to print a single value of the first parameter.
+        -> ([a] -> Doc ann) -- ^ A function to print a list of the first parameter.
+        -> (b -> Doc ann)   -- ^ A function to print a single value of the second parameter.
+        -> ([b] -> Doc ann) -- ^ A function to print a list of the second parameter.
         -> f a b
         -> Doc ann
 
