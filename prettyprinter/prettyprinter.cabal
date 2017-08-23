@@ -40,8 +40,6 @@ library
         , Data.Text.Prettyprint.Doc.Symbols.Unicode
         , Data.Text.Prettyprint.Doc.Symbols.Ascii
 
-        , Data.Functor.Classes.Pretty
-
         -- Deprecated
         , Data.Text.Prettyprint.Doc.Render.ShowS
 
