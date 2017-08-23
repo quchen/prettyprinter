@@ -422,6 +422,12 @@ class Pretty2 f where
                 -> f a b
                 -> Doc ann
 
+-- | Print 'Left' and 'Right' contents with the supplied functions.
+--
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Left True)
+-- True
+-- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Right True)
+-- True
 instance Pretty2 Either where
     liftPretty2 prettyLeft _ prettyRight _ = either prettyLeft prettyRight
 
