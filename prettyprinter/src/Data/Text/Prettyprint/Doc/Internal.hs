@@ -374,6 +374,12 @@ instance Pretty1 [] where
 instance Pretty1 NonEmpty where
     liftPretty _ prettyList' (x:|xs) = prettyList' (x:xs)
 
+-- | Ignore 'Nothing's, print 'Just' contents.
+--
+-- >>> liftPretty (parens . pretty) (Just True)
+-- (True)
+-- >>> braces (liftPretty (parens . pretty) (Nothing :: Maybe Bool))
+-- {}
 instance Pretty1 Maybe where
     liftPretty p _ = maybe emptyDoc p
 
