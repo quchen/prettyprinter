@@ -353,6 +353,18 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 instance Pretty Void where pretty = absurd
 
 
+class Pretty1 f where
+    liftPretty :: (a -> Doc ann) -> ([a] -> Doc ann) -> f a -> Doc ann
+
+    liftPrettyList :: (a -> Doc ann) -> ([a] -> Doc ann) -> [f a] -> Doc ann
+    liftPrettyList p pl = list . map (liftPretty p pl)
+
+class Pretty2 f where
+    liftPretty2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> f a b -> Doc ann
+
+    liftPrettyList2 :: (a -> Doc ann) -> ([a] -> Doc ann) -> (b -> Doc ann) -> ([b] -> Doc ann) -> [f a b] -> Doc ann
+    liftPrettyList2 pa pla pb plb = list . map (liftPretty2 pa pla pb plb)
+
 
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --
