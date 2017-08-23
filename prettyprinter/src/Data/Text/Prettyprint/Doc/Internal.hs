@@ -400,6 +400,10 @@ class Pretty2 f where
                 -> f a b
                 -> Doc ann
 
+
+instance Pretty2 (,) where
+    liftPretty2 pretty1 _ pretty2 _ (x1, x2) = tupled [pretty1 x1, pretty2 x2]
+
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --
 -- The string must not contain any newline characters, since this is an
