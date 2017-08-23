@@ -328,6 +328,9 @@ instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
     prettyList = prettyList . catMaybes
 
+instance (Pretty a, Pretty b) => Pretty (Either a b) where
+    pretty = either pretty pretty
+
 -- | Automatically converts all newlines to @'line'@.
 --
 -- >>> pretty ("hello\nworld" :: Text)
