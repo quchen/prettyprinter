@@ -267,6 +267,10 @@ module Data.Text.Prettyprint.Doc (
     PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
 
+    -- * Lifted classes.
+    Pretty1(..),
+    Pretty2(..),
+
     -- * Migration guide
     --
     -- $migration
