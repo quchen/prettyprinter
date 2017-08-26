@@ -449,11 +449,11 @@ class Pretty2 f where
 -- | Print 'Left' and 'Right' contents with the supplied functions.
 --
 -- >>> let parenthesized = parens . pretty
--- >>>     parenthesizedList = list . map parenthesized
+-- >>> let parenthesizedList = list . map parenthesized
 -- >>> liftPretty2 parenthesized parenthesizedList parenthesized parenthesizedList (Left True :: Either Bool Bool)
 -- (True)
 -- >>> let parenthesized = parens . pretty
--- >>>     parenthesizedList = list . map parenthesized
+-- >>> let parenthesizedList = list . map parenthesized
 -- >>> liftPretty2 parenthesized parenthesizedList parenthesized parenthesizedList (Right True :: Either Bool Bool)
 -- (True)
 instance Pretty2 Either where
