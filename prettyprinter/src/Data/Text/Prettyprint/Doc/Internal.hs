@@ -372,7 +372,7 @@ instance Pretty Void where pretty = absurd
 --
 -- Laws:
 --
---   1. output should be pretty. :-)
+--   1. liftPretty pretty prettyList f = pretty f
 class Pretty1 f where
 
     -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
@@ -426,7 +426,8 @@ instance Pretty a => Pretty1 ((,) a) where
 --
 -- Laws:
 --
---   1. output should be pretty. :-)
+--   1. liftPretty2 pretty prettyList p pl f = liftPretty p pl f
+--   2. liftPretty2 pretty prettyList pretty prettyList f = pretty f
 class Pretty2 f where
 
     liftPretty2
