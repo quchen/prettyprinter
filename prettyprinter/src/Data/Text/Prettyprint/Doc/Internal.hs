@@ -372,7 +372,11 @@ instance Pretty Void where pretty = absurd
 --
 -- Laws:
 --
---   1. liftPretty pretty prettyList f = pretty f
+--   1. @'Pretty1' f@ and @'Pretty' (f a)@ should result in identical behaviour:
+--
+--      @
+--      liftPretty pretty prettyList f = pretty f
+--      @
 class Pretty1 f where
 
     -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
@@ -426,8 +430,12 @@ instance Pretty a => Pretty1 ((,) a) where
 --
 -- Laws:
 --
---   1. liftPretty2 pretty prettyList p pl f = liftPretty p pl f
---   2. liftPretty2 pretty prettyList pretty prettyList f = pretty f
+--   1. @'Pretty2' f@, @'Pretty1' (f a)@, and @'Pretty' (f a b)@ should result
+--      in identical behaviour:
+--
+--      @
+--      liftPretty2 pretty prettyList pretty prettyList f = liftPretty pretty prettyList f = pretty f
+--      @
 class Pretty2 f where
 
     liftPretty2
