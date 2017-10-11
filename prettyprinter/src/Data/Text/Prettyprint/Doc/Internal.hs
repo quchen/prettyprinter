@@ -379,45 +379,44 @@ instance Pretty Void where pretty = absurd
 --      @
 class Pretty1 f where
 
-    -- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just "hello")
+    -- | >>> liftPretty (parens . pretty) (Just "hello")
     -- (hello)
     liftPretty
-        :: (a -> Doc ann)   -- ^ A function to print a single value.
-        -> ([a] -> Doc ann) -- ^ A function to print a list. Used for [].
+        :: (a -> Doc ann)   -- ^ A function to print a value.
         -> f a
         -> Doc ann
 
--- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) [1,2,3]
+-- | >>> liftPretty (parens . pretty) [1,2,3]
 -- [(1), (2), (3)]
 instance Pretty1 [] where
-    liftPretty _ prettyList' = prettyList'
+    liftPretty pretty' = list . map pretty'
 
 instance Pretty1 NonEmpty where
-    liftPretty _ prettyList' (x:|xs) = prettyList' (x:xs)
+    liftPretty pretty' (x:|xs) = liftPretty pretty' (x:xs)
 
 -- | Ignore 'Nothing's, print 'Just' contents with the supplied function.
 --
--- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Just True)
+-- >>> liftPretty (parens . pretty) (Just True)
 -- (True)
--- >>> braces (liftPretty (parens . pretty) (list . map (parens . pretty)) (Nothing :: Maybe Bool))
+-- >>> braces (liftPretty (parens . pretty) (Nothing :: Maybe Bool))
 -- {}
 instance Pretty1 Maybe where
-    liftPretty prettyJust _ = maybe mempty prettyJust
+    liftPretty prettyJust = maybe mempty prettyJust
 
 -- | Print 'Left' contents with 'pretty', and 'Right' contents with the supplied
 -- function.
 --
--- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Left True :: Either Bool Bool)
+-- >>> liftPretty (parens . pretty) (Left True :: Either Bool Bool)
 -- True
--- >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (Right True :: Either Bool Bool)
+-- >>> liftPretty (parens . pretty) (Right True :: Either Bool Bool)
 -- (True)
 instance Pretty a => Pretty1 (Either a) where
-    liftPretty prettyRight _ = either pretty prettyRight
+    liftPretty prettyRight = either pretty prettyRight
 
--- | >>> liftPretty (parens . pretty) (list . map (parens . pretty)) (123, "hello")
+-- | >>> liftPretty (parens . pretty) (123, "hello")
 -- (123, (hello))
 instance Pretty a => Pretty1 ((,) a) where
-    liftPretty pretty2 _ (x1, x2) = tupled [pretty x1, pretty2 x2]
+    liftPretty pretty2 (x1, x2) = tupled [pretty x1, pretty2 x2]
 
 -- | Overloaded conversion to 'Doc', lifted to binary type constructors.
 --
@@ -440,29 +439,24 @@ class Pretty2 f where
 
     liftPretty2
         :: (a -> Doc ann)   -- ^ A function to print a single value of the first parameter.
-        -> ([a] -> Doc ann) -- ^ A function to print a list of the first parameter.
         -> (b -> Doc ann)   -- ^ A function to print a single value of the second parameter.
-        -> ([b] -> Doc ann) -- ^ A function to print a list of the second parameter.
         -> f a b
         -> Doc ann
 
 -- | Print 'Left' and 'Right' contents with the supplied functions.
 --
 -- >>> let parenthesized = parens . pretty
--- >>> let parenthesizedList = list . map parenthesized
--- >>> liftPretty2 parenthesized parenthesizedList parenthesized parenthesizedList (Left True :: Either Bool Bool)
+-- >>> liftPretty2 parenthesized parenthesized (Left True :: Either Bool Bool)
 -- (True)
--- >>> let parenthesized = parens . pretty
--- >>> let parenthesizedList = list . map parenthesized
--- >>> liftPretty2 parenthesized parenthesizedList parenthesized parenthesizedList (Right True :: Either Bool Bool)
+-- >>> liftPretty2 parenthesized parenthesized (Right True :: Either Bool Bool)
 -- (True)
 instance Pretty2 Either where
-    liftPretty2 prettyLeft _ prettyRight _ = either prettyLeft prettyRight
+    liftPretty2 prettyLeft prettyRight = either prettyLeft prettyRight
 
--- | >>> liftPretty2 (parens . pretty) (list . map (parens . pretty)) (parens . pretty) (list . map (parens . pretty)) (123, "hello")
+-- | >>> liftPretty2 (parens . pretty) (parens . pretty) (123, "hello")
 -- ((123), (hello))
 instance Pretty2 (,) where
-    liftPretty2 pretty1 _ pretty2 _ (x1, x2) = tupled [pretty1 x1, pretty2 x2]
+    liftPretty2 pretty1 pretty2 (x1, x2) = tupled [pretty1 x1, pretty2 x2]
 
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --
