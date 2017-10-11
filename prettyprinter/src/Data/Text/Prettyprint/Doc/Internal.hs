@@ -372,10 +372,11 @@ instance Pretty Void where pretty = absurd
 --
 -- Laws:
 --
---   1. @'Pretty1' f@ and @'Pretty' (f a)@ should result in identical behaviour:
+--   1. @'Pretty1' f@ and @'Pretty' (f a)@ should result in identical behaviour
+--      when @'prettyList' = 'list' . map 'pretty'@ (the default definition):
 --
 --      @
---      liftPretty pretty prettyList f = pretty f
+--      liftPretty pretty f = pretty f
 --      @
 class Pretty1 f where
 
