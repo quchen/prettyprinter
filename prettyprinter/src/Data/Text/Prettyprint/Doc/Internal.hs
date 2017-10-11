@@ -437,11 +437,12 @@ instance Pretty a => Pretty1 ((,) a) where
 --
 -- Laws:
 --
---   1. @'Pretty2' f@, @'Pretty1' (f a)@, and @'Pretty' (f a b)@ should result
---      in identical behaviour:
+--   1. @'Pretty2' f@, @'Pretty1' (f a)@, and @'Pretty' (f a b)@ should result in
+--      identical behaviour when @'prettyList' = 'list' . map 'pretty'@ (the
+--      default definition):
 --
 --      @
---      liftPretty2 pretty prettyList pretty prettyList f = liftPretty pretty prettyList f = pretty f
+--      liftPretty2 pretty pretty f = liftPretty pretty f = pretty f
 --      @
 class Pretty2 f where
 
