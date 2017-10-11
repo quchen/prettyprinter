@@ -388,7 +388,7 @@ instance Pretty Void where pretty = absurd
 --
 -- ==== __Examples__
 --
--- Using 'Pretty1' to provide a (decidable!) 'Pretty' instance for a recursive
+-- Using 'Pretty1' to provide a (decidable) 'Pretty' instance for a recursive
 -- type:
 --
 -- >>> data Expr a = Plus a a | Times a a | Const Int
