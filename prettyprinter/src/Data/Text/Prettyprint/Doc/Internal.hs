@@ -449,6 +449,11 @@ instance Pretty a => Pretty1 ((,) a) where
 --      @
 class Pretty2 f where
 
+    -- | Pretty-print a container using the supplied functions to print its
+    -- contents.
+    --
+    -- >>> liftPretty2 (parens . pretty) pretty (("hello", 0) :: (String, Int))
+    -- ((hello), 0)
     liftPretty2
         :: (a -> Doc ann) -- ^ A function to print a value of the first parameter.
         -> (b -> Doc ann) -- ^ A function to print a value of the second parameter.
