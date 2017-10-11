@@ -383,7 +383,7 @@ instance Pretty Void where pretty = absurd
 -- 'prettyList', the behaviour will differ for '[]', 'Maybe', and other types
 -- whose instances customize 'prettyList':
 --
--- >>> liftPretty pretty "hello"
+-- >>> liftPretty pretty ("hello" :: String)
 -- [h, e, l, l, o]
 class Pretty1 f where
 
