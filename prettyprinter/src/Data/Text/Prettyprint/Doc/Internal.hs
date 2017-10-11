@@ -387,7 +387,10 @@ instance Pretty Void where pretty = absurd
 -- [h, e, l, l, o]
 class Pretty1 f where
 
-    -- | >>> liftPretty (parens . pretty) (Just "hello")
+    -- | Pretty-print a container using the supplied function to print its
+    -- contents.
+    --
+    -- >>> liftPretty (parens . pretty) (Just "hello")
     -- (hello)
     liftPretty
         :: (a -> Doc ann) -- ^ A function to print a value.
