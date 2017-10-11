@@ -385,6 +385,18 @@ instance Pretty Void where pretty = absurd
 --
 -- >>> liftPretty pretty ("hello" :: String)
 -- [h, e, l, l, o]
+--
+-- ==== __Examples__
+--
+-- Using 'Pretty1' to provide a (decidable!) 'Pretty' instance for a recursive
+-- type:
+--
+-- >>> data Expr a = Plus a a | Times a a | Const Int
+-- >>> newtype Fix f = Fix (f (Fix f))
+-- >>> instance Pretty1 Expr where liftPretty p e = case e of { Plus a b -> parens (p a <+> pretty '+' <+> p b) ; Times a b -> p a <+> pretty '*' <+> p b ; Const i -> pretty i }
+-- >>> instance Pretty1 f => Pretty (Fix f) where pretty (Fix f) = liftPretty pretty f
+-- >>> pretty (Fix (Times (Fix (Plus (Fix (Const 1)) (Fix (Const 2)))) (Fix (Const 3))))
+-- (1 + 2) * 3
 class Pretty1 f where
 
     -- | Pretty-print a container using the supplied function to print its
