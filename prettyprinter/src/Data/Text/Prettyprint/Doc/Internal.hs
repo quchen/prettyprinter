@@ -378,6 +378,13 @@ instance Pretty Void where pretty = absurd
 --      @
 --      liftPretty pretty f = pretty f
 --      @
+--
+-- Note that since 'liftPretty' does not receive a function corresponding to
+-- 'prettyList', the behaviour will differ for '[]', 'Maybe', and other types
+-- whose instances customize 'prettyList':
+--
+-- >>> liftPretty pretty "hello"
+-- [h, e, l, l, o]
 class Pretty1 f where
 
     -- | >>> liftPretty (parens . pretty) (Just "hello")
