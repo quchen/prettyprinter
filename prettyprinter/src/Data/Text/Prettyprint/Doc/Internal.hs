@@ -390,7 +390,7 @@ class Pretty1 f where
     -- | >>> liftPretty (parens . pretty) (Just "hello")
     -- (hello)
     liftPretty
-        :: (a -> Doc ann)   -- ^ A function to print a value.
+        :: (a -> Doc ann) -- ^ A function to print a value.
         -> f a
         -> Doc ann
 
@@ -447,8 +447,8 @@ instance Pretty a => Pretty1 ((,) a) where
 class Pretty2 f where
 
     liftPretty2
-        :: (a -> Doc ann)   -- ^ A function to print a value of the first parameter.
-        -> (b -> Doc ann)   -- ^ A function to print a value of the second parameter.
+        :: (a -> Doc ann) -- ^ A function to print a value of the first parameter.
+        -> (b -> Doc ann) -- ^ A function to print a value of the second parameter.
         -> f a b
         -> Doc ann
 
