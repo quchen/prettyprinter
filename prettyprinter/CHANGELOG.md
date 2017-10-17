@@ -1,3 +1,11 @@
+# 1.2
+
+- `encloseSep` does no longer include an `align` wrapper; in other words,
+
+    ```haskell
+    encloseSep_old … = align (encloseSep_new …)
+    ```
+
 # 1.1.1
 
 - Add `panicPeekedEmpty` and `panicPoppedEmpty` to the panic module

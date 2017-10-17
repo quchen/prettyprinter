@@ -576,7 +576,7 @@ changesUponFlattening = \case
 -- >>> let open        = flatAlt "" "{ "
 -- >>> let close       = flatAlt "" " }"
 -- >>> let separator   = flatAlt "" "; "
--- >>> let prettyDo xs = group ("do" <+> encloseSep open close separator xs)
+-- >>> let prettyDo xs = group ("do" <+> align (encloseSep open close separator xs))
 -- >>> let statements  = ["name:_ <- getArgs", "let greet = \"Hello, \" <> name", "putStrLn greet"]
 --
 -- This is put into a single line with @{;}@ style if it fits,
@@ -671,18 +671,21 @@ indent i d = hang i (spaces i <> d)
 --
 -- The documents are laid out horizontally if that fits the page,
 --
--- >>> let doc = "list" <+> encloseSep lbracket rbracket comma (map pretty [1,20,300,4000])
+-- >>> let doc = "list" <+> align (encloseSep lbracket rbracket comma (map pretty [1,20,300,4000]))
 -- >>> putDocW 80 doc
 -- list [1,20,300,4000]
 --
 -- If there is not enough space, then the input is split into lines entry-wise
--- therwise they are aligned vertically, with separators put in the front:
+-- therwise they are laid out vertically, with separators put in the front:
 --
 -- >>> putDocW 10 doc
 -- list [1
 --      ,20
 --      ,300
 --      ,4000]
+--
+-- Note that @doc@ contains an explicit call to 'align' so that the list items
+-- are aligned vertically.
 --
 -- For putting separators at the end of entries instead, have a look at
 -- 'punctuate'.
@@ -695,7 +698,7 @@ encloseSep
 encloseSep l r s ds = case ds of
     []  -> l <> r
     [d] -> l <> d <> r
-    _   -> align (cat (zipWith (<>) (l : repeat s) ds) <> r)
+    _   -> cat (zipWith (<>) (l : repeat s) ds) <> r
 
 -- | Haskell-inspired variant of 'encloseSep' with braces and comma as
 -- separator.
@@ -1514,7 +1517,7 @@ layoutPretty = layoutWadlerLeijen
 -- Considre the following python-ish document,
 --
 -- >>> let fun x = hang 2 ("fun(" <> softline' <> x) <> ")"
--- >>> let doc = (fun . fun . fun . fun . fun) (list ["abcdef", "ghijklm"])
+-- >>> let doc = (fun . fun . fun . fun . fun) (align (list ["abcdef", "ghijklm"]))
 --
 -- which we’ll be rendering using the following pipeline (where the layout
 -- algorithm has been left open),
