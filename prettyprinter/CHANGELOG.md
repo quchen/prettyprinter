@@ -6,6 +6,8 @@
     encloseSep_old … = align (encloseSep_new …)
     ```
 
+- Change the default ribbon fraction to 1 (was 0.4)
+
 # 1.1.1
 
 - Add `panicPeekedEmpty` and `panicPoppedEmpty` to the panic module

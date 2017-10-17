@@ -1477,9 +1477,9 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 -- example.
 --
 -- >>> defaultLayoutOptions
--- LayoutOptions {layoutPageWidth = AvailablePerLine 80 0.4}
+-- LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}
 defaultLayoutOptions :: LayoutOptions
-defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 0.4 }
+defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 1 }
 
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
