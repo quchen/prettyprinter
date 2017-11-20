@@ -240,6 +240,16 @@ panicStyleStackNotFullyConsumed len
 -- style = 'color' 'Green' '<>' 'bold'
 -- styledDoc = 'annotate' style "hello world"
 -- @
+--
+-- Each block is styled individually, i. e.
+--
+-- @
+-- red = 'color' 'Red'
+-- styledDoc = 'annotate' red "red" <+> 'annotate' 'mempty' "default" <+> 'annotate' 'bold' "bold"
+-- @
+--
+-- renders @"red"@ in red with default boldness, @"default"@ in the terminal's
+-- default color and boldness, and @"bold"@ in bold with default colors.
 data AnsiStyle = SetAnsiStyle
     { ansiForeground  :: Maybe (Intensity, Color) -- ^ Set the foreground color, or keep the old one.
     , ansiBackground  :: Maybe (Intensity, Color) -- ^ Set the background color, or keep the old one.
@@ -266,6 +276,7 @@ instance Semigroup AnsiStyle where
         , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
         , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
 
+-- | 'mempty' is the terminal default style.
 instance Monoid AnsiStyle where
     mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
