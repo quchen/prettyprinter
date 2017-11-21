@@ -232,9 +232,9 @@ panicStyleStackNotFullyConsumed len
 -- -- \ESC[0;91mred \ESC[0;94;4mblue+u \ESC[0;94;1;4mbold\ESC[0;94;4m blue+u\ESC[0;91m
 -- --     red\ESC[0m
 
--- | Begin rendering in a certain style. Instead of using this type directly,
--- consider using the 'Semigroup' instance to create new styles out of the smart
--- constructors, such as
+-- | Render the annotated document in a certain style. Styles not set in the
+-- annotation will use the style of the surrounding document, or the terminal’s
+-- default if none has been set yet.
 --
 -- @
 -- style = 'color' 'Green' '<>' 'bold'
@@ -249,7 +249,8 @@ data AnsiStyle = SetAnsiStyle
     } deriving (Eq, Ord, Show)
 
 -- | Keep the first decision for each of foreground color, background color,
--- boldness, italication, and underlining.
+-- boldness, italication, and underlining. If a certain style is not set, the
+-- terminal’s default will be used.
 --
 -- Example:
 --
@@ -257,7 +258,8 @@ data AnsiStyle = SetAnsiStyle
 -- 'color' 'Red' '<>' 'color' 'Green'
 -- @
 --
--- is red.
+-- is red because the first color wins, and not bold because (or if) that’s the
+-- terminal’s default.
 instance Semigroup AnsiStyle where
     cs1 <> cs2 = SetAnsiStyle
         { ansiForeground  = ansiForeground  cs1 <|> ansiForeground  cs2
@@ -266,6 +268,8 @@ instance Semigroup AnsiStyle where
         , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
         , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
 
+-- | 'mempty' does nothing, which is equivalent to inheriting the style of the
+-- surrounding doc, or the terminal’s default if no style has been set yet.
 instance Monoid AnsiStyle where
     mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
