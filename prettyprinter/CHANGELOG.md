@@ -5,8 +5,8 @@
     ```haskell
     encloseSep_old … = align (encloseSep_new …)
     ```
-
 - Change the default ribbon fraction to 1 (was 0.4)
+- Expose `viaShow` and `unsafeViaShow` from the public module
 
 # 1.1.1
 

@@ -235,13 +235,14 @@ instance Pretty Char where
 
     prettyList = pretty . (id :: Text -> Text) . fromString
 
--- | Convert a 'Show'able value to a 'Doc'. If the 'String' does not contain
--- newlines, consider using the more performant 'unsafeViaShow'.
+-- | Convenience function to convert a 'Show'able value to a 'Doc'. If the
+-- 'String' does not contain newlines, consider using the more performant
+-- 'unsafeViaShow'.
 viaShow :: Show a => a -> Doc ann
 viaShow = pretty . T.pack . show
 
--- | Convert a 'Show'able value /that must not contain newlines/ to a 'Doc'.
--- If there may be newlines, use 'viaShow' instead.
+-- | Convenience function to convert a 'Show'able value /that must not contain
+-- newlines/ to a 'Doc'. If there may be newlines, use 'viaShow' instead.
 unsafeViaShow :: Show a => a -> Doc ann
 unsafeViaShow = unsafeTextWithoutNewlines . T.pack . show
 
