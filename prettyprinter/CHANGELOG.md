@@ -7,6 +7,7 @@
     ```
 - Change the default ribbon fraction to 1 (was 0.4)
 - Expose `viaShow` and `unsafeViaShow` from the public module
+- Fix `layoutSmart` behaving as if there was no space left for unbounded pages
 
 # 1.1.1
 

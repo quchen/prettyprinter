@@ -48,6 +48,10 @@ tests = testGroup "Tests"
         , testCase "fillSep performance"
                    fillSepPerformance
         ]
+    , testGroup "Regression tests"
+        [ testCase "layoutSmart: softline behaves like a newline (#49)"
+                   regressionLayoutSmartSoftline
+        ]
     ]
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
@@ -179,3 +183,12 @@ fillSepPerformance = docPerformanceTest (pathological 1000)
   where
     pathological :: Int -> Doc ann
     pathological n = iterate (\x -> fillSep ["a", x <+> "b"] ) "foobar" !! n
+
+regressionLayoutSmartSoftline :: Assertion
+regressionLayoutSmartSoftline
+  = let doc = "a" <> softline <> "b"
+        layouted :: SimpleDocStream ()
+        layouted = layoutSmart (defaultLayoutOptions { layoutPageWidth = Unbounded }) doc
+    in assertEqual "softline should be rendered as space page width is unbounded"
+                   (SChar 'a' (SChar ' ' (SChar 'b' SEmpty)))
+                   layouted

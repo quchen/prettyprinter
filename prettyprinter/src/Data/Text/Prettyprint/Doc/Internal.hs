@@ -1562,7 +1562,7 @@ layoutSmart
     -> SimpleDocStream ann
 layoutSmart = layoutWadlerLeijen
     (FittingPredicate (\pWidth minNestingLevel maxWidth sdoc -> case maxWidth of
-        Nothing -> False
+        Nothing -> True
         Just w -> fits pWidth minNestingLevel w sdoc ))
   where
     -- Search with more lookahead: assuming that nesting roughly corresponds to
