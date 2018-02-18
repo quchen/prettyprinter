@@ -199,6 +199,7 @@ regressionLayoutSmartSoftline
 -- pops, leading to imbalanced SimpleDocStreams.
 regressionAlterAnnotationsS :: Assertion
 regressionAlterAnnotationsS
-  = let sdoc :: SimpleDocStream ()
-        sdoc = alterAnnotationsS (const Nothing) (layoutSmart defaultLayoutOptions (annotate () "a"))
-    in assertEqual "" (SChar 'a' SEmpty) sdoc
+  = let sdoc, sdoc' :: SimpleDocStream Int
+        sdoc = layoutSmart defaultLayoutOptions (annotate 1 (annotate 2 (annotate 3 "a")))
+        sdoc' = alterAnnotationsS (\case 2 -> Just 2; _ -> Nothing) sdoc
+    in assertEqual "" (SAnnPush 2 (SChar 'a' (SAnnPop SEmpty))) sdoc'
