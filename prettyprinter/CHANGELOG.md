@@ -1,4 +1,8 @@
-# Next release
+# 1.2.0.1
+
+- Fix `alterAnnotationsS` (and thus `unAnnotateS`), which removed pushing, but
+  not popping, style frames. This led to them throwing errors in pretty much all
+  use cases.
 
 # 1.2
 

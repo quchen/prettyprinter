@@ -51,6 +51,8 @@ tests = testGroup "Tests"
     , testGroup "Regression tests"
         [ testCase "layoutSmart: softline behaves like a newline (#49)"
                    regressionLayoutSmartSoftline
+        , testCase "alterAnnotationsS causes panic when removing annotations (#50)"
+                   regressionAlterAnnotationsS
         ]
     ]
 
@@ -192,3 +194,11 @@ regressionLayoutSmartSoftline
     in assertEqual "softline should be rendered as space page width is unbounded"
                    (SChar 'a' (SChar ' ' (SChar 'b' SEmpty)))
                    layouted
+
+-- Removing annotations with alterAnnotationsS used to remove pushes, but not
+-- pops, leading to imbalanced SimpleDocStreams.
+regressionAlterAnnotationsS :: Assertion
+regressionAlterAnnotationsS
+  = let sdoc :: SimpleDocStream ()
+        sdoc = alterAnnotationsS (const Nothing) (layoutSmart defaultLayoutOptions (annotate () "a"))
+    in assertEqual "" (SChar 'a' SEmpty) sdoc

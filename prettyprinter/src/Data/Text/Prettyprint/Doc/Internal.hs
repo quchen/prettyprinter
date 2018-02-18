@@ -1240,11 +1240,31 @@ alterAnnotations re = go
 
 -- | Remove all annotations. 'unAnnotate' for 'SimpleDocStream'.
 unAnnotateS :: SimpleDocStream ann -> SimpleDocStream xxx
-unAnnotateS = alterAnnotationsS (const Nothing)
+unAnnotateS = go
+  where
+    go = \case
+        SFail              -> SFail
+        SEmpty             -> SEmpty
+        SChar c rest       -> SChar c (go rest)
+        SText l t rest     -> SText l t (go rest)
+        SLine l rest       -> SLine l (go rest)
+        SAnnPop rest       -> go rest
+        SAnnPush _ann rest -> go rest
 
 -- | Change the annotation of a document. 'reAnnotate' for 'SimpleDocStream'.
 reAnnotateS :: (ann -> ann') -> SimpleDocStream ann -> SimpleDocStream ann'
-reAnnotateS re = alterAnnotationsS (Just . re)
+reAnnotateS re = go
+  where
+    go = \case
+        SFail             -> SFail
+        SEmpty            -> SEmpty
+        SChar c rest      -> SChar c (go rest)
+        SText l t rest    -> SText l t (go rest)
+        SLine l rest      -> SLine l (go rest)
+        SAnnPop rest      -> SAnnPop (go rest)
+        SAnnPush ann rest -> SAnnPush (re ann) (go rest)
+
+data AnnotationRemoval = Remove | DontRemove
 
 -- | Change the annotation of a document to a different annotation, or none at
 -- all. 'alterAnnotations' for 'SimpleDocStream'.
@@ -1254,19 +1274,23 @@ reAnnotateS re = alterAnnotationsS (Just . re)
 -- ('Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree.SimpleDocTree' restores
 -- this flexibility again.)
 alterAnnotationsS :: (ann -> Maybe ann') -> SimpleDocStream ann -> SimpleDocStream ann'
-alterAnnotationsS re = go
+alterAnnotationsS re = go []
   where
-    go = \case
+    -- We keep a stack of whether to remove a pop so that we can remove exactly
+    -- the pops corresponding to annotations that mapped to Nothing.
+    go stack = \case
         SFail             -> SFail
         SEmpty            -> SEmpty
-        SChar c rest      -> SChar c (go rest)
-        SText l t rest    -> SText l t (go rest)
-        SLine l rest      -> SLine l (go rest)
-        SAnnPop rest      -> SAnnPop (go rest)
+        SChar c rest      -> SChar c (go stack rest)
+        SText l t rest    -> SText l t (go stack rest)
+        SLine l rest      -> SLine l (go stack rest)
         SAnnPush ann rest -> case re ann of
-            Nothing   -> go rest
-            Just ann' -> SAnnPush ann' (go rest)
-
+            Nothing   -> go (Remove:stack) rest
+            Just ann' -> SAnnPush ann' (go (DontRemove:stack) rest)
+        SAnnPop rest      -> case stack of
+            []                -> panicPeekedEmpty
+            DontRemove:stack' -> SAnnPop (go stack' rest)
+            Remove:stack'     -> go stack' rest
 
 -- | Fusion depth parameter, used by 'fuse'.
 data FusionDepth =
