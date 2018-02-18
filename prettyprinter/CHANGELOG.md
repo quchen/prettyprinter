@@ -1,3 +1,5 @@
+# Next release
+
 # 1.2
 
 - `encloseSep` does no longer include an `align` wrapper; in other words,
