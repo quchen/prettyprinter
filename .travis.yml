@@ -38,6 +38,9 @@ env:
     - >
       STACK_ARGS="--resolver lts-9"
       STACK_BUILD_ARGS="--ghc-options -Werror"
+    - >
+      STACK_ARGS="--resolver lts-10"
+      STACK_BUILD_ARGS="--ghc-options -Werror"
 
     - >
       STACK_ARGS="--resolver lts"
