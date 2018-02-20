@@ -31,13 +31,15 @@ env:
       SKIP_RELEASE_CHECKS=1
     # LTS 3 to 6 all use GHC 7.10.{2,3}
     - >
-      STACK_ARGS="--resolver lts-6"
+      STACK_ARGS="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
       SKIP_RELEASE_CHECKS=1
     # LTS 7, 8 and 9 use GHC 8.0.{1,2}
     - >
-      STACK_ARGS="--resolver lts-9"
+      STACK_ARGS="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS="--ghc-options -Werror"
+
+    # LTS 10 uses GHC 8.2.2
     - >
       STACK_ARGS="--resolver lts-10"
       STACK_BUILD_ARGS="--ghc-options -Werror"
