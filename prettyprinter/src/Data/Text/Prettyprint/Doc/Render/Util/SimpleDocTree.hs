@@ -74,12 +74,12 @@ renderSimplyDecorated
 renderSimplyDecorated text renderAnn = go
   where
     go = \case
-        STEmpty -> mempty
-        STChar c -> text (T.singleton c)
-        STText _ t -> text t
-        STLine i -> text (T.singleton '\n' <> T.replicate i " ")
+        STEmpty        -> mempty
+        STChar c       -> text (T.singleton c)
+        STText _ t     -> text t
+        STLine i       -> text (T.singleton '\n' <> T.replicate i " ")
         STAnn ann rest -> renderAnn ann (go rest)
-        STConcat xs -> foldMap go xs
+        STConcat xs    -> foldMap go xs
 {-# INLINE renderSimplyDecorated #-}
 
 -- | Version of 'renderSimplyDecoratedA' that allows for 'Applicative' effects.
@@ -92,12 +92,12 @@ renderSimplyDecoratedA
 renderSimplyDecoratedA text renderAnn = go
   where
     go = \case
-        STEmpty -> pure mempty
-        STChar c -> text (T.singleton c)
-        STText _ t -> text t
-        STLine i -> text (T.singleton '\n' <> T.replicate i " ")
+        STEmpty        -> pure mempty
+        STChar c       -> text (T.singleton c)
+        STText _ t     -> text t
+        STLine i       -> text (T.singleton '\n' <> T.replicate i " ")
         STAnn ann rest -> renderAnn ann (go rest)
-        STConcat xs -> fmap mconcat (traverse go xs)
+        STConcat xs    -> fmap mconcat (traverse go xs)
 {-# INLINE renderSimplyDecoratedA #-}
 
 
