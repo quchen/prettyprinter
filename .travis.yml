@@ -37,7 +37,7 @@ env:
     # LTS 7, 8 and 9 use GHC 8.0.{1,2}
     - >
       STACK_ARGS="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
+      STACK_BUILD_ARGS=""
 
     # LTS 10 uses GHC 8.2.2
     - >
@@ -49,7 +49,7 @@ env:
       STACK_BUILD_ARGS=""
     - >
       STACK_ARGS="--resolver nightly"
-      STACK_BUILD_ARGS="--ghc-options \"-Wcompat -Werror\""
+      STACK_BUILD_ARGS="--ghc-options -Werror"
       SKIP_RELEASE_CHECKS=1
 
 

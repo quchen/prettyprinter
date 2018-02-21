@@ -4,7 +4,7 @@ packages: prettyprinter
         , prettyprinter-ansi-terminal
         , prettyprinter-compat-wl-pprint
         , prettyprinter-compat-ansi-wl-pprint
+        , prettyprinter-convert-ansi-wl-pprint
         , prettyprinter-compat-annotated-wl-pprint
-
 tests: true
 benchmarks: true
