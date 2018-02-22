@@ -111,10 +111,10 @@ renderLazy sdoc = runST (do
 
     let push x = modifySTRef' styleStackRef (x :)
         unsafePeek = readSTRef styleStackRef >>= \case
-            [] -> panicPeekedEmpty
+            []  -> panicPeekedEmpty
             x:_ -> pure x
         unsafePop = readSTRef styleStackRef >>= \case
-            [] -> panicPeekedEmpty
+            []   -> panicPeekedEmpty
             x:xs -> writeSTRef styleStackRef xs >> pure x
         writeOutput x = modifySTRef outputRef (<> x)
 
@@ -162,7 +162,7 @@ renderLazy sdoc = runST (do
 -- This function behaves just like
 --
 -- @
--- 'renderIO' h sdoc = 'TL.hPutStrLn' h ('renderLazy' sdoc)
+-- 'renderIO' h sdoc = 'TL.hPutStr' h ('renderLazy' sdoc)
 -- @
 --
 -- but will not generate any intermediate text, rendering directly to the

@@ -1,3 +1,8 @@
+# 1.1.1.2
+
+- Fix documentation claiming there would be a trailing newline in `renderIO`
+  when there is none
+
 # 1.1.1.1
 
 - `renderIO` now renders directly to STDOUT, instead of first building a textual
