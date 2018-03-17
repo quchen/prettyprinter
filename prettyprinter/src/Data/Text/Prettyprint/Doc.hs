@@ -317,4 +317,5 @@ import Data.Text.Prettyprint.Doc.Symbols.Ascii
 --     clearer in the presence of @SimpleDocTree@.
 --   - Instead of providing an own colorization function for each
 --     color\/intensity\/layer combination, they have been combined in 'color',
---     'colorDull', 'bgColor', and 'bgColorDull' functions.
+--     'colorDull', 'bgColor', and 'bgColorDull' functions, which can be found
+--     in the ANSI terminal specific @prettyprinter-ansi-terminal@ package.
