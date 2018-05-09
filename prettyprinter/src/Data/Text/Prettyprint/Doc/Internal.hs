@@ -23,6 +23,9 @@ module Data.Text.Prettyprint.Doc.Internal (
 
 
 import           Control.Applicative
+#if MIN_VERSION_base(4,8,0)
+import           Data.Functor.Identity
+#endif
 import           Data.Int
 import           Data.List.NonEmpty  (NonEmpty (..))
 import           Data.Maybe
@@ -196,6 +199,16 @@ class Pretty a where
     prettyList = list . map pretty
 
     {-# MINIMAL pretty #-}
+
+instance Pretty a => Pretty (Const a b) where
+  pretty = pretty . getConst
+
+#if MIN_VERSION_base(4,8,0)
+-- | >>> pretty (Identity 1)
+-- 1
+instance Pretty a => Pretty (Identity a) where
+  pretty = pretty . runIdentity
+#endif
 
 -- | >>> pretty [1,2,3]
 -- [1, 2, 3]
