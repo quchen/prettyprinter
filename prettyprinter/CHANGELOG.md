@@ -1,3 +1,7 @@
+# 1.2.1
+
+- Add `Pretty` instances for `Identity` and `Const`
+
 # 1.2.0.1
 
 - Fix `alterAnnotationsS` (and thus `unAnnotateS`), which removed pushing, but
