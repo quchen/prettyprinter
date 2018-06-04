@@ -163,7 +163,7 @@
 -- text replacement, producing a large diff and touching lots of places for a
 -- very small change.
 --
--- /Extensibility:/ Addng a different backend in the recommended version is
+-- /Extensibility:/ Adding a different backend in the recommended version is
 -- simply adding another @'reAnnotateS'@ to convert the @'Doc'@ annotation to
 -- something else. On the other hand, if you have @'Red'@ as an annotation in
 -- the @'Doc'@ already and the other backend does not support anything red
