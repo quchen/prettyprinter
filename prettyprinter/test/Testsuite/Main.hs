@@ -22,6 +22,8 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 
+import StripTrailingSpace
+
 #if !(APPLICATIVE_MONAD)
 import Control.Applicative
 #endif
@@ -42,6 +44,7 @@ tests = testGroup "Tests"
         , testProperty "Deep fusion does not change rendering"
                        (fusionDoesNotChangeRendering Deep)
         ]
+    , testStripTrailingSpace
     , testGroup "Performance tests"
         [ testCase "Grouping performance"
                    groupingPerformance

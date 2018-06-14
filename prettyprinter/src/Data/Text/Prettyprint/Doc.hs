@@ -278,6 +278,7 @@ module Data.Text.Prettyprint.Doc (
     SimpleDocStream(..),
     PageWidth(..), LayoutOptions(..), defaultLayoutOptions,
     layoutPretty, layoutCompact, layoutSmart,
+    removeTrailingWhitespace,
 
     -- * Migration guide
     --
