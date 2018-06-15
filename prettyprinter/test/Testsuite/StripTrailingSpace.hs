@@ -1,4 +1,7 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+
+#include "version-compatibility-macros.h"
 
 module StripTrailingSpace (testStripTrailingSpace) where
 
@@ -12,6 +15,12 @@ import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
 import Test.Tasty
 import Test.Tasty.HUnit
+
+#if !(APPLICATIVE_MONAD)
+import Control.Applicative
+#endif
+
+
 
 box :: Text -> Text
 box singleLine = unlines'
@@ -40,7 +49,7 @@ testStripTrailingSpace = testGroup "Stripping trailing space"
     , testCase "Multiple spaces inside"
                (testStripping ("Multiple spaces" <> "    " <> "inside"))
     , testCase "Whitespace inside text"
-               (testStripping ("Whitespace inside text   "))
+               (testStripping "Whitespace inside text   ")
     , testCase "Indented blank line"
                (testStripping (nest 4 (vcat ["Indented blank line", "", "<end>"])))
     , testCase "Multiple indented blank lines"
