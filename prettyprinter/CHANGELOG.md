@@ -1,10 +1,7 @@
-# 1.2.2
+# 1.2.1
 
 - Add function to trim trailing space in layouted `SimpleDocStream`,
   `removeTrailingWhitespace`
-
-# 1.2.1
-
 - Add `Pretty` instances for `Identity` and `Const`
 
 # 1.2.0.1
