@@ -286,7 +286,7 @@ instance Pretty Natural where pretty = unsafeViaShow
 instance Pretty Float where pretty = unsafeViaShow
 
 -- | >>> pretty (exp 1 :: Double)
--- 2.718281828459045
+-- 2.71828182845904...
 instance Pretty Double where pretty = unsafeViaShow
 
 -- | >>> pretty (123, "hello")
