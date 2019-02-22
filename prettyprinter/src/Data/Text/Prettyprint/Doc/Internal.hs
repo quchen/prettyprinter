@@ -197,9 +197,23 @@ class Pretty a where
     -- >>> prettyList [1, 23, 456]
     -- [1, 23, 456]
     prettyList :: [a] -> Doc ann
-    prettyList = list . map pretty
+    prettyList = align . list . map pretty
 
     {-# MINIMAL pretty #-}
+
+-- $
+-- Issue #67: Nested lists were not aligned with »pretty«, leading to non-pretty
+-- output, violating the Pretty class law.
+--
+-- >>> pretty (replicate 2 (replicate 4 (1, replicate 8 2)))
+-- [ [ (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2]) ]
+-- , [ (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
+--   , (1, [2, 2, 2, 2, 2, 2, 2, 2]) ] ]
 
 instance Pretty a => Pretty (Const a b) where
   pretty = pretty . getConst
