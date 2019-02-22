@@ -1,3 +1,7 @@
+# 1.3.0
+
+- Add alignment to Pretty [a] instance
+
 # 1.2.1
 
 - Add function to trim trailing space in layouted `SimpleDocStream`,
