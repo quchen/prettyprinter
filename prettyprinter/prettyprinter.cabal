@@ -58,7 +58,6 @@ library
         , CPP
         , LambdaCase
         , OverloadedStrings
-        , QuasiQuotes
         , DefaultSignatures
         , ScopedTypeVariables
 
@@ -93,6 +92,7 @@ executable generate_readme
     other-modules: MultilineTh
     other-extensions: OverloadedStrings
                     , TemplateHaskell
+                    , QuasiQuotes
     if flag(buildReadme)
         buildable: True
     else
