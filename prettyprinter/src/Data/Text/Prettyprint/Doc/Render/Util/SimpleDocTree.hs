@@ -127,7 +127,9 @@ instance Monad (UniqueParser s) where
         (a'', s'') <- runParser (f a') s'
         pure (a'', s'') )
 
+#if !MIN_VERSION_base(4,13,0)
     fail _err = empty
+#endif
 
 #if MONAD_FAIL
 instance MonadFail (UniqueParser s) where
