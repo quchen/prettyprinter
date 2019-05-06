@@ -14,7 +14,8 @@
 #define MONOID_IN_PRELUDE               MIN_VERSION_base(4,8,0)
 #define NATURAL_IN_BASE                 MIN_VERSION_base(4,8,0)
 
-#define MONAD_FAIL                      MIN_VERSION_base(4,9,0)
 #define SEMIGROUP_IN_BASE               MIN_VERSION_base(4,9,0)
+
+#define NO_FAIL_IN_MONAD_MONAD_FAIL     MIN_VERSION_base(4,13,0)
 
 #endif

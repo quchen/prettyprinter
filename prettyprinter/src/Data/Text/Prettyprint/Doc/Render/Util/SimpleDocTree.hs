@@ -34,9 +34,7 @@ import           GHC.Generics
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
-#if MONAD_FAIL
-import Control.Monad.Fail
-#endif
+import qualified Control.Monad.Fail as Fail
 
 #if !(MONOID_IN_PRELUDE)
 import Data.Monoid (Monoid (..))
@@ -127,12 +125,12 @@ instance Monad (UniqueParser s) where
         (a'', s'') <- runParser (f a') s'
         pure (a'', s'') )
 
-    fail _err = empty
-
-#if MONAD_FAIL
-instance MonadFail (UniqueParser s) where
-    fail _err = empty
+#if !(NO_FAIL_IN_MONAD_MONAD_FAIL)
+    fail = Fail.fail
 #endif
+
+instance Fail.MonadFail (UniqueParser s) where
+    fail _err = empty
 
 instance Alternative (UniqueParser s) where
     empty = UniqueParser (const empty)
