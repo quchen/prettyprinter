@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
@@ -14,7 +16,11 @@ module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of
 
 
 
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding ((<$>))
+#else
+import Prelude
+#endif
 
 import           Data.Monoid
 import qualified Data.Text.Lazy as TL

@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -79,7 +78,7 @@ renderIO :: Handle -> SimpleDocStream ann -> IO ()
 renderIO h = go
   where
     go :: SimpleDocStream ann -> IO ()
-    go = \case
+    go = \sds -> case sds of
         SFail              -> panicUncaughtFail
         SEmpty             -> pure ()
         SChar c rest       -> do hPutChar h c

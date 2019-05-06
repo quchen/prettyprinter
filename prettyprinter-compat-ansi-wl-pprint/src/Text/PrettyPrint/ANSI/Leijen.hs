@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for users of ansi-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
@@ -17,9 +19,11 @@ module Text.PrettyPrint.ANSI.Leijen {-# DEPRECATED "Compatibility module for use
 
 ) where
 
-
-
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding ((<$>))
+#else
+import Prelude
+#endif
 
 import           Data.Monoid
 import qualified Data.Text.Lazy as TL

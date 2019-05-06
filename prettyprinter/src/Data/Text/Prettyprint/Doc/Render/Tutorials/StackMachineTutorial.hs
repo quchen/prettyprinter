@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-deprecations #-}
@@ -94,7 +93,7 @@ color c = annotate (Color c)
 -- The equivalent to this in the tree based rendering approach is
 -- 'Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial.renderTree'.
 renderStackMachine :: SimpleDocStream SimpleHtml -> StackMachine TLB.Builder SimpleHtml ()
-renderStackMachine = \case
+renderStackMachine = \sds -> case sds of
     SFail -> panicUncaughtFail
     SEmpty -> pure ()
     SChar c x -> do
@@ -119,7 +118,7 @@ renderStackMachine = \case
 -- | Convert a 'SimpleHtml' annotation to a pair of opening and closing tags.
 -- This is where the translation of style to raw output happens.
 htmlTag :: SimpleHtml -> (TLB.Builder, TLB.Builder)
-htmlTag = \case
+htmlTag = \sh -> case sh of
     Bold      -> ("<strong>", "</strong>")
     Italics   -> ("<em>", "</em>")
     Color c   -> ("<span style=\"color: " <> hexCode c <> "\">", "</span>")
@@ -127,7 +126,7 @@ htmlTag = \case
     Headline  -> ("<h1>", "</h1>")
   where
     hexCode :: Color -> TLB.Builder
-    hexCode = \case
+    hexCode = \c -> case c of
         Red   -> "#f00"
         Green -> "#0f0"
         Blue  -> "#00f"

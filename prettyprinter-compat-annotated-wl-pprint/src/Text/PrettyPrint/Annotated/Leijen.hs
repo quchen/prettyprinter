@@ -17,9 +17,11 @@ module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module fo
 
 ) where
 
-
-
+#if MIN_VERSION_base(4,8,0)
 import Prelude hiding ((<$>))
+#else
+import Prelude
+#endif
 
 #if !(MONOID_IN_PRELUDE)
 import Data.Monoid hiding ((<>))

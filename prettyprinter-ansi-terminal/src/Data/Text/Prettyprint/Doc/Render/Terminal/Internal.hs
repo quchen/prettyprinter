@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -26,7 +25,19 @@ import           System.IO              (Handle, hPutChar, stdout)
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
+#if !MIN_VERSION_base(4,6,0)
+modifyIORef' :: IORef a -> (a -> a) -> IO ()
+modifyIORef' ref f = do
+    x <- readIORef ref
+    let x' = f x
+    x' `seq` writeIORef ref x'
 
+modifySTRef' :: STRef s a -> (a -> a) -> ST s ()
+modifySTRef' ref f = do
+    x <- readSTRef ref
+    let x' = f x
+    x' `seq` writeSTRef ref x'
+#endif
 
 -- $setup
 --
@@ -110,15 +121,15 @@ renderLazy sdoc = runST (do
     outputRef <- newSTRef mempty
 
     let push x = modifySTRef' styleStackRef (x :)
-        unsafePeek = readSTRef styleStackRef >>= \case
+        unsafePeek = readSTRef styleStackRef >>= \tok -> case tok of
             []  -> panicPeekedEmpty
             x:_ -> pure x
-        unsafePop = readSTRef styleStackRef >>= \case
+        unsafePop = readSTRef styleStackRef >>= \tok -> case tok of
             []   -> panicPeekedEmpty
             x:xs -> writeSTRef styleStackRef xs >> pure x
         writeOutput x = modifySTRef outputRef (<> x)
 
-    let go = \case
+    let go = \sds -> case sds of
             SFail -> panicUncaughtFail
             SEmpty -> pure ()
             SChar c rest -> do
@@ -142,7 +153,7 @@ renderLazy sdoc = runST (do
                 writeOutput (TLB.fromText (styleToRawText newStyle))
                 go rest
     go sdoc
-    readSTRef styleStackRef >>= \case
+    readSTRef styleStackRef >>= \stack -> case stack of
         []  -> panicStyleStackFullyConsumed
         [_] -> fmap TLB.toLazyText (readSTRef outputRef)
         xs  -> panicStyleStackNotFullyConsumed (length xs) )
@@ -172,14 +183,14 @@ renderIO h sdoc = do
     styleStackRef <- newIORef [mempty]
 
     let push x = modifyIORef' styleStackRef (x :)
-        unsafePeek = readIORef styleStackRef >>= \case
+        unsafePeek = readIORef styleStackRef >>= \tok -> case tok of
             [] -> panicPeekedEmpty
             x:_ -> pure x
-        unsafePop = readIORef styleStackRef >>= \case
+        unsafePop = readIORef styleStackRef >>= \tok -> case tok of
             [] -> panicPeekedEmpty
             x:xs -> writeIORef styleStackRef xs >> pure x
 
-    let go = \case
+    let go = \sds -> case sds of
             SFail -> panicUncaughtFail
             SEmpty -> pure ()
             SChar c rest -> do
@@ -204,7 +215,7 @@ renderIO h sdoc = do
                 T.hPutStr h (styleToRawText newStyle)
                 go rest
     go sdoc
-    readIORef styleStackRef >>= \case
+    readIORef styleStackRef >>= \stack -> case stack of
         []  -> panicStyleStackFullyConsumed
         [_] -> pure ()
         xs  -> panicStyleStackNotFullyConsumed (length xs)
@@ -288,12 +299,12 @@ styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
         ]
 
     convertIntensity :: Intensity -> ANSI.ColorIntensity
-    convertIntensity = \case
+    convertIntensity = \i -> case i of
         Vivid -> ANSI.Vivid
         Dull  -> ANSI.Dull
 
     convertColor :: Color -> ANSI.Color
-    convertColor = \case
+    convertColor = \c -> case c of
         Black   -> ANSI.Black
         Red     -> ANSI.Red
         Green   -> ANSI.Green

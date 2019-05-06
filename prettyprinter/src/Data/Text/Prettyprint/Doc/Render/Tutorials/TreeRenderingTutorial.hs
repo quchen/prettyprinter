@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -91,7 +90,7 @@ render = TLB.toLazyText . renderTree . treeForm
 -- 'Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial.renderStackMachine'
 -- in the stack machine rendering tutorial.
 renderTree :: SimpleDocTree SimpleHtml -> TLB.Builder
-renderTree = \case
+renderTree sds = case sds of
     STEmpty -> mempty
     STChar c -> TLB.singleton c
     STText _ t -> TLB.fromText t
@@ -102,7 +101,7 @@ renderTree = \case
 -- | Convert a 'SimpleHtml' to a function that encloses a 'TLB.Builder' in HTML
 -- tags. This is where the translation of style to raw output happens.
 encloseInTagFor :: SimpleHtml -> TLB.Builder -> TLB.Builder
-encloseInTagFor = \case
+encloseInTagFor sh = case sh of
     Bold      -> \x -> "<strong>" <> x <> "</strong>"
     Italics   -> \x -> "<em>" <> x <> "</em>"
     Color c   -> \x -> "<span style=\"color: " <> hexCode c <> "\">" <> x <> "</span>"
@@ -110,7 +109,7 @@ encloseInTagFor = \case
     Headline  -> \x -> "<h1>" <> x <> "</h1>"
   where
     hexCode :: Color -> TLB.Builder
-    hexCode = \case
+    hexCode c = case c of
         Red   -> "#f00"
         Green -> "#0f0"
         Blue  -> "#00f"

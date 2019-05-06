@@ -1,9 +1,8 @@
-{-# LANGUAGE AutoDeriveTypeable  #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -30,6 +29,7 @@ import           Data.String         (IsString (..))
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import qualified Data.Text.Lazy      as Lazy
+import           Data.Typeable       (Typeable)
 import           Data.Void
 import           Data.Word
 import           GHC.Generics        (Generic)
@@ -132,7 +132,7 @@ data Doc ann =
     -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
     -- styling directives or alt texts that can then be used by the renderer.
     | Annotated ann (Doc ann)
-    deriving (Generic)
+    deriving (Generic, Typeable)
 
 -- |
 -- @
@@ -246,9 +246,8 @@ instance Pretty () where
 -- | >>> pretty True
 -- True
 instance Pretty Bool where
-    pretty = \case
-        True  -> "True"
-        False -> "False"
+    pretty True  = "True"
+    pretty False = "False"
 
 -- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
 -- alternative.
@@ -546,7 +545,7 @@ group x = case changesUponFlattening x of
 -- if the document is static (e.g. contains only a plain 'Empty' node). See
 -- [Group: special flattening] for further explanations.
 changesUponFlattening :: Doc ann -> Maybe (Doc ann)
-changesUponFlattening = \case
+changesUponFlattening = \doc -> case doc of
     FlatAlt _ y     -> Just (flatten y)
     Line            -> Just Fail
     Union x _       -> changesUponFlattening x <|> Just x
@@ -570,7 +569,7 @@ changesUponFlattening = \case
   where
     -- Flatten, but don’t report whether anything changes.
     flatten :: Doc ann -> Doc ann
-    flatten = \case
+    flatten = \doc -> case doc of
         FlatAlt _ y     -> flatten y
         Cat x y         -> Cat (flatten x) (flatten y)
         Nest i x        -> Nest i (flatten x)
@@ -1244,7 +1243,7 @@ reAnnotate re = alterAnnotations (pure . re)
 alterAnnotations :: (ann -> [ann']) -> Doc ann -> Doc ann'
 alterAnnotations re = go
   where
-    go = \case
+    go = \doc -> case doc of
         Fail     -> Fail
         Empty    -> Empty
         Char c   -> Char c
@@ -1270,7 +1269,7 @@ alterAnnotations re = go
 unAnnotateS :: SimpleDocStream ann -> SimpleDocStream xxx
 unAnnotateS = go
   where
-    go = \case
+    go = \doc -> case doc of
         SFail              -> SFail
         SEmpty             -> SEmpty
         SChar c rest       -> SChar c (go rest)
@@ -1283,7 +1282,7 @@ unAnnotateS = go
 reAnnotateS :: (ann -> ann') -> SimpleDocStream ann -> SimpleDocStream ann'
 reAnnotateS re = go
   where
-    go = \case
+    go = \doc -> case doc of
         SFail             -> SFail
         SEmpty            -> SEmpty
         SChar c rest      -> SChar c (go rest)
@@ -1293,6 +1292,7 @@ reAnnotateS re = go
         SAnnPush ann rest -> SAnnPush (re ann) (go rest)
 
 data AnnotationRemoval = Remove | DontRemove
+  deriving Typeable
 
 -- | Change the annotation of a document to a different annotation, or none at
 -- all. 'alterAnnotations' for 'SimpleDocStream'.
@@ -1306,7 +1306,7 @@ alterAnnotationsS re = go []
   where
     -- We keep a stack of whether to remove a pop so that we can remove exactly
     -- the pops corresponding to annotations that mapped to Nothing.
-    go stack = \case
+    go stack = \sds -> case sds of
         SFail             -> SFail
         SEmpty            -> SEmpty
         SChar c rest      -> SChar c (go stack rest)
@@ -1337,7 +1337,7 @@ data FusionDepth =
     -- This value should only be used if profiling shows it is significantly
     -- faster than using 'Shallow'.
     | Deep
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Typeable)
 
 -- | @('fuse' depth doc)@ combines text nodes so they can be rendered more
 -- efficiently. A fused document is always laid out identical to its unfused
@@ -1369,7 +1369,7 @@ data FusionDepth =
 fuse :: FusionDepth -> Doc ann -> Doc ann
 fuse depth = go
   where
-    go = \case
+    go = \doc -> case doc of
         Cat Empty x                   -> go x
         Cat x Empty                   -> go x
         Cat (Char c1) (Char c2)       -> Text 2 (T.singleton c1 <> T.singleton c2)
@@ -1440,7 +1440,7 @@ data SimpleDocStream ann =
 
     -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDocStream ann)
-    deriving (Eq, Ord, Show, Generic)
+    deriving (Eq, Ord, Show, Generic, Typeable)
 
 -- | Remove all trailing space characters.
 --
@@ -1466,7 +1466,7 @@ removeTrailingWhitespace = go (WssWithheldWhitespace Nothing 0)
             n -> SText n (T.replicate n " ")
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
-    go annLevel@(WssAnnotationLevel annotationLevel) = \case
+    go annLevel@(WssAnnotationLevel annotationLevel) = \sds -> case sds of
         SFail -> SFail
         SEmpty -> SEmpty
         SChar c rest -> SChar c (go annLevel rest)
@@ -1476,7 +1476,7 @@ removeTrailingWhitespace = go (WssWithheldWhitespace Nothing 0)
         SAnnPop rest
             | annotationLevel > 1 -> SAnnPop (go (WssAnnotationLevel (annotationLevel-1)) rest)
             | otherwise -> SAnnPop (go (WssWithheldWhitespace Nothing 0) rest)
-    go (WssWithheldWhitespace withheldLine withheldSpaces) = \case
+    go (WssWithheldWhitespace withheldLine withheldSpaces) = \sds -> case sds of
         SFail -> SFail
         SEmpty -> SEmpty
         SChar c rest
@@ -1497,6 +1497,7 @@ removeTrailingWhitespace = go (WssWithheldWhitespace Nothing 0)
 data WhitespaceStrippingState
     = WssAnnotationLevel !Int
     | WssWithheldWhitespace (Maybe Int) !Int
+  deriving Typeable
 
 
 
@@ -1513,7 +1514,7 @@ instance Functor SimpleDocStream where
 instance Foldable SimpleDocStream where
     foldMap f = go
       where
-        go = \case
+        go = \sds -> case sds of
             SFail             -> mempty
             SEmpty            -> mempty
             SChar _ rest      -> go rest
@@ -1527,7 +1528,7 @@ instance Foldable SimpleDocStream where
 instance Traversable SimpleDocStream where
     traverse f = go
       where
-        go = \case
+        go = \sds -> case sds of
             SFail             -> pure SFail
             SEmpty            -> pure SEmpty
             SChar c rest      -> SChar c   <$> go rest
@@ -1547,12 +1548,14 @@ newtype FittingPredicate ann
                    -> Maybe Int
                    -> SimpleDocStream ann
                    -> Bool)
+  deriving Typeable
 
 -- | List of nesting level/document pairs yet to be laid out.
 data LayoutPipeline ann =
       Nil
     | Cons !Int (Doc ann) (LayoutPipeline ann)
     | UndoAnn (LayoutPipeline ann)
+  deriving Typeable
 
 -- | Maximum number of characters that fit in one line. The layout algorithms
 -- will try not to exceed the set limit by inserting line breaks when applicable
@@ -1573,7 +1576,7 @@ data PageWidth
     | Unbounded
     -- ^ Layouters should not introduce line breaks on their own.
 
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Typeable)
 
 -- $ Test to avoid surprising behaviour
 -- >>> Unbounded > AvailablePerLine maxBound 1
@@ -1581,7 +1584,7 @@ data PageWidth
 
 -- | Options to influence the layout algorithms.
 newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Typeable)
 
 -- | The default layout options, suitable when you just want some output, and
 -- don’t particularly care about the details. Used by the 'Show' instance, for
@@ -1815,7 +1818,7 @@ instance Show (Doc ann) where
 --     'showsPrec' _ = 'renderShowS' . 'layoutPretty' 'defaultLayoutOptions' . 'pretty'
 -- @
 renderShowS :: SimpleDocStream ann -> ShowS
-renderShowS = \case
+renderShowS = \sds -> case sds of
     SFail        -> panicUncaughtFail
     SEmpty       -> id
     SChar c x    -> showChar c . renderShowS x

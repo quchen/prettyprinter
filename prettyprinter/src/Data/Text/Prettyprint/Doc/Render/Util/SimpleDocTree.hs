@@ -1,7 +1,6 @@
-{-# LANGUAGE AutoDeriveTypeable #-}
 {-# LANGUAGE CPP                #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric      #-}
-{-# LANGUAGE LambdaCase         #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 #include "version-compatibility-macros.h"
@@ -29,6 +28,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree (
 import           Control.Applicative
 import           Data.Text           (Text)
 import qualified Data.Text           as T
+import           Data.Typeable       (Typeable)
 import           GHC.Generics
 
 import Data.Text.Prettyprint.Doc
@@ -71,7 +71,7 @@ renderSimplyDecorated
     -> out
 renderSimplyDecorated text renderAnn = go
   where
-    go = \case
+    go = \sdt -> case sdt of
         STEmpty        -> mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
@@ -89,7 +89,7 @@ renderSimplyDecoratedA
     -> f out
 renderSimplyDecoratedA text renderAnn = go
   where
-    go = \case
+    go = \sdt -> case sdt of
         STEmpty        -> pure mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
@@ -104,6 +104,7 @@ renderSimplyDecoratedA text renderAnn = go
 --
 -- Hand-written to avoid a dependency on a parser lib.
 newtype UniqueParser s a = UniqueParser { runParser :: s -> Maybe (a, s) }
+  deriving Typeable
 
 instance Functor (UniqueParser s) where
     fmap f (UniqueParser mx) = UniqueParser (\s ->
@@ -143,7 +144,7 @@ data SimpleDocTok ann
     | TokLine Int
     | TokAnnPush ann
     | TokAnnPop
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Typeable)
 
 -- | A 'SimpleDocStream' is a linked list of different annotated cons cells
 -- ('SText' and then some further 'SimpleDocStream', 'SLine' and then some
@@ -169,7 +170,7 @@ data SimpleDocTree ann
 
     -- | Horizontal concatenation of multiple documents.
     | STConcat [SimpleDocTree ann]
-    deriving (Eq, Ord, Show, Generic)
+    deriving (Eq, Ord, Show, Generic, Typeable)
 
 -- | Alter the document’s annotations.
 --
@@ -182,7 +183,7 @@ instance Functor SimpleDocTree where
 
 -- | Get the next token, consuming it in the process.
 nextToken :: UniqueParser (SimpleDocStream ann) (SimpleDocTok ann)
-nextToken = UniqueParser (\case
+nextToken = UniqueParser (\sds -> case sds of
     SFail             -> panicUncaughtFail
     SEmpty            -> empty
     SChar c rest      -> Just (TokChar c      , rest)
@@ -197,12 +198,12 @@ sdocToTreeParser = fmap wrap (many contentPiece)
   where
 
     wrap :: [SimpleDocTree ann] -> SimpleDocTree ann
-    wrap = \case
+    wrap = \sdts -> case sdts of
         []  -> STEmpty
         [x] -> x
         xs  -> STConcat xs
 
-    contentPiece = nextToken >>= \case
+    contentPiece = nextToken >>= \tok -> case tok of
         TokEmpty       -> pure STEmpty
         TokChar c      -> pure (STChar c)
         TokText l t    -> pure (STText l t)
@@ -242,7 +243,7 @@ reAnnotateST f = alterAnnotationsST (pure . f)
 alterAnnotationsST :: (ann -> [ann']) -> SimpleDocTree ann -> SimpleDocTree ann'
 alterAnnotationsST re = go
   where
-    go = \case
+    go = \sdt -> case sdt of
         STEmpty        -> STEmpty
         STChar c       -> STChar c
         STText l t     -> STText l t
@@ -254,7 +255,7 @@ alterAnnotationsST re = go
 instance Foldable SimpleDocTree where
     foldMap f = go
       where
-        go = \case
+        go = \sdt -> case sdt of
             STEmpty        -> mempty
             STChar _       -> mempty
             STText _ _     -> mempty
@@ -267,7 +268,7 @@ instance Foldable SimpleDocTree where
 instance Traversable SimpleDocTree where
     traverse f = go
       where
-        go = \case
+        go = \sdt -> case sdt of
             STEmpty        -> pure STEmpty
             STChar c       -> pure (STChar c)
             STText l t     -> pure (STText l t)
