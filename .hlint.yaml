@@ -25,6 +25,7 @@
 - ignore: {name: "Use uncurry"}
 - ignore: {name: "Use first"}
 - ignore: {name: "Use second"}
+- ignore: {name: "Use tuple-section"}
 
 # Use LambdaCase -- we cannot, GHC-7.6+ feature
 - ignore: {name: "Use lambda-case"}
