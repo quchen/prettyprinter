@@ -39,9 +39,19 @@ env:
       STACK_ARGS="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
 
-    # LTS 10 uses GHC 8.2.2
+    # LTS 10 and 11 uses GHC 8.2
     - >
       STACK_ARGS="--resolver lts-10"
+      STACK_BUILD_ARGS=""
+
+    # LTS 12 uses GHC 8.4
+    - >
+      STACK_ARGS="--resolver lts-10"
+      STACK_BUILD_ARGS="--ghc-options -Werror"
+
+    # LTS 13 uses GHC 8.6
+    - >
+      STACK_ARGS="--resolver lts-13"
       STACK_BUILD_ARGS="--ghc-options -Werror"
 
     - >
