@@ -1,15 +1,15 @@
 {-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 module Main (main) where
 
-
+import Prelude        ()
+import Prelude.Compat
 
 import           Control.DeepSeq
-import           Control.Monad
+import           Control.Monad.Compat
 import           Criterion
 import           Criterion.Main
 import           Data.Char
@@ -98,7 +98,7 @@ instance Pretty LambdaForm where
         prettyExp = (<+> pretty body)
 
 instance Pretty Expr where
-    pretty = \case
+    pretty = \expr -> case expr of
         Let binds body ->
             align (vsep [ "let" <+> align (pretty binds)
                         , "in" <+> pretty body ])
@@ -141,7 +141,7 @@ instance WL.Pretty LambdaForm where
         prettyExp = (WL.<+> WL.pretty body)
 
 instance WL.Pretty Expr where
-    pretty = \case
+    pretty = \expr -> case expr of
         Let binds body ->
             WL.align (WL.vsep [ "let" WL.<+> WL.align (WL.pretty binds)
                         , "in" WL.<+> WL.pretty body ])

@@ -26,6 +26,9 @@
 - ignore: {name: "Use first"}
 - ignore: {name: "Use second"}
 
+# Use LambdaCase -- we cannot, GHC-7.6+ feature
+- ignore: {name: "Use lambda-case"}
+
 # Not all 3-liners should be deduplicated
 - ignore: {name: Reduce duplication, within: Data.Text.Prettyprint.Doc.Render.Terminal.Internal}
 

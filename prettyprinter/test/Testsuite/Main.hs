@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -163,7 +162,7 @@ dampen gen = sized (\n -> resize ((n*2) `quot` 3) gen)
 
 docPerformanceTest :: Doc ann -> Assertion
 docPerformanceTest doc
-  = timeout 10000000 (forceDoc doc) >>= \case
+  = timeout 10000000 (forceDoc doc) >>= \doc' -> case doc' of
     Nothing -> assertFailure "Timeout!"
     Just _success -> pure ()
   where
@@ -204,5 +203,5 @@ regressionAlterAnnotationsS :: Assertion
 regressionAlterAnnotationsS
   = let sdoc, sdoc' :: SimpleDocStream Int
         sdoc = layoutSmart defaultLayoutOptions (annotate 1 (annotate 2 (annotate 3 "a")))
-        sdoc' = alterAnnotationsS (\case 2 -> Just 2; _ -> Nothing) sdoc
+        sdoc' = alterAnnotationsS (\ann -> case ann of 2 -> Just 2; _ -> Nothing) sdoc
     in assertEqual "" (SAnnPush 2 (SChar 'a' (SAnnPop SEmpty))) sdoc'

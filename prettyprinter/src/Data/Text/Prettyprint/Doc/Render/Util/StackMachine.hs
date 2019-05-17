@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -145,7 +144,7 @@ pushStyle style = StackMachine (\styles -> ((), mempty, style : styles))
 --
 -- If the stack is empty, this raises an 'error'.
 unsafePopStyle :: Monoid output => StackMachine output style style
-unsafePopStyle = StackMachine (\case
+unsafePopStyle = StackMachine (\stack -> case stack of
     x:xs -> (x, mempty, xs)
     [] -> panicPoppedEmpty )
 

@@ -1,5 +1,3 @@
-{-# LANGUAGE LambdaCase #-}
-
 -- | Convert back and forth between the 'Old.Doc' type of the @ansi-wl-pprint@
 -- and the 'New.Doc' of the prettyprinter package. Useful in order to use the
 -- @prettyprinter@ library together with another library that produces
@@ -34,7 +32,7 @@ import qualified Text.PrettyPrint.ANSI.Leijen.Internal              as Old
 
 -- | @ansi-wl-pprint ───▷ prettyprinter@
 fromAnsiWlPprint :: Old.Doc -> New.Doc NewTerm.AnsiStyle
-fromAnsiWlPprint = \case
+fromAnsiWlPprint = \doc -> case doc of
     Old.Fail     -> New.Fail
     Old.Empty    -> New.Empty
     Old.Char c   -> New.Char c
@@ -87,7 +85,7 @@ fromAnsiWlPprint = \case
 
 -- | @prettyprinter ───▷ ansi-wl-pprint@
 toAnsiWlPprint :: New.Doc NewTerm.AnsiStyle -> Old.Doc
-toAnsiWlPprint = \case
+toAnsiWlPprint = \doc -> case doc of
     New.Fail     -> Old.Fail
     New.Empty    -> Old.Empty
     New.Char c   -> Old.Char c
