@@ -38,16 +38,19 @@ env:
     - >
       STACK_ARGS="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
       STACK_BUILD_ARGS=""
+      SKIP_RELEASE_CHECKS=1
 
     # LTS 10 and 11 uses GHC 8.2
     - >
       STACK_ARGS="--resolver lts-10"
       STACK_BUILD_ARGS=""
+      SKIP_RELEASE_CHECKS=1
 
     # LTS 12 uses GHC 8.4
     - >
       STACK_ARGS="--resolver lts-10"
       STACK_BUILD_ARGS="--ghc-options -Werror"
+      SKIP_RELEASE_CHECKS=1
 
     # LTS 13 uses GHC 8.6
     - >
@@ -85,7 +88,10 @@ before_install:
     - stack $STACK_ARGS --no-terminal setup
     - |
       if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          stack $STACK_ARGS --no-terminal install hlint-2.0.9 stylish-haskell-0.8.1.0
+          stack $STACK_ARGS --no-terminal install stylish-haskell-0.9.2.1
+
+          # Install latest HLint
+          curl -sSL https://raw.github.com/ndmitchell/hlint/master/misc/run.sh | sh -s .
       fi
 
 
