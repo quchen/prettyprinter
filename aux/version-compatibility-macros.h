@@ -18,4 +18,6 @@
 
 #define NO_FAIL_IN_MONAD_MONAD_FAIL     MIN_VERSION_base(4,13,0)
 
+#define HAS_GENERICS                    __GLASGOW_HASKELL__ >= 702
+
 #endif

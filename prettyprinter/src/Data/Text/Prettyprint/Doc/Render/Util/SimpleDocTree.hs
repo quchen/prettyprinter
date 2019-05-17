@@ -1,9 +1,12 @@
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveGeneric      #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 #include "version-compatibility-macros.h"
+
+#if HAS_GENERICS
+{-# LANGUAGE DeriveGeneric       #-}
+#endif
 
 -- | Conversion of the linked-list-like 'SimpleDocStream' to a tree-like
 -- 'SimpleDocTree'.
@@ -29,7 +32,10 @@ import           Control.Applicative
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Data.Typeable       (Typeable)
+
+#if HAS_GENERICS
 import           GHC.Generics
+#endif
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
@@ -170,7 +176,11 @@ data SimpleDocTree ann
 
     -- | Horizontal concatenation of multiple documents.
     | STConcat [SimpleDocTree ann]
-    deriving (Eq, Ord, Show, Generic, Typeable)
+    deriving (Eq, Ord, Show, Typeable
+#if HAS_GENERIC
+        , Generic
+#endif
+        )
 
 -- | Alter the document’s annotations.
 --

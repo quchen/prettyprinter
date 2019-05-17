@@ -33,7 +33,7 @@ module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
 
 import           Control.Applicative
-import           Data.Monoid
+import           Data.Monoid         (Monoid (..))
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 
@@ -72,11 +72,11 @@ renderSimplyDecorated text push pop = go []
     go _           SFail               = panicUncaughtFail
     go []          SEmpty              = mempty
     go (_:_)       SEmpty              = panicInputNotFullyConsumed
-    go stack       (SChar c rest)      = text (T.singleton c) <> go stack rest
-    go stack       (SText _l t rest)   = text t <> go stack rest
-    go stack       (SLine i rest)      = text (T.singleton '\n') <> text (T.replicate i " ") <> go stack rest
-    go stack       (SAnnPush ann rest) = push ann <> go (ann : stack) rest
-    go (ann:stack) (SAnnPop rest)      = pop ann <> go stack rest
+    go stack       (SChar c rest)      = text (T.singleton c) `mappend` go stack rest
+    go stack       (SText _l t rest)   = text t `mappend` go stack rest
+    go stack       (SLine i rest)      = text (T.singleton '\n') `mappend` text (T.replicate i " ") `mappend` go stack rest
+    go stack       (SAnnPush ann rest) = push ann `mappend` go (ann : stack) rest
+    go (ann:stack) (SAnnPop rest)      = pop ann `mappend` go stack rest
     go []          SAnnPop{}           = panicUnpairedPop
 {-# INLINE renderSimplyDecorated #-}
 
@@ -122,7 +122,7 @@ instance Monoid output => Applicative (StackMachine output style) where
     StackMachine f <*> StackMachine x = StackMachine (\s ->
         let (f1, w1, s1) = f s
             (x2, w2, s2) = x s1
-            !w12 = w1 <> w2
+            !w12 = w1 `mappend` w2
         in (f1 x2, w12, s2))
 
 instance Monoid output => Monad (StackMachine output style) where
@@ -133,7 +133,7 @@ instance Monoid output => Monad (StackMachine output style) where
         let (x1, w1, s1) = r s
             StackMachine r1 = f x1
             (x2, w2, s2) = r1 s1
-            !w12 = w1 <> w2
+            !w12 = w1 `mappend` w2
         in (x2, w12, s2))
 
 -- | Add a new style to the style stack.

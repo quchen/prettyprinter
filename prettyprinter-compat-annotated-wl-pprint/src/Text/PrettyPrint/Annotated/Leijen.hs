@@ -24,7 +24,7 @@ import Prelude
 #endif
 
 #if !(MONOID_IN_PRELUDE)
-import Data.Monoid hiding ((<>))
+import Data.Monoid (Monoid (..))
 #endif
 
 import           Control.Applicative hiding (empty, (<$>))

@@ -123,15 +123,15 @@ renderLazy sdoc = runST (do
     let push x = modifySTRef' styleStackRef (x :)
         unsafePeek = readSTRef styleStackRef >>= \tok -> case tok of
             []  -> panicPeekedEmpty
-            x:_ -> pure x
+            x:_ -> return x
         unsafePop = readSTRef styleStackRef >>= \tok -> case tok of
             []   -> panicPeekedEmpty
-            x:xs -> writeSTRef styleStackRef xs >> pure x
+            x:xs -> writeSTRef styleStackRef xs >> return x
         writeOutput x = modifySTRef outputRef (<> x)
 
     let go = \sds -> case sds of
             SFail -> panicUncaughtFail
-            SEmpty -> pure ()
+            SEmpty -> return ()
             SChar c rest -> do
                 writeOutput (TLB.singleton c)
                 go rest
