@@ -1500,6 +1500,16 @@ data WhitespaceStrippingState
   deriving Typeable
 
 
+-- $
+-- >>> import qualified Data.Text.IO as T
+-- >>> doc = "paragraph 1" <> hardline <> hardline <> pretty "paragraph 2"
+-- >>> go = T.putStrLn . renderStrict . removeTrailingWhitespace . layoutPretty defaultLayoutOptions
+-- >>> go doc
+-- paragraph 1
+-- <BLANKLINE>
+-- paragraph 2
+
+
 
 -- | Alter the document’s annotations.
 --
