@@ -1455,14 +1455,11 @@ removeTrailingWhitespace :: SimpleDocStream ann -> SimpleDocStream ann
 removeTrailingWhitespace = go (WssWithheldWhitespace [] 0)
   where
     commitSpaces :: [Int] -> Int -> SimpleDocStream ann -> SimpleDocStream ann
-    commitSpaces = \withheldNewlines withheldSpaces -> nl withheldNewlines . sp withheldSpaces
-      where
-        nl []     = id
-        nl (i:is) = SLine i . nl is
-
-        sp 0 = id
-        sp 1 = SChar ' '
-        sp n = SText n (T.replicate n " ")
+    commitSpaces [] 0 = id
+    commitSpaces [] 1 = SChar ' '
+    commitSpaces [] n = SText n (T.replicate n " ")
+    commitSpaces [i] _ = SLine i
+    commitSpaces (_:is) _ = SLine 0 . commitSpaces is 0
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     go annLevel@(WssAnnotationLevel annotationLevel) = \sds -> case sds of
@@ -1502,12 +1499,12 @@ data WhitespaceStrippingState
 
 -- $
 -- >>> import qualified Data.Text.IO as T
--- >>> doc = "paragraph 1" <> hardline <> hardline <> pretty "paragraph 2"
+-- >>> doc = "lorem" <> hardline <> hardline <> pretty "ipsum"
 -- >>> go = T.putStrLn . renderStrict . removeTrailingWhitespace . layoutPretty defaultLayoutOptions
 -- >>> go doc
--- paragraph 1
+-- lorem
 -- <BLANKLINE>
--- paragraph 2
+-- ipsum
 
 
 
