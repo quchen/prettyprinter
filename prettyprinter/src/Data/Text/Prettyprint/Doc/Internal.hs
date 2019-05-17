@@ -1,12 +1,15 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
-{-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
-{-# LANGUAGE DeriveGeneric       #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 #include "version-compatibility-macros.h"
+
+#if HAS_GENERICS
+{-# LANGUAGE DefaultSignatures   #-}
+{-# LANGUAGE DeriveGeneric       #-}
+#endif
 
 -- | __Warning: internal module!__ This means that the API may change
 -- arbitrarily between versions without notice. Depending on this module may
@@ -32,7 +35,10 @@ import qualified Data.Text.Lazy      as Lazy
 import           Data.Typeable       (Typeable)
 import           Data.Void
 import           Data.Word
+
+#if HAS_GENERICS
 import           GHC.Generics        (Generic)
+#endif
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
 -- from the semigroups package.
@@ -49,7 +55,7 @@ import Prelude          hiding (foldr, foldr1)
 #endif
 
 #if !(MONOID_IN_PRELUDE)
-import Data.Monoid hiding ((<>))
+import Data.Monoid (Monoid (..))
 #endif
 
 #if FUNCTOR_IDENTITY_IN_BASE
@@ -132,7 +138,11 @@ data Doc ann =
     -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
     -- styling directives or alt texts that can then be used by the renderer.
     | Annotated ann (Doc ann)
-    deriving (Generic, Typeable)
+    deriving (Typeable
+#if HAS_GENERIC
+        , Generic
+#endif
+        )
 
 -- |
 -- @
@@ -187,8 +197,10 @@ class Pretty a where
     -- 1 hello 1.234
     pretty :: a -> Doc ann
 
+#if HAS_GENERICS
     default pretty :: Show a => a -> Doc ann
     pretty = viaShow
+#endif
 
     -- | @'prettyList'@ is only used to define the @instance
     -- 'Pretty' a => 'Pretty' [a]@. In normal circumstances only the @'pretty'@
@@ -1440,7 +1452,11 @@ data SimpleDocStream ann =
 
     -- | Remove a previously pushed annotation.
     | SAnnPop (SimpleDocStream ann)
-    deriving (Eq, Ord, Show, Generic, Typeable)
+    deriving (Eq, Ord, Show, Typeable
+#if HAS_GENERIC
+        , Generic
+#endif
+        )
 
 -- | Remove all trailing space characters.
 --

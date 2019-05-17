@@ -6,5 +6,5 @@ packages: prettyprinter
         , prettyprinter-compat-ansi-wl-pprint
         , prettyprinter-convert-ansi-wl-pprint
         , prettyprinter-compat-annotated-wl-pprint
-tests: true
-benchmarks: true
+-- tests: true
+-- benchmarks: true

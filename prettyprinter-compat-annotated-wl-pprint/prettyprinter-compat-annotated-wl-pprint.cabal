@@ -33,6 +33,6 @@ library
     other-extensions: CPP
 
     build-depends:
-          base          >= 4.5 && < 5
+          base          >= 4.3 && < 5
         , text          >= 1.2
         , prettyprinter >= 1
