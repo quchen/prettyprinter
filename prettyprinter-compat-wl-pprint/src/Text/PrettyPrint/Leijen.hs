@@ -10,7 +10,7 @@ module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of
     lbrace, rbrace, lbracket, rbracket, squote, dquote, semi, colon, comma,
     space, dot, backslash, equals, string, int, integer, float, double,
     rational, Pretty(..), SimpleDoc, renderPretty, renderCompact, displayS,
-    displayIO , bool , column, nesting, width
+    displayIO, bool, column, nesting, width
 
 ) where
 
