@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+
+#include "version-compatibility-macros.h"
+
 -- |
 -- Module      :  Data.Text.Prettyprint.Doc
 -- Copyright   :  Daan Leijen (c) 2000, http://www.cs.uu.nl/~daan
@@ -287,7 +291,9 @@ module Data.Text.Prettyprint.Doc (
 
 
 
+#if !(SEMIGROUP_MONOID_SUPERCLASS)
 import Data.Semigroup
+#endif
 import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Symbols.Ascii
 

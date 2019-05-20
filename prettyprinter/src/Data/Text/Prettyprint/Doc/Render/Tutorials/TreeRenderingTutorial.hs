@@ -19,7 +19,6 @@ module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial (
 
 
 
-import           Data.Semigroup
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
@@ -29,6 +28,9 @@ import Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
 
 #if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
 import Data.Foldable (foldMap)
+#endif
+#if !(SEMIGROUP_MONOID_SUPERCLASS)
+import Data.Semigroup
 #endif
 
 
