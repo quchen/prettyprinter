@@ -28,7 +28,7 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Semigroup
 #endif
 
-#if !MIN_VERSION_base(4,6,0)
+#if !(MIN_VERSION_base(4,6,0))
 modifyIORef' :: IORef a -> (a -> a) -> IO ()
 modifyIORef' ref f = do
     x <- readIORef ref
