@@ -66,6 +66,7 @@ env:
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
+      ALLOW_FAILURE=true
 
 
 
@@ -73,11 +74,7 @@ matrix:
     fast_finish: true
     allow_failures:
         - env:
-            - >
-              STACK_RESOLVER="--resolver nightly"
-              RUN_TESTSUITE=true
-              RUN_RELEASE_CHECKS=true
-              BUILD_SOURCE_DIST=true
+            - ALLOW_FAILURE=true
 
 
 
