@@ -33,12 +33,16 @@ module Data.Text.Prettyprint.Doc.Render.Util.StackMachine (
 
 
 import           Control.Applicative
-import           Data.Monoid
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 
 import Data.Text.Prettyprint.Doc                   (SimpleDocStream (..))
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
+
+#if !(SEMIGROUP_MONOID_SUPERCLASS)
+import Data.Monoid
+#endif
+
 
 -- $setup
 --

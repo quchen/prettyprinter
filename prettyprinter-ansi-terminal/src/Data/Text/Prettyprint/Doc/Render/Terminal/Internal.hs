@@ -12,7 +12,6 @@ import           Control.Applicative
 import           Control.Monad.ST
 import           Data.IORef
 import           Data.Maybe
-import           Data.Semigroup
 import           Data.STRef
 import           Data.Text              (Text)
 import qualified Data.Text              as T
@@ -24,6 +23,10 @@ import           System.IO              (Handle, hPutChar, stdout)
 
 import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
+
+#if !(SEMIGROUP_MONOID_SUPERCLASS)
+import Data.Semigroup
+#endif
 
 #if !MIN_VERSION_base(4,6,0)
 modifyIORef' :: IORef a -> (a -> a) -> IO ()

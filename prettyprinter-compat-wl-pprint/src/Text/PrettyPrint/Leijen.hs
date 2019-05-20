@@ -22,7 +22,6 @@ import Prelude hiding ((<$>))
 import Prelude
 #endif
 
-import           Data.Monoid
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
@@ -30,6 +29,9 @@ import           Data.Text.Prettyprint.Doc             (Pretty (..))
 import qualified Data.Text.Prettyprint.Doc             as New
 import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
 
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup
+#endif
 
 
 type Doc = New.Doc ()
