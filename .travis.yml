@@ -49,7 +49,7 @@ env:
     # LTS 12 uses GHC 8.4
     - >
       STACK_ARGS="--resolver lts-10"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
+      STACK_BUILD_ARGS="--ghc-options"
       SKIP_RELEASE_CHECKS=1
 
     # LTS 13 uses GHC 8.6
@@ -62,7 +62,7 @@ env:
       STACK_BUILD_ARGS=""
     - >
       STACK_ARGS="--resolver nightly"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
+      STACK_BUILD_ARGS=""
       SKIP_RELEASE_CHECKS=1
 
 
