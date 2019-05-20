@@ -126,7 +126,7 @@ script:
       fi
     - |
       if "${BUILD_SOURCE_DIST:-false}"; then
-          _stack sdist
+          stack sdist
       fi
     - |
       if "${RUN_RELEASE_CHECKS:-false}"; then
