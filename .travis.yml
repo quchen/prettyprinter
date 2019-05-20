@@ -44,27 +44,27 @@ env:
     - >
       STACK_ARGS="--resolver lts-12"
       RUN_TESTSUITE=true
-      PERFORM_RELEASE_CHECKS=true
+      RUN_RELEASE_CHECKS=true
 
     # LTS 13 uses GHC 8.6
     - >
       STACK_ARGS="--resolver lts-13"
       STACK_BUILD_ARGS="--ghc-options -Werror"
       RUN_TESTSUITE=true
-      PERFORM_RELEASE_CHECKS=true
+      RUN_RELEASE_CHECKS=true
       BUILD_BENCHMARKS=true
       BUILD_SOURCE_DIST=true
 
     - >
       STACK_ARGS="--resolver lts"
       RUN_TESTSUITE=true
-      PERFORM_RELEASE_CHECKS=true
+      RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
 
     - >
       STACK_ARGS="--resolver nightly"
       RUN_TESTSUITE=true
-      PERFORM_RELEASE_CHECKS=true
+      RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
 
 
@@ -76,7 +76,7 @@ matrix:
             - >
               STACK_ARGS="--resolver nightly"
               RUN_TESTSUITE=true
-              PERFORM_RELEASE_CHECKS=true
+              RUN_RELEASE_CHECKS=true
               BUILD_SOURCE_DIST=true
 
 
@@ -92,7 +92,7 @@ before_install:
     - stack="stack $STACK_ARGS --no-terminal"
     - $stack setup
     - |
-      if "${PERFORM_RELEASE_CHECKS:-false}"; then
+      if "${RUN_RELEASE_CHECKS:-false}"; then
           "$stack" install stylish-haskell-0.9.2.1
 
           # Latest HLint
@@ -105,7 +105,7 @@ script:
     - stack="$stack ${STACK_BUILD_ARGS:-""}"
     - travis_wait $stack build
     - |
-      if "${RUN_TESTSUITE:-false}"; do
+      if "${RUN_TESTSUITE:-false}"; then
           travis_wait $stack test
           travis_wait $stack haddock --no-haddock-deps
       fi
@@ -117,11 +117,13 @@ script:
       if "${BUILD_SOURCE_DIST:-false}"; then
           $stack sdist
       fi
-
-    - if "${PERFORM_RELEASE_CHECKS:-false}"; then ./scripts/checks/hlint;                    fi
-    - if "${PERFORM_RELEASE_CHECKS:-false}"; then ./scripts/checks/readme-was-generated;     fi
-    - if "${PERFORM_RELEASE_CHECKS:-false}"; then ./scripts/checks/negated-cpp-macro-syntax; fi
-    - if "${PERFORM_RELEASE_CHECKS:-false}"; then ./scripts/checks/stylish-haskell;          fi
+    - |
+      if "${RUN_RELEASE_CHECKS:-false}"; then
+          for check in scripts/checks/*; do
+              echo "Running check: $check"
+              "./$check"
+          done
+      fi
 
 
 
