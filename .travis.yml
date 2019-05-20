@@ -26,29 +26,29 @@ addons:
 env:
     # LTS 1 and 2 use uses GHC 7.8.4
     - >
-      STACK_BUILD_CONFIG="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
+      STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
 
     # LTS 3 to 6 all use GHC 7.10.{2,3}
     - >
-      STACK_BUILD_CONFIG="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
+      STACK_RESOLVER="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
 
     # LTS 7, 8 and 9 use GHC 8.0.{1,2}
     - >
-      STACK_BUILD_CONFIG="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
+      STACK_RESOLVER="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
 
     # LTS 10 and 11 uses GHC 8.2
     - >
-      STACK_BUILD_CONFIG="--resolver lts-10"
+      STACK_RESOLVER="--resolver lts-10"
 
     # LTS 12 uses GHC 8.4
     - >
-      STACK_BUILD_CONFIG="--resolver lts-12"
+      STACK_RESOLVER="--resolver lts-12"
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
 
     # LTS 13 uses GHC 8.6
     - >
-      STACK_BUILD_CONFIG="--resolver lts-13"
+      STACK_RESOLVER="--resolver lts-13"
       STACK_BUILD_ARGS="--ghc-options -Werror"
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
@@ -56,13 +56,13 @@ env:
       BUILD_SOURCE_DIST=true
 
     - >
-      STACK_BUILD_CONFIG="--resolver lts"
+      STACK_RESOLVER="--resolver lts"
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
 
     - >
-      STACK_BUILD_CONFIG="--resolver nightly"
+      STACK_RESOLVER="--resolver nightly"
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
@@ -74,7 +74,7 @@ matrix:
     allow_failures:
         - env:
             - >
-              STACK_BUILD_CONFIG="--resolver nightly"
+              STACK_RESOLVER="--resolver nightly"
               RUN_TESTSUITE=true
               RUN_RELEASE_CHECKS=true
               BUILD_SOURCE_DIST=true
@@ -91,7 +91,7 @@ before_install:
 
     - |
       _stack() {
-          stack $STACK_BUILD_CONFIG --no-terminal "$@"
+          stack $STACK_RESOLVER --no-terminal "$@"
       }
     - _stack setup
     - |
@@ -107,7 +107,7 @@ before_install:
 script:
     - |
       _stack() {
-          if [ $# -ge 1 ] && [ "$1" == "--travis_wait" ]; then
+          if [[ $# -ge 1 ]] && [[ $1 == --travis_wait ]]; then
               shift
               travis_wait stack $STACK_RESOLVER --no-terminal "$@" ${STACK_BUILD_ARGS:-""}
           else
