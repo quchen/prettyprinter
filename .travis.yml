@@ -90,7 +90,7 @@ before_install:
       | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
     - stack="stack $STACK_ARGS --no-terminal"
-    - \"$stack" setup
+    - $stack setup
     - |
       if "${PERFORM_RELEASE_CHECKS:-false}"; then
           "$stack" install stylish-haskell-0.9.2.1
@@ -102,19 +102,20 @@ before_install:
 
 
 script:
-    - travis_wait "$stack" build ${STACK_BUILD_ARGS:-""}
+    - stack="$stack ${STACK_BUILD_ARGS:-""}"
+    - travis_wait $stack build
     - |
       if "${RUN_TESTSUITE:-false}"; do
-          travis_wait "$stack" test ${STACK_BUILD_ARGS:-""}
-          travis_wait "$stack" haddock --no-haddock-deps ${STACK_BUILD_ARGS:-""}
+          travis_wait $stack test
+          travis_wait $stack haddock --no-haddock-deps
       fi
     - |
       if "${BUILD_BENCHMARKS:-false}"; then
-          travis_wait "$stack" bench --no-run-benchmarks ${STACK_BUILD_ARGS:-""}
+          travis_wait $stack bench --no-run-benchmarks
       fi
     - |
       if "${BUILD_SOURCE_DIST:-false}"; then
-          "$stack" sdist
+          $stack sdist
       fi
 
     - if "${PERFORM_RELEASE_CHECKS:-false}"; then ./scripts/checks/hlint;                    fi
