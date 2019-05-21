@@ -15,7 +15,6 @@ import           Criterion.Main
 import           Data.Char
 import           Data.Map                              (Map)
 import qualified Data.Map                              as M
-import           Data.Semigroup
 import           Data.Text                             (Text)
 import qualified Data.Text                             as T
 import qualified Data.Text.IO                          as T

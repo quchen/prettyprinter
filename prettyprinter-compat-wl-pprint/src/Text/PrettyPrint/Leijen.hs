@@ -10,7 +10,7 @@ module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of
     lbrace, rbrace, lbracket, rbracket, squote, dquote, semi, colon, comma,
     space, dot, backslash, equals, string, int, integer, float, double,
     rational, Pretty(..), SimpleDoc, renderPretty, renderCompact, displayS,
-    displayIO , bool , column, nesting, width
+    displayIO, bool, column, nesting, width
 
 ) where
 
@@ -22,7 +22,6 @@ import Prelude hiding ((<$>))
 import Prelude
 #endif
 
-import           Data.Monoid
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
@@ -30,6 +29,9 @@ import           Data.Text.Prettyprint.Doc             (Pretty (..))
 import qualified Data.Text.Prettyprint.Doc             as New
 import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
 
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup
+#endif
 
 
 type Doc = New.Doc ()

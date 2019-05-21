@@ -26,44 +26,47 @@ addons:
 env:
     # LTS 1 and 2 use uses GHC 7.8.4
     - >
-      STACK_ARGS="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
+
     # LTS 3 to 6 all use GHC 7.10.{2,3}
     - >
-      STACK_ARGS="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
+
     # LTS 7, 8 and 9 use GHC 8.0.{1,2}
     - >
-      STACK_ARGS="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
 
     # LTS 10 and 11 uses GHC 8.2
     - >
-      STACK_ARGS="--resolver lts-10"
-      STACK_BUILD_ARGS=""
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver lts-10"
 
     # LTS 12 uses GHC 8.4
     - >
-      STACK_ARGS="--resolver lts-10"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver lts-12"
+      RUN_TESTSUITE=true
+      RUN_RELEASE_CHECKS=true
 
     # LTS 13 uses GHC 8.6
     - >
-      STACK_ARGS="--resolver lts-13"
+      STACK_RESOLVER="--resolver lts-13"
       STACK_BUILD_ARGS="--ghc-options -Werror"
+      RUN_TESTSUITE=true
+      RUN_RELEASE_CHECKS=true
+      BUILD_BENCHMARKS=true
+      BUILD_SOURCE_DIST=true
 
     - >
-      STACK_ARGS="--resolver lts"
-      STACK_BUILD_ARGS=""
+      STACK_RESOLVER="--resolver lts"
+      RUN_TESTSUITE=true
+      RUN_RELEASE_CHECKS=true
+      BUILD_SOURCE_DIST=true
+
     - >
-      STACK_ARGS="--resolver nightly"
-      STACK_BUILD_ARGS="--ghc-options -Werror"
-      SKIP_RELEASE_CHECKS=1
+      STACK_RESOLVER="--resolver nightly"
+      RUN_TESTSUITE=true
+      RUN_RELEASE_CHECKS=true
+      BUILD_SOURCE_DIST=true
+      ALLOW_FAILURE=true
 
 
 
@@ -71,48 +74,62 @@ matrix:
     fast_finish: true
     allow_failures:
         - env:
-            - >
-              STACK_ARGS="--resolver nightly"
-              STACK_BUILD_ARGS="--ghc-options \"-Wcompat -Werror\""
+            - ALLOW_FAILURE=true
 
 
 
 before_install:
     # Download and unpack the stack executable
     - mkdir -p ~/.local/bin
-    - export PATH=$HOME/.local/bin:$PATH
+    - export PATH="$HOME/.local/bin:$HOME/.stack/bin:$PATH"
     - >
       travis_retry curl -L https://www.stackage.org/stack/linux-x86_64
       | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
-    - stack $STACK_ARGS --no-terminal setup
     - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          stack $STACK_ARGS --no-terminal install stylish-haskell-0.9.2.1
-
-          # Install latest HLint
+      _stack() {
+          stack $STACK_RESOLVER --no-terminal "$@"
+      }
+    - _stack setup
+    - |
+      if "${RUN_RELEASE_CHECKS:-false}"; then
+          # Latest HLint
           curl -sSL https://raw.github.com/ndmitchell/hlint/master/misc/run.sh | sh -s .
       fi
 
 
 
 script:
-    - >
-      travis_wait stack $STACK_ARGS --no-terminal test
-      $STACK_BUILD_ARGS
-    - >
-      travis_wait stack $STACK_ARGS --no-terminal haddock --no-haddock-deps
-      $STACK_BUILD_ARGS
     - |
-      if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then
-          travis_wait stack $STACK_ARGS --no-terminal bench --no-run-benchmarks $STACK_BUILD_ARGS
+      _stack() {
+          if [[ $# -ge 1 ]] && [[ $1 == --travis_wait ]]; then
+              shift
+              travis_wait stack $STACK_RESOLVER --no-terminal "$@" ${STACK_BUILD_ARGS:-""}
+          else
+              stack $STACK_RESOLVER --no-terminal "$@" ${STACK_BUILD_ARGS:-""}
+          fi
+      }
+    - _stack --travis_wait build
+    - |
+      if "${RUN_TESTSUITE:-false}"; then
+          _stack --travis_wait test
+          _stack --travis_wait haddock --no-haddock-deps
       fi
-    - stack $STACK_ARGS --no-terminal sdist
-
-    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/hlint;                    fi
-    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/readme-was-generated;     fi
-    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/negated-cpp-macro-syntax; fi
-    - if [[ -z "$SKIP_RELEASE_CHECKS" ]]; then ./scripts/checks/stylish-haskell;          fi
+    - |
+      if "${BUILD_BENCHMARKS:-false}"; then
+          _stack --travis_wait bench --no-run-benchmarks
+      fi
+    - |
+      if "${BUILD_SOURCE_DIST:-false}"; then
+          stack sdist
+      fi
+    - |
+      if "${RUN_RELEASE_CHECKS:-false}"; then
+          for check in scripts/checks/*; do
+              echo "Running check: $check"
+              "./$check"
+          done
+      fi
 
 
 
