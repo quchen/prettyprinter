@@ -1,17 +1,8 @@
-# Stack's standard Travis config, taken from
-# http://docs.haskellstack.org/en/stable/GUIDE.html#travis-with-caching
-
-
-
 # Use new container infrastructure to enable caching
 sudo: false
 
-
-
 # Choose a lightweight base image; we provide our own build tools.
 language: c
-
-
 
 # GHC depends on GMP. You can add other dependencies here as well.
 addons:
@@ -19,20 +10,18 @@ addons:
         packages:
             - libgmp-dev
 
-
-
 # The different configurations we want to test. You could also do things like
 # change flags or use --stack-yaml to point to a different file.
 env:
-    # LTS 1 and 2 use uses GHC 7.8.4
+    # LTS 1 and 2 use GHC 7.8.4
     - >
       STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
 
-    # LTS 3 to 6 all use GHC 7.10.{2,3}
+    # LTS 3 to 6 use GHC 7.10.{2,3}
     - >
       STACK_RESOLVER="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
 
-    # LTS 7, 8 and 9 use GHC 8.0.{1,2}
+    # LTS 7 to 9 use GHC 8.0.{1,2}
     - >
       STACK_RESOLVER="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
 
@@ -68,36 +57,19 @@ env:
       BUILD_SOURCE_DIST=true
       ALLOW_FAILURE=true
 
-
-
 matrix:
     fast_finish: true
     allow_failures:
-        - env:
-            - ALLOW_FAILURE=true
-
-
+        - env: ALLOW_FAILURE=true
 
 before_install:
-    # Download and unpack the stack executable
-    - mkdir -p ~/.local/bin
     - export PATH="$HOME/.local/bin:$HOME/.stack/bin:$PATH"
-    - >
-      travis_retry curl -L https://www.stackage.org/stack/linux-x86_64
-      | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
-    - |
-      _stack() {
-          stack $STACK_RESOLVER --no-terminal "$@"
-      }
-    - _stack setup
+    - travis_retry scripts/install/stack
+    - stack $STACK_RESOLVER --no-terminal setup
     - |
       if "${RUN_RELEASE_CHECKS:-false}"; then
-          # Latest HLint
-          curl -sSL https://raw.github.com/ndmitchell/hlint/master/misc/run.sh | sh -s .
+          ./scripts/install/hlint
       fi
-
-
 
 script:
     - |
@@ -130,8 +102,6 @@ script:
               "./$check"
           done
       fi
-
-
 
 # Caching so the next build will be fast too.
 cache:
