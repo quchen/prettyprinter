@@ -1,6 +1,8 @@
 # 1.3.0
 
 - Add alignment to Pretty [a] instance
+- Fix removal of blank lines in `removeTrailingWhitespace`
+- Widened support for GHC versions 7.4–8.8
 
 # 1.2.1
 
