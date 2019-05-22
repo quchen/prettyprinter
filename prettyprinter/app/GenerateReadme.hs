@@ -29,13 +29,11 @@ readmeContents = (mconcat . L.intersperse vspace)
 
     , h1 "A modern Wadler/Leijen Prettyprinter"
 
-    , mconcat
+    , vcat
         [ "[![](https://img.shields.io/travis/quchen/prettyprinter/master.svg?style=flat-square&label=Master%20build)](https://travis-ci.org/quchen/prettyprinter)"
-        , "  " <> hardline -- Awkwardly enough, two trailing spaces are a small break in Markdown.
-        , hsep
-            [ "[![](https://img.shields.io/hackage/v/prettyprinter.svg?style=flat-square&label=Hackage&colorB=0a7bbb)](https://hackage.haskell.org/package/prettyprinter)"
-            , "[![](https://www.stackage.org/package/prettyprinter/badge/lts?style=flat-square&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)"
-            , "[![](https://www.stackage.org/package/prettyprinter/badge/nightly?style=flat-square&label=stackage%20nightly&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)" ]]
+        , "[![](https://img.shields.io/hackage/v/prettyprinter.svg?style=flat-square&label=Hackage&colorB=0a7bbb)](https://hackage.haskell.org/package/prettyprinter)"
+        , "[![](https://www.stackage.org/package/prettyprinter/badge/lts?style=flat-square&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)"
+        , "[![](https://www.stackage.org/package/prettyprinter/badge/nightly?style=flat-square&label=stackage%20nightly&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)" ]
 
     , h2 "tl;dr"
         , paragraph [multiline| A prettyprinter/text rendering engine. Easy to
@@ -185,9 +183,9 @@ readmeContents = (mconcat . L.intersperse vspace)
           new `SimpleDocTree`. |]
         , [multiline| In the ANSI backend, instead of providing an own
           colorization function for each color/intensity/layer combination, they
-          have been combined in /color/ /colorDull/, /bgColor/, and
-          /bgColorDull/ functions, which can be found in the ANSI terminal
-          specific @prettyprinter-ansi-terminal@ package. |]
+          have been combined in `color`, `colorDull`, `bgColor`, and
+          `bgColorDull` functions, which can be found in the ANSI terminal
+          specific `prettyprinter-ansi-terminal` package. |]
         ]
 
     , h2 "Historical notes"
