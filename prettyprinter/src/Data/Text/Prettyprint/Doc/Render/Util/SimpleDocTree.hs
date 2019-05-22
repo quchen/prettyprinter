@@ -118,15 +118,15 @@ instance Applicative (UniqueParser s) where
         pure (f x, s'') )
 
 instance Monad (UniqueParser s) where
+    UniqueParser p >>= f = UniqueParser (\s -> do
+        (a', s') <- p s
+        let UniqueParser p' = f a'
+        p' s' )
+
 #if !(APPLICATIVE_MONAD)
     return = pure
 #endif
-    UniqueParser p >>= f = UniqueParser (\s -> do
-        (a', s') <- p s
-        (a'', s'') <- runParser (f a') s'
-        pure (a'', s'') )
-
-#if !(NO_FAIL_IN_MONAD_MONAD_FAIL)
+#if FAIL_IN_MONAD
     fail = Fail.fail
 #endif
 

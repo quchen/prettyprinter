@@ -18,6 +18,6 @@
 
 #define SEMIGROUP_MONOID_SUPERCLASS     MIN_VERSION_base(4,11,0)
 
-#define NO_FAIL_IN_MONAD_MONAD_FAIL     MIN_VERSION_base(4,13,0)
+#define FAIL_IN_MONAD                   !(MIN_VERSION_base(4,13,0))
 
 #endif
