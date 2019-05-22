@@ -64,11 +64,11 @@ matrix:
 
 before_install:
     - export PATH="$HOME/.local/bin:$HOME/.stack/bin:$PATH"
-    - travis_retry scripts/install/stack
+    - travis_retry scripts/ci/install/stack
     - stack $STACK_RESOLVER --no-terminal setup
     - |
       if "${RUN_RELEASE_CHECKS:-false}"; then
-          ./scripts/install/hlint
+          ./scripts/ci/install/hlint
       fi
 
 script:
@@ -97,8 +97,8 @@ script:
       fi
     - |
       if "${RUN_RELEASE_CHECKS:-false}"; then
-          for check in scripts/checks/*; do
-              echo "Running check: $check"
+          for check in scripts/ci/checks/*; do
+              echo "Running check: $(basename "$check")"
               "./$check"
           done
       fi
