@@ -10,8 +10,6 @@ addons:
         packages:
             - libgmp-dev
 
-# The different configurations we want to test. You could also do things like
-# change flags or use --stack-yaml to point to a different file.
 env:
     # LTS 1 and 2 use GHC 7.8.4
     - >
@@ -103,7 +101,6 @@ script:
           done
       fi
 
-# Caching so the next build will be fast too.
 cache:
     directories:
         - $HOME/.stack
