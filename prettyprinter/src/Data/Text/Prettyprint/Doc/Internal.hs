@@ -1452,9 +1452,13 @@ data SimpleDocStream ann =
 -- whitespace, for example a renderer that colors the background of trailing
 -- whitespace, as e.g. @git diff@ can be configured to do.
 removeTrailingWhitespace :: SimpleDocStream ann -> SimpleDocStream ann
-removeTrailingWhitespace = go (WssWithheldWhitespace [] 0)
+removeTrailingWhitespace = go (RecordedWhitespace [] 0)
   where
-    commitSpaces :: [Int] -> Int -> SimpleDocStream ann -> SimpleDocStream ann
+    commitSpaces
+        :: [Int] -- Withheld lines
+        -> Int -- Withheld spaces
+        -> SimpleDocStream ann
+        -> SimpleDocStream ann
     commitSpaces [] 0 = id
     commitSpaces [] 1 = SChar ' '
     commitSpaces [] n = SText n (T.replicate n " ")
@@ -1462,37 +1466,54 @@ removeTrailingWhitespace = go (WssWithheldWhitespace [] 0)
     commitSpaces (_:is) _ = SLine 0 . commitSpaces is 0
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
-    go annLevel@(WssAnnotationLevel annotationLevel) = \sds -> case sds of
-        SFail -> SFail
-        SEmpty -> SEmpty
-        SChar c rest -> SChar c (go annLevel rest)
-        SText textLength text rest -> SText textLength text (go annLevel rest)
-        SLine i rest -> SLine i (go annLevel rest)
-        SAnnPush ann rest -> SAnnPush ann (go (WssAnnotationLevel (annotationLevel+1)) rest)
+    -- We do not strip whitespace inside annotated documents, since it might
+    -- actually be relevant there.
+    go annLevel@(AnnotationLevel annLvl) = \sds -> case sds of
+        SFail             -> SFail
+        SEmpty            -> SEmpty
+        SChar c rest      -> SChar c (go annLevel rest)
+        SText l text rest -> SText l text (go annLevel rest)
+        SLine i rest      -> SLine i (go annLevel rest)
+        SAnnPush ann rest -> let !annLvl' = annLvl+1
+                             in SAnnPush ann (go (AnnotationLevel annLvl') rest)
         SAnnPop rest
-            | annotationLevel > 1 -> SAnnPop (go (WssAnnotationLevel (annotationLevel-1)) rest)
-            | otherwise -> SAnnPop (go (WssWithheldWhitespace [] 0) rest)
-    go (WssWithheldWhitespace withheldLines withheldSpaces) = \sds -> case sds of
+            | annLvl > 1  -> let !annLvl' = annLvl-1
+                             in SAnnPop (go (AnnotationLevel annLvl') rest)
+            | otherwise   -> SAnnPop (go (RecordedWhitespace [] 0) rest)
+    -- Record all spaces/lines encountered, and once proper text starts again,
+    -- release only the necessary ones.
+    go (RecordedWhitespace withheldLines withheldSpaces) = \sds -> case sds of
         SFail -> SFail
         SEmpty -> SEmpty
         SChar c rest
-            | c == ' ' -> go (WssWithheldWhitespace withheldLines (withheldSpaces+1)) rest
-            | otherwise -> commitSpaces withheldLines withheldSpaces (SChar c (go (WssWithheldWhitespace [] 0) rest))
+            | c == ' ' -> go (RecordedWhitespace withheldLines (withheldSpaces+1)) rest
+            | otherwise -> commitSpaces
+                               withheldLines
+                               withheldSpaces
+                               (SChar c (go (RecordedWhitespace [] 0) rest))
         SText textLength text rest ->
             let stripped = T.dropWhileEnd (== ' ') text
                 strippedLength = T.length stripped
                 trailingLength = textLength - strippedLength
                 isOnlySpace = strippedLength == 0
             in if isOnlySpace
-                then go (WssWithheldWhitespace withheldLines (withheldSpaces + textLength)) rest
-                else commitSpaces withheldLines withheldSpaces (SText strippedLength stripped (go (WssWithheldWhitespace [] trailingLength) rest))
-        SLine i rest -> go (WssWithheldWhitespace (i:withheldLines) 0) rest
-        SAnnPush ann rest -> commitSpaces withheldLines withheldSpaces (SAnnPush ann (go (WssAnnotationLevel 1) rest))
+                then go (RecordedWhitespace withheldLines (withheldSpaces + textLength)) rest
+                else commitSpaces
+                        withheldLines
+                        withheldSpaces
+                        (SText strippedLength
+                               stripped
+                               (go (RecordedWhitespace [] trailingLength) rest))
+        SLine i rest -> go (RecordedWhitespace (i:withheldLines) 0) rest
+        SAnnPush ann rest -> commitSpaces
+                                 withheldLines
+                                 withheldSpaces
+                                 (SAnnPush ann (go (AnnotationLevel 1) rest))
         SAnnPop _ -> error "Tried skipping spaces in unannotated data! Please report this as a bug in 'prettyprinter'."
 
 data WhitespaceStrippingState
-    = WssAnnotationLevel !Int
-    | WssWithheldWhitespace [Int] !Int
+    = AnnotationLevel !Int
+    | RecordedWhitespace [Int] !Int
       -- ^ [Newline with indentation i] Spaces
   deriving Typeable
 
