@@ -25,7 +25,7 @@ import Prelude hiding ((<$>))
 import Prelude
 #endif
 
-import           Data.Monoid (Monoid (..))
+import           Data.Monoid    (Monoid (..))
 import           Data.Semigroup ((<>))
 import qualified Data.Text.Lazy as TL
 import           System.IO

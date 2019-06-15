@@ -7,8 +7,8 @@
 #include "version-compatibility-macros.h"
 
 #if HAS_GENERICS
-{-# LANGUAGE DefaultSignatures   #-}
-{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE DeriveGeneric     #-}
 #endif
 
 -- | __Warning: internal module!__ This means that the API may change
@@ -37,7 +37,7 @@ import           Data.Void
 import           Data.Word
 
 #if HAS_GENERICS
-import           GHC.Generics        (Generic)
+import GHC.Generics (Generic)
 #endif
 
 -- Depending on the Cabal file, this might be from base, or for older builds,
