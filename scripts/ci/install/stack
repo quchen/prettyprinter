@@ -3,4 +3,15 @@
 set -euo pipefail
 
 mkdir -p ~/.local/bin
-curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+stack_download_url=https://www.stackage.org/stack/linux-x86_64
+if [[ ! -z ${STACK_VERSION+x} ]]; then
+    if [[ $STACK_VERSION = "1.9.1" ]]; then
+        stack_download_url="https://github.com/commercialhaskell/stack/releases/download/v1.9.1/stack-1.9.1-linux-x86_64-static.tar.gz"
+    else
+        echo "Stack version $STACK_VERSION unsupported by this Travis CI downloader script" >&2
+        exit 1
+    fi
+fi
+
+curl -L "$stack_download_url" | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
