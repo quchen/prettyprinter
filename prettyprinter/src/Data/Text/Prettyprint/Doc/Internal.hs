@@ -139,7 +139,7 @@ data Doc ann =
     -- styling directives or alt texts that can then be used by the renderer.
     | Annotated ann (Doc ann)
     deriving (Typeable
-#if HAS_GENERIC
+#if HAS_GENERICS
         , Generic
 #endif
         )
