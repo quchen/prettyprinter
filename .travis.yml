@@ -13,6 +13,7 @@ addons:
 env:
     # LTS 1 and 2 use GHC 7.8.4
     - >
+      STACK_VERSION="1.9.1"
       STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
 
     # LTS 3 to 6 use GHC 7.10.{2,3}
