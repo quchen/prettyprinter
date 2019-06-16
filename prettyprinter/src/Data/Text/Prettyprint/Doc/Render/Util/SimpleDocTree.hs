@@ -5,7 +5,7 @@
 #include "version-compatibility-macros.h"
 
 #if HAS_GENERICS
-{-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE DeriveGeneric      #-}
 #endif
 
 -- | Conversion of the linked-list-like 'SimpleDocStream' to a tree-like
@@ -34,7 +34,7 @@ import qualified Data.Text           as T
 import           Data.Typeable       (Typeable)
 
 #if HAS_GENERICS
-import           GHC.Generics
+import GHC.Generics
 #endif
 
 import Data.Text.Prettyprint.Doc

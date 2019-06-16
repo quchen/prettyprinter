@@ -1,10 +1,10 @@
+{-# LANGUAGE CPP #-}
+#include "version-compatibility-macros.h"
+
 {-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
-#include "version-compatibility-macros.h"
 
 #if HAS_GENERICS
 {-# LANGUAGE DefaultSignatures #-}
