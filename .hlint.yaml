@@ -60,3 +60,6 @@
     name: Avoid return
     lhs: return
     rhs: pure
+
+# Needed for compatibility
+- ignore: {name: "Avoid return"}
