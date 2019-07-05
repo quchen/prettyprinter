@@ -1,3 +1,7 @@
+# 1.3.0.1
+
+- Widen support to GHC 7
+
 # 1.3.0
 
 - Add alignment to Pretty [a] instance
