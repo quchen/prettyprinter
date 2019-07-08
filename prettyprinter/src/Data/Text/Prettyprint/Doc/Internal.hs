@@ -407,9 +407,9 @@ unsafeTextWithoutNewlines text = case T.uncons text of
 emptyDoc :: Doc ann
 emptyDoc = Empty
 
--- | @('nest' i x)@ lays out the document @x@ with the current indentation level
--- increased by @i@. Negative values are allowed, and decrease the nesting level
--- accordingly.
+-- | @('nest' i x)@ lays out the document @x@ with the current nesting level
+-- (indentation of the following lines) increased by @i@. Negative values are
+-- allowed, and decrease the nesting level accordingly.
 --
 -- >>> vsep [nest 4 (vsep ["lorem", "ipsum", "dolor"]), "sit", "amet"]
 -- lorem
@@ -418,7 +418,12 @@ emptyDoc = Empty
 -- sit
 -- amet
 --
--- See also 'hang', 'align' and 'indent'.
+-- See also
+--
+--   * 'hang' ('nest' relative to current cursor position instead of
+--      current nesting level)
+--   * 'align' (set nesting level to current cursor position)
+--   * 'indent' (increase indentation on the spot, padding with spaces).
 nest
     :: Int -- ^ Change of nesting level
     -> Doc ann
