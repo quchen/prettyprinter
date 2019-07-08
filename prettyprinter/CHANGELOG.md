@@ -1,3 +1,7 @@
+# 1.4 (next)
+
+Add fixity declaration to `<+>`, matching `<>`
+
 # 1.3.0.1
 
 - Support Stack 2

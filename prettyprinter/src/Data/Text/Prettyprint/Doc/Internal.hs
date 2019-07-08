@@ -782,6 +782,7 @@ tupled = group . encloseSep (flatAlt "( " "(")
 -- @
 (<+>) :: Doc ann -> Doc ann -> Doc ann
 x <+> y = x <> Char ' ' <> y
+infixr 6 <+> -- like <>
 
 
 
