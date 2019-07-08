@@ -8,6 +8,10 @@
 - Fix removal of blank lines in `removeTrailingWhitespace`
 - Widened support for GHC versions 7.4–8.8
 
+# 1.2.1.1
+
+- Fix dependency of doctest suite
+
 # 1.2.1
 
 - Add function to trim trailing space in layouted `SimpleDocStream`,
