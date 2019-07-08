@@ -1,3 +1,7 @@
+# 1.2.1.1
+
+- Fix dependency of doctest suite
+
 # 1.2.1
 
 - Add function to trim trailing space in layouted `SimpleDocStream`,
