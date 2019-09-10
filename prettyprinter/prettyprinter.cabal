@@ -70,10 +70,10 @@ library
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
     if !impl(ghc >= 8.0)
-        build-depends: semigroups >= 0.1
-        build-depends: fail >= 4.9.0.0
+        build-depends: semigroups >= 0.16.1
+        build-depends: fail >= 4.9.0.0 && <4.10
     if !impl(ghc >= 7.10)
-        build-depends: void
+        build-depends: void >=0.4 && <0.8
 
 
 
