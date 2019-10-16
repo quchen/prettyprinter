@@ -60,6 +60,11 @@ tests = testGroup "Tests"
             , testCase "2" regressionRemoveTrailingWhitespace2
             , testCase "3" regressionRemoveTrailingWhitespace3
             ]
+        , testGroup "removeTrailingWhitespace removes trailing line breaks (#86)"
+            [ testCase "1" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1
+            , testCase "2" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2
+            , testCase "3" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
+            ]
         ]
     ]
 
@@ -228,4 +233,23 @@ regressionRemoveTrailingWhitespace3
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
         sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1 :: Assertion
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 SEmpty
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2 :: Assertion
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3 :: Assertion
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 2 (SText 2 "  " SEmpty))
+        sdoc' = SChar 'x' (SLine 0 SEmpty)
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
