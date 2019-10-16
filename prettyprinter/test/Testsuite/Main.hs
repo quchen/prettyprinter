@@ -55,6 +55,11 @@ tests = testGroup "Tests"
                    regressionLayoutSmartSoftline
         , testCase "alterAnnotationsS causes panic when removing annotations (#50)"
                    regressionAlterAnnotationsS
+        , testGroup "removeTrailingWhitespace removes leading whitespace (#84)"
+            [ testCase "1" regressionRemoveTrailingWhitespace1
+            , testCase "2" regressionRemoveTrailingWhitespace2
+            , testCase "3" regressionRemoveTrailingWhitespace3
+            ]
         ]
     ]
 
@@ -205,3 +210,22 @@ regressionAlterAnnotationsS
         sdoc = layoutSmart defaultLayoutOptions (annotate 1 (annotate 2 (annotate 3 "a")))
         sdoc' = alterAnnotationsS (\ann -> case ann of 2 -> Just 2; _ -> Nothing) sdoc
     in assertEqual "" (SAnnPush 2 (SChar 'a' (SAnnPop SEmpty))) sdoc'
+
+regressionRemoveTrailingWhitespace1 :: Assertion
+regressionRemoveTrailingWhitespace1
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SText 2 "  " (SChar 'x' SEmpty))
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhitespace2 :: Assertion
+regressionRemoveTrailingWhitespace2
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SChar ' ' (SChar 'x' SEmpty))
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhitespace3 :: Assertion
+regressionRemoveTrailingWhitespace3
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
+        sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
