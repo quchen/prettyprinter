@@ -64,6 +64,7 @@ tests = testGroup "Tests"
             [ testCase "1" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1
             , testCase "2" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2
             , testCase "3" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
+            , testCase "Keep single trailing newline" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4
             ]
         ]
     ]
@@ -251,5 +252,12 @@ regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3 :: Assertion
 regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
   = let sdoc :: SimpleDocStream ()
         sdoc = SChar 'x' (SLine 2 (SText 2 "  " SEmpty))
+        sdoc' = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4 :: Assertion
+regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 2 (SLine 2 SEmpty))
         sdoc' = SChar 'x' (SLine 0 SEmpty)
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)

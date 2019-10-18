@@ -1490,7 +1490,9 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
     -- release only the necessary ones.
     go (RecordedWhitespace withheldLines withheldSpaces) = \sds -> case sds of
         SFail -> SFail
-        SEmpty -> foldr (\_i sds' -> SLine 0 sds') SEmpty withheldLines
+        SEmpty -> if null withheldLines
+            then SEmpty
+            else SLine 0 SEmpty -- do not remove the last newline, Unix-style
         SChar c rest
             | c == ' ' -> go (RecordedWhitespace withheldLines (withheldSpaces+1)) rest
             | otherwise -> commitSpaces
