@@ -55,6 +55,24 @@ tests = testGroup "Tests"
                    regressionLayoutSmartSoftline
         , testCase "alterAnnotationsS causes panic when removing annotations (#50)"
                    regressionAlterAnnotationsS
+        , testGroup "removeTrailingWhitespace removes leading whitespace (#84)"
+            [ testCase "Text node"
+                       doNotRemoveLeadingWhitespaceText
+            , testCase "Char node"
+                       doNotRemoveLeadingWhitespaceChar
+            , testCase "Text+Char nodes"
+                       doNotRemoveLeadingWhitespaceTextChar
+            ]
+        , testGroup "removeTrailingWhitespace removes trailing line breaks (#86)"
+            [ testCase "Keep lonely single trailing newline"
+                       removeTrailingWhitespaceKeepLonelyTrailingNewline
+            , testCase "Trailing newline with spaces"
+                       removeTrailingNewlineWithSpaces
+            , testCase "Keep single trailing newline"
+                       removeTrailingWhitespaceKeepTrailingNewline
+            , testCase "Reduce to single trailing newline"
+                       removeTrailingWhitespaceReduceToSingleTrailingNewline
+            ]
         ]
     ]
 
@@ -205,3 +223,48 @@ regressionAlterAnnotationsS
         sdoc = layoutSmart defaultLayoutOptions (annotate 1 (annotate 2 (annotate 3 "a")))
         sdoc' = alterAnnotationsS (\ann -> case ann of 2 -> Just 2; _ -> Nothing) sdoc
     in assertEqual "" (SAnnPush 2 (SChar 'a' (SAnnPop SEmpty))) sdoc'
+
+doNotRemoveLeadingWhitespaceText :: Assertion
+doNotRemoveLeadingWhitespaceText
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SText 2 "  " (SChar 'x' SEmpty))
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+doNotRemoveLeadingWhitespaceChar :: Assertion
+doNotRemoveLeadingWhitespaceChar
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SChar ' ' (SChar 'x' SEmpty))
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+doNotRemoveLeadingWhitespaceTextChar :: Assertion
+doNotRemoveLeadingWhitespaceTextChar
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
+        sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+removeTrailingWhitespaceKeepTrailingNewline :: Assertion
+removeTrailingWhitespaceKeepTrailingNewline
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 0 SEmpty
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+removeTrailingNewlineWithSpaces :: Assertion
+removeTrailingNewlineWithSpaces
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 2 (SText 2 "  " SEmpty))
+        sdoc' = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+removeTrailingWhitespaceKeepLonelyTrailingNewline :: Assertion
+removeTrailingWhitespaceKeepLonelyTrailingNewline
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+removeTrailingWhitespaceReduceToSingleTrailingNewline :: Assertion
+removeTrailingWhitespaceReduceToSingleTrailingNewline
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 2 (SLine 2 SEmpty))
+        sdoc' = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)

@@ -1468,8 +1468,8 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
     commitSpaces [] 0 = id
     commitSpaces [] 1 = SChar ' '
     commitSpaces [] n = SText n (T.replicate n " ")
-    commitSpaces [i] _ = SLine i
-    commitSpaces (_:is) _ = SLine 0 . commitSpaces is 0
+    commitSpaces [i] n = SLine i . commitSpaces [] n
+    commitSpaces (_:is) n = SLine 0 . commitSpaces is n
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
@@ -1490,7 +1490,9 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
     -- release only the necessary ones.
     go (RecordedWhitespace withheldLines withheldSpaces) = \sds -> case sds of
         SFail -> SFail
-        SEmpty -> SEmpty
+        SEmpty -> if null withheldLines
+            then SEmpty
+            else SLine 0 SEmpty -- do not remove the last newline, Unix-style
         SChar c rest
             | c == ' ' -> go (RecordedWhitespace withheldLines (withheldSpaces+1)) rest
             | otherwise -> commitSpaces
