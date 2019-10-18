@@ -55,6 +55,7 @@ tests = testGroup "Tests"
                    regressionLayoutSmartSoftline
         , testCase "alterAnnotationsS causes panic when removing annotations (#50)"
                    regressionAlterAnnotationsS
+        , testCase "Bad fallback handling with align (#83)" badFallbackAlign
         , testGroup "removeTrailingWhitespace removes leading whitespace (#84)"
             [ testCase "Text node"
                        doNotRemoveLeadingWhitespaceText
@@ -268,3 +269,11 @@ removeTrailingWhitespaceInTrailingNewlines
         sdoc = SChar 'x' (SLine 2 (SLine 2 SEmpty))
         sdoc' = SChar 'x' (SLine 0 (SLine 0 SEmpty))
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+badFallbackAlign :: Assertion
+badFallbackAlign
+  = let x = group (flatAlt "Default" "Fallback")
+        doc = "/" <> align (cat [x, x, "Too wide!!!!!"])
+        actual = renderStrict (layoutSmart (LayoutOptions (AvailablePerLine 12 1)) doc)
+        expected = "/Default\n Default\n Too wide!!!!!"
+    in assertEqual "" expected actual
