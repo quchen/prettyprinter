@@ -56,15 +56,22 @@ tests = testGroup "Tests"
         , testCase "alterAnnotationsS causes panic when removing annotations (#50)"
                    regressionAlterAnnotationsS
         , testGroup "removeTrailingWhitespace removes leading whitespace (#84)"
-            [ testCase "1" regressionRemoveTrailingWhitespace1
-            , testCase "2" regressionRemoveTrailingWhitespace2
-            , testCase "3" regressionRemoveTrailingWhitespace3
+            [ testCase "Text node"
+                       doNotRemoveLeadingWhitespaceText
+            , testCase "Char node"
+                       doNotRemoveLeadingWhitespaceChar
+            , testCase "Text+Char nodes"
+                       doNotRemoveLeadingWhitespaceTextChar
             ]
         , testGroup "removeTrailingWhitespace removes trailing line breaks (#86)"
-            [ testCase "1" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1
-            , testCase "2" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2
-            , testCase "3" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
-            , testCase "Keep single trailing newline" regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4
+            [ testCase "Keep lonely single trailing newline"
+                       removeTrailingWhitespaceKeepLonelyTrailingNewline
+            , testCase "Trailing newline with spaces"
+                       removeTrailingNewlineWithSpaces
+            , testCase "Keep single trailing newline"
+                       removeTrailingWhitespaceKeepTrailingNewline
+            , testCase "Reduce to single trailing newline"
+                       removeTrailingWhitespaceReduceToSingleTrailingNewline
             ]
         ]
     ]
@@ -217,46 +224,46 @@ regressionAlterAnnotationsS
         sdoc' = alterAnnotationsS (\ann -> case ann of 2 -> Just 2; _ -> Nothing) sdoc
     in assertEqual "" (SAnnPush 2 (SChar 'a' (SAnnPop SEmpty))) sdoc'
 
-regressionRemoveTrailingWhitespace1 :: Assertion
-regressionRemoveTrailingWhitespace1
+doNotRemoveLeadingWhitespaceText :: Assertion
+doNotRemoveLeadingWhitespaceText
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SText 2 "  " (SChar 'x' SEmpty))
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
 
-regressionRemoveTrailingWhitespace2 :: Assertion
-regressionRemoveTrailingWhitespace2
+doNotRemoveLeadingWhitespaceChar :: Assertion
+doNotRemoveLeadingWhitespaceChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SChar 'x' SEmpty))
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
 
-regressionRemoveTrailingWhitespace3 :: Assertion
-regressionRemoveTrailingWhitespace3
+doNotRemoveLeadingWhitespaceTextChar :: Assertion
+doNotRemoveLeadingWhitespaceTextChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
         sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1 :: Assertion
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks1
+removeTrailingWhitespaceKeepTrailingNewline :: Assertion
+removeTrailingWhitespaceKeepTrailingNewline
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 SEmpty
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
 
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2 :: Assertion
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks2
-  = let sdoc :: SimpleDocStream ()
-        sdoc = SChar 'x' (SLine 0 SEmpty)
-    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
-
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3 :: Assertion
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks3
+removeTrailingNewlineWithSpaces :: Assertion
+removeTrailingNewlineWithSpaces
   = let sdoc :: SimpleDocStream ()
         sdoc = SChar 'x' (SLine 2 (SText 2 "  " SEmpty))
         sdoc' = SChar 'x' (SLine 0 SEmpty)
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4 :: Assertion
-regressionRemoveTrailingWhiteSpaceTrailingLineBreaks4
+removeTrailingWhitespaceKeepLonelyTrailingNewline :: Assertion
+removeTrailingWhitespaceKeepLonelyTrailingNewline
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SChar 'x' (SLine 0 SEmpty)
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+removeTrailingWhitespaceReduceToSingleTrailingNewline :: Assertion
+removeTrailingWhitespaceReduceToSingleTrailingNewline
   = let sdoc :: SimpleDocStream ()
         sdoc = SChar 'x' (SLine 2 (SLine 2 SEmpty))
         sdoc' = SChar 'x' (SLine 0 SEmpty)
