@@ -1,6 +1,9 @@
 # 1.4 (next)
 
-Add fixity declaration to `<+>`, matching `<>`
+- Add fixity declaration to `<+>`, matching `<>`
+- Fix removal of trailing whitespace
+    - Keep very last newlines, Unix-style
+    - Do not trim leading whitespace
 
 # 1.3.0.1
 
