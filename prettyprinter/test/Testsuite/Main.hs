@@ -71,7 +71,7 @@ tests = testGroup "Tests"
             , testCase "Keep single trailing newline"
                        removeTrailingWhitespaceKeepTrailingNewline
             , testCase "Reduce to single trailing newline"
-                       removeTrailingWhitespaceReduceToSingleTrailingNewline
+                       removeTrailingWhitespaceInTrailingNewlines
             ]
         ]
     ]
@@ -262,9 +262,9 @@ removeTrailingWhitespaceKeepLonelyTrailingNewline
         sdoc = SChar 'x' (SLine 0 SEmpty)
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
 
-removeTrailingWhitespaceReduceToSingleTrailingNewline :: Assertion
-removeTrailingWhitespaceReduceToSingleTrailingNewline
+removeTrailingWhitespaceInTrailingNewlines :: Assertion
+removeTrailingWhitespaceInTrailingNewlines
   = let sdoc :: SimpleDocStream ()
         sdoc = SChar 'x' (SLine 2 (SLine 2 SEmpty))
-        sdoc' = SChar 'x' (SLine 0 SEmpty)
+        sdoc' = SChar 'x' (SLine 0 (SLine 0 SEmpty))
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
