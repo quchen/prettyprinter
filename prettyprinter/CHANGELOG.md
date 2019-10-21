@@ -1,4 +1,4 @@
-# 1.4 (next)
+# 1.4
 
 - Add fixity declaration to `<+>`, matching `<>`
 - Fix removal of trailing whitespace

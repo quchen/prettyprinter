@@ -1,5 +1,5 @@
 name:                prettyprinter
-version:             1.3.0
+version:             1.4.0
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            A modern, easy to use, well-documented, extensible pretty-printer.
@@ -14,12 +14,6 @@ maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
-tested-with:         GHC == 7.8.4
-                   , GHC == 7.10.2
-                   , GHC == 7.10.3
-                   , GHC == 8.0.1
-                   , GHC == 8.0.2
-                   , GHC == 8.2.2
 
 
 
