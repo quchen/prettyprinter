@@ -275,5 +275,5 @@ badFallbackAlign
   = let x = group (flatAlt "Default" "Fallback")
         doc = "/" <> align (cat [x, x, "Too wide!!!!!"])
         actual = renderStrict (layoutSmart (LayoutOptions (AvailablePerLine 12 1)) doc)
-        expected = "/Default\n Default\n Too wide!!!!!"
+        expected = "/Fallback\n Fallback\n Too wide!!!!!"
     in assertEqual "" expected actual
