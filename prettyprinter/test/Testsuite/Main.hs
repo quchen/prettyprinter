@@ -73,8 +73,12 @@ tests = testGroup "Tests"
             , testCase "Reduce to single trailing newline"
                        removeTrailingWhitespaceInTrailingNewlines
             ]
-        , testCase "removeTrailingWhitespace restores indentation in the wrong spot (#93)"
-                   removeTrailingWhitespaceDontRestoreIndentation
+        , testGroup "removeTrailingWhitespace restores indentation in the wrong spot (#93)"
+            [ testCase "Don't restore indentation in the wrong spot"
+                       removeTrailingWhitespaceDontRestoreIndentationInTheWrongSpot
+            , testCase "Preserve leading indentation"
+                       removeTrailingWhitespacePreserveIndentation
+            ]
         ]
     ]
 
@@ -271,9 +275,15 @@ removeTrailingWhitespaceInTrailingNewlines
         sdoc' = SChar 'x' (SLine 0 (SLine 0 SEmpty))
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
-removeTrailingWhitespaceDontRestoreIndentation :: Assertion
-removeTrailingWhitespaceDontRestoreIndentation
+removeTrailingWhitespaceDontRestoreIndentationInTheWrongSpot :: Assertion
+removeTrailingWhitespaceDontRestoreIndentationInTheWrongSpot
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 2 (SLine 0 (SChar 'x' SEmpty))
         sdoc' = SLine 0 (SLine 0 (SChar 'x' SEmpty))
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
+
+removeTrailingWhitespacePreserveIndentation :: Assertion
+removeTrailingWhitespacePreserveIndentation
+  = let sdoc :: SimpleDocStream ()
+        sdoc = SLine 2 (SChar 'x' SEmpty)
+    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
