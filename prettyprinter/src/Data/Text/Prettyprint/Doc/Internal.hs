@@ -1468,7 +1468,7 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
     commitWhitespace is0 n0 = commitLines is0 . commitSpaces n0
       where
         commitLines [] = id
-        commitLines (i:is) = (\sds -> foldr (\_ -> SLine 0) sds is) . SLine i
+        commitLines (i:is) = foldr (\_ f -> SLine 0 . f) (SLine i) is
 
         commitSpaces 0 = id
         commitSpaces 1 = SChar ' '
