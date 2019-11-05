@@ -1,3 +1,8 @@
+# 1.5.1
+
+- Removing trailing whitespace sometimes restored necessary whitespace in the
+  wrong spot
+
 # 1.5
 
 - Fix inconsistent formatting within align and wide sub-docs on narrow layouts
