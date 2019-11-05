@@ -1535,6 +1535,14 @@ startsWithLine sds = case sds of
     SAnnPop s    -> startsWithLine s
     _            -> False
 
+-- | Test whether a docstream is 'SFail', ignoring any annotations.
+isFail :: SimpleDocStream ann -> Bool
+isFail sds = case sds of
+    SFail -> True
+    SAnnPush _ s -> isFail s
+    SAnnPop s -> isFail s
+    _ -> False
+
 
 -- $
 -- >>> import qualified Data.Text.IO as T
@@ -1794,6 +1802,7 @@ layoutWadlerLeijen
         -> SimpleDocStream ann -- ^ Choice B.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
     selectNicer (FittingPredicate fits) lineIndent currentColumn x y
+      | isFail x = y
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
       where
