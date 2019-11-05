@@ -1527,6 +1527,15 @@ data WhitespaceStrippingState
   deriving Typeable
 
 
+-- | Test whether a docstream starts with a linebreak, ignoring any annotations.
+startsWithLine :: SimpleDocStream ann -> Bool
+startsWithLine sds = case sds of
+    SLine{}      -> True
+    SAnnPush _ s -> startsWithLine s
+    SAnnPop s    -> startsWithLine s
+    _            -> False
+
+
 -- $
 -- >>> import qualified Data.Text.IO as T
 -- >>> doc = "lorem" <> hardline <> hardline <> pretty "ipsum"
@@ -1788,7 +1797,16 @@ layoutWadlerLeijen
       | fits pWidth minNestingLevel availableWidth x = x
       | otherwise = y
       where
-        minNestingLevel = min lineIndent currentColumn
+        minNestingLevel =
+            -- See https://github.com/quchen/prettyprinter/issues/83.
+            if startsWithLine y
+                -- y might be a (more compact) hanging layout. Let's check x
+                -- thoroughly with the smaller lineIndent.
+                then lineIndent
+                -- y definitely isn't a hanging layout. Let's allow the first
+                -- line of x to be checked on its own and format it consistently
+                -- with subsequent lines with the same indentation.
+                else currentColumn
         ribbonWidth = case pWidth of
             AvailablePerLine lineLength ribbonFraction ->
                 (Just . max 0 . min lineLength . round)
