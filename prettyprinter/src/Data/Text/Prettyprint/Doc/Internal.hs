@@ -1460,16 +1460,19 @@ data SimpleDocStream ann =
 removeTrailingWhitespace :: SimpleDocStream ann -> SimpleDocStream ann
 removeTrailingWhitespace = go (RecordedWhitespace [] 0)
   where
-    commitSpaces
+    commitWhitespace
         :: [Int] -- Withheld lines
         -> Int -- Withheld spaces
         -> SimpleDocStream ann
         -> SimpleDocStream ann
-    commitSpaces [] 0 = id
-    commitSpaces [] 1 = SChar ' '
-    commitSpaces [] n = SText n (T.replicate n " ")
-    commitSpaces [i] n = SLine i . commitSpaces [] n
-    commitSpaces (_:is) n = SLine 0 . commitSpaces is n
+    commitWhitespace is0 n0 = commitLines is0 . commitSpaces n0
+      where
+        commitLines [] = id
+        commitLines (i:is) = foldr (\_ f -> SLine 0 . f) (SLine i) is
+
+        commitSpaces 0 = id
+        commitSpaces 1 = SChar ' '
+        commitSpaces n = SText n (T.replicate n " ")
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
@@ -1493,7 +1496,7 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
         SEmpty -> foldr (\_i sds' -> SLine 0 sds') SEmpty withheldLines
         SChar c rest
             | c == ' ' -> go (RecordedWhitespace withheldLines (withheldSpaces+1)) rest
-            | otherwise -> commitSpaces
+            | otherwise -> commitWhitespace
                                withheldLines
                                withheldSpaces
                                (SChar c (go (RecordedWhitespace [] 0) rest))
@@ -1504,14 +1507,14 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
                 isOnlySpace = strippedLength == 0
             in if isOnlySpace
                 then go (RecordedWhitespace withheldLines (withheldSpaces + textLength)) rest
-                else commitSpaces
+                else commitWhitespace
                         withheldLines
                         withheldSpaces
                         (SText strippedLength
                                stripped
                                (go (RecordedWhitespace [] trailingLength) rest))
         SLine i rest -> go (RecordedWhitespace (i:withheldLines) 0) rest
-        SAnnPush ann rest -> commitSpaces
+        SAnnPush ann rest -> commitWhitespace
                                  withheldLines
                                  withheldSpaces
                                  (SAnnPush ann (go (AnnotationLevel 1) rest))
