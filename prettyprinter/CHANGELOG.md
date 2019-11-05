@@ -1,3 +1,7 @@
+# 1.5
+
+- Fix inconsistent formatting within align and wide sub-docs on narrow layouts
+
 # 1.4
 
 - Add fixity declaration to `<+>`, matching `<>`
