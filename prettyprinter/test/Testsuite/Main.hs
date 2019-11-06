@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans   #-}
 
 #include "version-compatibility-macros.h"
 
@@ -13,9 +14,11 @@ import qualified Data.Text             as T
 import           Data.Text.PgpWordlist
 import           Data.Word
 import           System.Timeout        (timeout)
+import           Text.Show.Functions   ()
 
-import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.Text
+import           Data.Text.Prettyprint.Doc
+import qualified Data.Text.Prettyprint.Doc.Internal as Internal
+import           Data.Text.Prettyprint.Doc.Render.Text
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -86,19 +89,58 @@ tests = testGroup "Tests"
 fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
   = forAll document (\doc ->
-        let rendered = render doc
+    forAll (layouter :: Gen (LayoutOptions -> Doc Int -> SimpleDocStream Int)) (\layouter_ ->
+    forAll arbitrary (\layoutOptions ->
+        let render = renderStrict . layouter_ layoutOptions
+            rendered = render doc
             renderedFused = render (fuse depth doc)
         in counterexample (mkCounterexample rendered renderedFused)
-                          (render doc == render (fuse depth doc)) )
+                          (render doc == render (fuse depth doc)) )))
   where
-    render = renderStrict . layoutPretty defaultLayoutOptions
     mkCounterexample rendered renderedFused
-      = (T.unpack . render . vsep)
+      = (T.unpack . renderStrict . layoutPretty defaultLayoutOptions . vsep)
             [ "Unfused and fused documents render differently!"
             , "Unfused:"
             , indent 4 (pretty rendered)
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
+
+layouter :: CoArbitrary ann => Gen (LayoutOptions -> Doc ann -> SimpleDocStream ann)
+layouter = oneof
+    [ pure layoutPretty
+    , pure layoutSmart
+    , pure (const layoutCompact)
+    -- , Internal.layoutWadlerLeijen <$> arbitrary -- too inconsistent for fusionDoesNotChangeRendering
+    ]
+
+instance Arbitrary LayoutOptions where
+    arbitrary = LayoutOptions <$> oneof
+        [ AvailablePerLine <$> arbitrary <*> arbitrary
+        -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
+        ]
+
+instance CoArbitrary ann => Arbitrary (Internal.FittingPredicate ann) where
+    arbitrary = Internal.FittingPredicate <$> arbitrary
+
+instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
+    -- TODO: It might be more realistic to ignore the 'Char', 'Text' and 'ann'
+    -- values in the fitting predicate
+    coarbitrary s0 = case s0 of
+        SFail        -> variant' 0
+        SEmpty       -> variant' 1
+        SChar c s    -> variant' 2 . coarbitrary (c, s)
+        SText l t s  -> variant' 3 . coarbitrary (l, T.unpack t, s)
+        SLine i s    -> variant' 4 . coarbitrary (i, s)
+        SAnnPush a s -> variant' 5 . coarbitrary (a, s)
+        SAnnPop s    -> variant' 6 . coarbitrary s
+
+instance CoArbitrary PageWidth where
+    coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
+    coarbitrary Unbounded              = variant' 1
+
+-- | Silences type defaulting warnings for 'variant'
+variant' :: Int -> Gen a -> Gen a
+variant' = variant
 
 newtype RandomDoc ann = RandomDoc (Doc ann)
 
