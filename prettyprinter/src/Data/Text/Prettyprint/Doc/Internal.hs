@@ -1654,21 +1654,19 @@ layoutPretty
     -> Doc ann
     -> SimpleDocStream ann
 layoutPretty = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> case maxWidth of
-        Nothing -> True
-        Just w -> fits w sdoc ))
+    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
   where
-    fits :: Int -- ^ Width in which to fit the first line
+    fits :: Maybe Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits w _ | w < 0      = False
-    fits _ SFail          = False
-    fits _ SEmpty         = True
-    fits w (SChar _ x)    = fits (w - 1) x
-    fits w (SText l _t x) = fits (w - l) x
-    fits _ SLine{}        = True
-    fits w (SAnnPush _ x) = fits w x
-    fits w (SAnnPop x)    = fits w x
+    fits (Just w) _ | w < 0 = False
+    fits _ SFail            = False
+    fits _ SEmpty           = True
+    fits w (SChar _ x)      = fits (pred <$> w) x
+    fits w (SText l _t x)   = fits (subtract l <$> w) x
+    fits _ SLine{}          = True
+    fits w (SAnnPush _ x)   = fits w x
+    fits w (SAnnPop x)      = fits w x
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
 -- line breaks earlier if the content does not (or will not, rather) fit into
@@ -1719,10 +1717,7 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layoutWadlerLeijen
-    (FittingPredicate (\pWidth minNestingLevel maxWidth sdoc -> case maxWidth of
-        Nothing -> True
-        Just w -> fits pWidth minNestingLevel w sdoc ))
+layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
   where
     -- Search with more lookahead: assuming that nesting roughly corresponds to
     -- syntactic depth, @fits@ checks that not only the current line fits, but
@@ -1733,16 +1728,16 @@ layoutSmart = layoutWadlerLeijen
     -- exponential runtime (and is prohibitively expensive in practice).
     fits :: PageWidth
          -> Int -- ^ Minimum nesting level to fit in
-         -> Int -- ^ Width in which to fit the first line
+         -> Maybe Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ w _ | w < 0                    = False
+    fits _ _ (Just w) _ | w < 0             = False
     fits _ _ _ SFail                        = False
     fits _ _ _ SEmpty                       = True
-    fits pw m w (SChar _ x)                 = fits pw m (w - 1) x
-    fits pw m w (SText l _t x)              = fits pw m (w - l) x
+    fits pw m w (SChar _ x)                 = fits pw m (pred <$> w) x
+    fits pw m w (SText l _t x)              = fits pw m (subtract l <$> w) x
     fits pw m _ (SLine i x)
-      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (cpl - i) x
+      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (Just (cpl - i)) x
       | otherwise                           = True
     fits pw m w (SAnnPush _ x)              = fits pw m w x
     fits pw m w (SAnnPop x)                 = fits pw m w x
