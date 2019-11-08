@@ -80,6 +80,8 @@ tests = testGroup "Tests"
             , testCase "Preserve leading indentation"
                        removeTrailingWhitespacePreserveIndentation
             ]
+        , testCase "Unbounded layout of `group`ed Line fails (#91)"
+                   regressionUnboundedGroupedLine
         ]
     ]
 
@@ -296,3 +298,9 @@ removeTrailingWhitespacePreserveIndentation
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 2 (SChar 'x' SEmpty)
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionUnboundedGroupedLine :: Assertion
+regressionUnboundedGroupedLine
+  = let sdoc :: SimpleDocStream ()
+        sdoc = layoutPretty (LayoutOptions Unbounded) (group hardline)
+    in assertEqual "" (SLine 0 SEmpty) sdoc
