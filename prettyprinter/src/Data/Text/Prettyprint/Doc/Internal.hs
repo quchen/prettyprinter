@@ -1585,11 +1585,11 @@ instance Traversable SimpleDocStream where
 --
 --   - page width
 --   - minimum nesting level to fit in
---   - width in which to fit the first line; Nothing is unbounded
+--   - width in which to fit the first line
 newtype FittingPredicate ann
   = FittingPredicate (PageWidth
                    -> Int
-                   -> Maybe Int
+                   -> Int
                    -> SimpleDocStream ann
                    -> Bool)
   deriving Typeable
@@ -1655,9 +1655,7 @@ layoutPretty
     -> Doc ann
     -> SimpleDocStream ann
 layoutPretty = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> case maxWidth of
-        Nothing -> True
-        Just w -> fits w sdoc ))
+    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1675,7 +1673,7 @@ layoutPretty = layoutWadlerLeijen
 -- line breaks earlier if the content does not (or will not, rather) fit into
 -- one line.
 --
--- Considre the following python-ish document,
+-- Consider the following python-ish document,
 --
 -- >>> let fun x = hang 2 ("fun(" <> softline' <> x) <> ")"
 -- >>> let doc = (fun . fun . fun . fun . fun) (align (list ["abcdef", "ghijklm"]))
@@ -1720,10 +1718,7 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layoutWadlerLeijen
-    (FittingPredicate (\pWidth minNestingLevel maxWidth sdoc -> case maxWidth of
-        Nothing -> True
-        Just w -> fits pWidth minNestingLevel w sdoc ))
+layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
   where
     -- Search with more lookahead: assuming that nesting roughly corresponds to
     -- syntactic depth, @fits@ checks that not only the current line fits, but
@@ -1755,7 +1750,7 @@ layoutWadlerLeijen
     -> Doc ann
     -> SimpleDocStream ann
 layoutWadlerLeijen
-    fittingPredicate
+    (FittingPredicate fits)
     LayoutOptions { layoutPageWidth = pWidth }
     doc
   = best 0 0 (Cons 0 doc Nil)
@@ -1781,48 +1776,73 @@ layoutWadlerLeijen
         Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
         Union x y       -> let x' = best nl cc (Cons i x ds)
                                y' = best nl cc (Cons i y ds)
-                           in selectNicer fittingPredicate nl cc x' y'
+                           in selectNicer nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
         WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
     selectNicer
-        :: FittingPredicate ann
-        -> Int           -- ^ Current nesting level
+        :: Int           -- ^ Current nesting level
         -> Int           -- ^ Current column
         -> SimpleDocStream ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
         -> SimpleDocStream ann -- ^ Choice B.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
-    selectNicer (FittingPredicate fits) lineIndent currentColumn x y
-      | fits pWidth minNestingLevel availableWidth x = x
-      | otherwise = y
+    selectNicer lineIndent currentColumn x y = case pWidth of
+        AvailablePerLine lineLength ribbonFraction
+          | fits pWidth minNestingLevel availableWidth x -> x
+          where
+            minNestingLevel =
+                -- See https://github.com/quchen/prettyprinter/issues/83.
+                if startsWithLine y
+                    -- y might be a (more compact) hanging layout. Let's check x
+                    -- thoroughly with the smaller lineIndent.
+                    then lineIndent
+                    -- y definitely isn't a hanging layout. Let's allow the first
+                    -- line of x to be checked on its own and format it consistently
+                    -- with subsequent lines with the same indentation.
+                    else currentColumn
+            availableWidth = min columnsLeftInLine columnsLeftInRibbon
+              where
+                columnsLeftInLine = lineLength - currentColumn
+                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+                ribbonWidth =
+                    (max 0 . min lineLength . round)
+                        (fromIntegral lineLength * ribbonFraction)
+        Unbounded
+          -- See the Note [Detecting failure with Unbounded page width].
+          | not (failsOnFirstLine x) -> x
+        _ -> y
+
+    failsOnFirstLine :: SimpleDocStream ann -> Bool
+    failsOnFirstLine = go
       where
-        minNestingLevel =
-            -- See https://github.com/quchen/prettyprinter/issues/83.
-            if startsWithLine y
-                -- y might be a (more compact) hanging layout. Let's check x
-                -- thoroughly with the smaller lineIndent.
-                then lineIndent
-                -- y definitely isn't a hanging layout. Let's allow the first
-                -- line of x to be checked on its own and format it consistently
-                -- with subsequent lines with the same indentation.
-                else currentColumn
-        ribbonWidth = case pWidth of
-            AvailablePerLine lineLength ribbonFraction ->
-                (Just . max 0 . min lineLength . round)
-                    (fromIntegral lineLength * ribbonFraction)
-            Unbounded -> Nothing
-        availableWidth = do
-            columnsLeftInLine <- case pWidth of
-                AvailablePerLine cpl _ribbonFrac -> Just (cpl - currentColumn)
-                Unbounded -> Nothing
-            columnsLeftInRibbon <- do
-                li <- Just lineIndent
-                rw <- ribbonWidth
-                cc <- Just currentColumn
-                Just (li + rw - cc)
-            Just (min columnsLeftInLine columnsLeftInRibbon)
+        go sds = case sds of
+            SFail        -> True
+            SEmpty       -> False
+            SChar _ s    -> go s
+            SText _ _ s  -> go s
+            SLine _ _    -> False
+            SAnnPush _ s -> go s
+            SAnnPop s    -> go s
+
+
+-- Note [Detecting failure with Unbounded page width]
+--
+-- To understand why it is sufficient to check the first line of the
+-- SimpleDocStream, trace how an SFail ends up there:
+--
+-- 1. We group a Doc containing a Line, producing a (Union x y) where
+--    x contains Fail.
+--
+-- 2. In best, any Unions are handled recursively, rejecting any
+--    alternatives that would result in SFail.
+--
+-- So once a SimpleDocStream reaches selectNicer, any SFail in it must
+-- appear before the first linebreak – any other SFail would have been
+-- detected and rejected in a previous iteration.
+
+
 
 -- | @(layoutCompact x)@ lays out the document @x@ without adding any
 -- indentation. Since no \'pretty\' printing is involved, this layouter is very
