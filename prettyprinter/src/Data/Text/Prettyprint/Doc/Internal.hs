@@ -551,7 +551,7 @@ changesUponFlattening :: Doc ann -> Maybe (Doc ann)
 changesUponFlattening = \doc -> case doc of
     FlatAlt _ y     -> Just (flatten y)
     Line            -> Just Fail
-    Union x _       -> changesUponFlattening x <|> Just x
+    Union x _       -> Just x
     Nest i x        -> fmap (Nest i) (changesUponFlattening x)
     Annotated ann x -> fmap (Annotated ann) (changesUponFlattening x)
 
