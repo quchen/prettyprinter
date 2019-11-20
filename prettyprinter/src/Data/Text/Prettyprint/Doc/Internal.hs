@@ -17,6 +17,9 @@
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
 module Data.Text.Prettyprint.Doc.Internal (
     module Data.Text.Prettyprint.Doc.Internal
+
+    -- * Debugging
+  , diag
 ) where
 
 
@@ -56,6 +59,7 @@ import Data.Monoid hiding ((<>))
 import Data.Functor.Identity
 #endif
 
+import Data.Text.Prettyprint.Doc.Internal.Diagnostic (diag)
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 
