@@ -17,9 +17,6 @@
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
 module Data.Text.Prettyprint.Doc.Internal (
     module Data.Text.Prettyprint.Doc.Internal
-
-    -- * Debugging
-  , diag
 ) where
 
 
@@ -59,7 +56,8 @@ import Data.Monoid hiding ((<>))
 import Data.Functor.Identity
 #endif
 
-import Data.Text.Prettyprint.Doc.Internal.Diagnostic (diag)
+import Data.Text.Prettyprint.Doc.Internal.Diagnostic (Diag)
+import qualified Data.Text.Prettyprint.Doc.Internal.Diagnostic as Diag
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 
@@ -1628,6 +1626,9 @@ data PageWidth
 
     deriving (Eq, Ord, Show, Typeable)
 
+defaultPageWidth :: PageWidth
+defaultPageWidth = AvailablePerLine 80 1
+
 -- $ Test to avoid surprising behaviour
 -- >>> Unbounded > AvailablePerLine maxBound 1
 -- True
@@ -1643,7 +1644,7 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 -- >>> defaultLayoutOptions
 -- LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}
 defaultLayoutOptions :: LayoutOptions
-defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 1 }
+defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
@@ -1886,6 +1887,65 @@ renderShowS = \sds -> case sds of
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
 
+-- * Debugging
+--
+-- Use the @pretty-simple@ package to get a nicer layout for 'show'n
+-- 'Diag's
+--
+-- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
+-- Column 
+--    [ 
+--        ( 10
+--        , Nesting 
+--            [ 
+--                ( 10
+--                , Cat ( Text 3 "foo" ) 
+--                    ( Cat ( FlatAlt Line Empty ) ( Text 3 "bar" ) )
+--                ) 
+--            ]
+--        ) 
+--    ]
+
+-- | Convert a 'Doc' to its diagnostic representation.
+--
+-- The functions in the 'Column', 'WithPageWidth' and 'Nesting' constructors are
+-- sampled with some default values.
+--
+-- Use `diag'` to control the function inputs yourself.
+--
+-- >>> diag $ align (vcat ["foo", "bar"])
+-- Column [(10,Nesting [(10,Cat (Text 3 "foo") (Cat (FlatAlt Line Empty) (Text 3 "bar")))])]
+diag :: Doc ann -> Diag ann
+diag = diag' [10] [defaultPageWidth] [10]
+
+diag'
+    :: [Int]
+       -- ^ Cursor positions for the 'Column' constructor
+    -> [PageWidth]
+       -- ^ For 'WithPageWidth'
+    -> [Int]
+       -- ^ Nesting levels for 'Nesting'
+    -> Doc ann
+    -> Diag ann
+diag' columns pageWidths nestings = go
+  where
+    go doc = case doc of
+        Fail -> Diag.Fail
+        Empty -> Diag.Empty
+        Char c -> Diag.Char c
+        Text l t -> Diag.Text l t
+        Line -> Diag.Line
+        FlatAlt a b -> Diag.FlatAlt (go a) (go b)
+        Cat a b -> Diag.Cat (go a) (go b)
+        Nest i d -> Diag.Nest i (go d)
+        Union a b -> Diag.Union (go a) (go b)
+        Column f -> Diag.Column (apply f columns)
+        WithPageWidth f -> Diag.WithPageWidth (apply f pageWidths)
+        Nesting f -> Diag.Nesting (apply f nestings)
+        Annotated ann d -> Diag.Annotated ann (go d)
+
+    apply :: (a -> Doc ann) -> [a] -> [(a, Diag ann)]
+    apply f = map (\x -> (x, go (f x)))
 
 
 -- $setup
