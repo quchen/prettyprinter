@@ -13,11 +13,7 @@
 --
 -- The module is written to be readable top-to-bottom in both Haddock and raw
 -- source form.
-module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial (
-    module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial
-) where
-
-
+module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial where
 
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
@@ -33,11 +29,9 @@ import Data.Foldable (foldMap)
 import Data.Semigroup
 #endif
 
-
-
--- $standalone-text
+-- * The type of available markup
 --
--- = The type of available markup
+-- $standalone-text
 --
 -- First, we define a set of valid annotations must be defined, with the goal of
 -- defining a @'Doc' 'SimpleHtml'@. We will later define how to convert this to
@@ -46,11 +40,7 @@ import Data.Semigroup
 data SimpleHtml = Bold | Italics | Color Color | Paragraph | Headline
 data Color = Red | Green | Blue
 
-
-
--- $standalone-text
---
--- == Conveinence definitions
+-- ** Convenience definitions
 
 bold, italics, paragraph, headline :: Doc SimpleHtml -> Doc SimpleHtml
 bold = annotate Bold
@@ -61,8 +51,9 @@ headline = annotate Headline
 color :: Color -> Doc SimpleHtml -> Doc SimpleHtml
 color c = annotate (Color c)
 
-
--- = The rendering algorithm
+-- * The rendering algorithm
+--
+-- $standalone-text
 --
 -- With the annotation definitions out of the way, we can now define a
 -- conversion function from 'SimpleDocStream' (annotated with our 'SimpleHtml')
@@ -116,9 +107,9 @@ encloseInTagFor sh = case sh of
         Green -> "#0f0"
         Blue  -> "#00f"
 
--- $standalone-text
+-- * Example invocation
 --
--- = Example invocation
+-- $standalone-text
 --
 -- We can now render an example document using our definitions:
 --
