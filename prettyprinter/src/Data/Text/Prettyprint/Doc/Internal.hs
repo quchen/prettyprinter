@@ -15,9 +15,7 @@
 -- For a stable API, use the non-internal modules. For the special case of
 -- writing adaptors to this library’s @'Doc'@ type, see
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
-module Data.Text.Prettyprint.Doc.Internal (
-    module Data.Text.Prettyprint.Doc.Internal
-) where
+module Data.Text.Prettyprint.Doc.Internal where
 
 
 
@@ -1889,8 +1887,10 @@ renderShowS = \sds -> case sds of
 
 -- * Debugging
 --
+-- $standalone-text
+--
 -- Use the @pretty-simple@ package to get a nicer layout for 'show'n
--- 'Diag's
+-- 'Diag's:
 --
 -- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
 -- Column 
