@@ -18,11 +18,7 @@
 -- source form.
 module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
     {-# DEPRECATED "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
-    (
-    module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
-) where
-
-
+    where
 
 import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
@@ -36,11 +32,9 @@ import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 import Control.Applicative
 #endif
 
-
-
--- $standalone-text
+-- * The type of available markup
 --
--- = The type of available markup
+-- $standalone-text
 --
 -- First, we define a set of valid annotations must be defined, with the goal of
 -- defining a @'Doc' 'SimpleHtml'@. We will later define how to convert this to
@@ -49,11 +43,7 @@ import Control.Applicative
 data SimpleHtml = Bold | Italics | Color Color | Paragraph | Headline
 data Color = Red | Green | Blue
 
-
-
--- $standalone-text
---
--- == Conveinence definitions
+-- ** Convenience definitions
 
 bold, italics, paragraph, headline :: Doc SimpleHtml -> Doc SimpleHtml
 bold = annotate Bold
@@ -64,11 +54,9 @@ headline = annotate Headline
 color :: Color -> Doc SimpleHtml -> Doc SimpleHtml
 color c = annotate (Color c)
 
-
-
--- $standalone-text
+-- * The rendering algorithm
 --
--- = The rendering algorithm
+-- $standalone-text
 --
 -- With the annotation definitions out of the way, we can now define a
 -- conversion function from 'SimpleDocStream' annotated with our 'SimpleHtml' to the
@@ -149,9 +137,9 @@ render doc
                     <> show (length remainingStyles)
                     <> " unpaired styles! Please report this as a bug.")
 
--- $standalone-text
+-- * Example invocation
 --
--- = Example invocation
+-- $standalone-text
 --
 -- We can now render an example document using our definitions:
 --
