@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-cd "$(stack path --project-root)"
-hlint --version
-hlint . --cpp-include=aux --cpp-define="MIN_VERSION_base(x,y,z) 1" --color
