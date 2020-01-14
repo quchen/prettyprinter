@@ -1,6 +1,8 @@
 -- | __Warning: internal module!__ This means that the API may change
 -- arbitrarily between versions without notice. Depending on this module may
 -- lead to unexpected breakages, so proceed with caution!
+--
+-- This module provides debugging helpers for inspecting 'Doc's.
 
 module Data.Text.Prettyprint.Doc.Internal.Debug where
 
