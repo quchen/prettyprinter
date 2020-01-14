@@ -72,6 +72,9 @@
 -- Speaking of alignment, had we not used 'align', the @->@ would be at the
 -- beginning of each line, and not beneath the @::@.
 --
+-- The 'Data.Text.Prettyprint.Doc.Util.putDocW' renderer used here is from
+-- "Data.Text.Prettyprint.Doc.Util".
+--
 -- = General workflow
 --
 -- @
