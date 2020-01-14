@@ -54,8 +54,6 @@ import Data.Monoid hiding ((<>))
 import Data.Functor.Identity
 #endif
 
-import Data.Text.Prettyprint.Doc.Internal.Diagnostic (Diag)
-import qualified Data.Text.Prettyprint.Doc.Internal.Diagnostic as Diag
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 
@@ -1884,68 +1882,6 @@ renderShowS = \sds -> case sds of
     SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
-
--- * Debugging
---
--- $standalone-text
---
--- Use the @pretty-simple@ package to get a nicer layout for 'show'n
--- 'Diag's:
---
--- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
--- Column 
---    [ 
---        ( 10
---        , Nesting 
---            [ 
---                ( 10
---                , Cat ( Text 3 "foo" ) 
---                    ( Cat ( FlatAlt Line Empty ) ( Text 3 "bar" ) )
---                ) 
---            ]
---        ) 
---    ]
-
--- | Convert a 'Doc' to its diagnostic representation.
---
--- The functions in the 'Column', 'WithPageWidth' and 'Nesting' constructors are
--- sampled with some default values.
---
--- Use `diag'` to control the function inputs yourself.
---
--- >>> diag $ align (vcat ["foo", "bar"])
--- Column [(10,Nesting [(10,Cat (Text 3 "foo") (Cat (FlatAlt Line Empty) (Text 3 "bar")))])]
-diag :: Doc ann -> Diag ann
-diag = diag' [10] [defaultPageWidth] [10]
-
-diag'
-    :: [Int]
-       -- ^ Cursor positions for the 'Column' constructor
-    -> [PageWidth]
-       -- ^ For 'WithPageWidth'
-    -> [Int]
-       -- ^ Nesting levels for 'Nesting'
-    -> Doc ann
-    -> Diag ann
-diag' columns pageWidths nestings = go
-  where
-    go doc = case doc of
-        Fail -> Diag.Fail
-        Empty -> Diag.Empty
-        Char c -> Diag.Char c
-        Text l t -> Diag.Text l t
-        Line -> Diag.Line
-        FlatAlt a b -> Diag.FlatAlt (go a) (go b)
-        Cat a b -> Diag.Cat (go a) (go b)
-        Nest i d -> Diag.Nest i (go d)
-        Union a b -> Diag.Union (go a) (go b)
-        Column f -> Diag.Column (apply f columns)
-        WithPageWidth f -> Diag.WithPageWidth (apply f pageWidths)
-        Nesting f -> Diag.Nesting (apply f nestings)
-        Annotated ann d -> Diag.Annotated ann (go d)
-
-    apply :: (a -> Doc ann) -> [a] -> [(a, Diag ann)]
-    apply f = map (\x -> (x, go (f x)))
 
 
 -- $setup
