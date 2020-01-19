@@ -3,6 +3,24 @@
 -- lead to unexpected breakages, so proceed with caution!
 --
 -- This module provides debugging helpers for inspecting 'Doc's.
+--
+-- Use the @pretty-simple@ package to get a nicer layout for 'show'n
+-- 'Diag's:
+--
+-- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
+-- Column
+--    [
+--        ( 10
+--        , Nesting
+--            [
+--                ( 10
+--                , Cat ( Text 3 "foo" )
+--                    ( Cat ( FlatAlt Line Empty ) ( Text 3 "bar" ) )
+--                )
+--            ]
+--        )
+--    ]
+
 
 module Data.Text.Prettyprint.Doc.Internal.Debug where
 
@@ -33,27 +51,6 @@ data Diag ann =
       -- ^ 'Doc': @(Int -> Diag ann)@
     | Annotated ann (Diag ann)
     deriving Show
-
--- * Debugging
---
--- $standalone-text
---
--- Use the @pretty-simple@ package to get a nicer layout for 'show'n
--- 'Diag's:
---
--- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
--- Column 
---    [ 
---        ( 10
---        , Nesting 
---            [ 
---                ( 10
---                , Cat ( Text 3 "foo" ) 
---                    ( Cat ( FlatAlt Line Empty ) ( Text 3 "bar" ) )
---                ) 
---            ]
---        ) 
---    ]
 
 -- | Convert a 'Doc' to its diagnostic representation.
 --
