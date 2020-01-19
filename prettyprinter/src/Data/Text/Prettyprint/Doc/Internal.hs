@@ -15,9 +15,7 @@
 -- For a stable API, use the non-internal modules. For the special case of
 -- writing adaptors to this library’s @'Doc'@ type, see
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
-module Data.Text.Prettyprint.Doc.Internal (
-    module Data.Text.Prettyprint.Doc.Internal
-) where
+module Data.Text.Prettyprint.Doc.Internal where
 
 
 
@@ -1624,6 +1622,9 @@ data PageWidth
 
     deriving (Eq, Ord, Show, Typeable)
 
+defaultPageWidth :: PageWidth
+defaultPageWidth = AvailablePerLine 80 1
+
 -- $ Test to avoid surprising behaviour
 -- >>> Unbounded > AvailablePerLine maxBound 1
 -- True
@@ -1639,7 +1640,7 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 -- >>> defaultLayoutOptions
 -- LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}
 defaultLayoutOptions :: LayoutOptions
-defaultLayoutOptions = LayoutOptions { layoutPageWidth = AvailablePerLine 80 1 }
+defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
@@ -1881,7 +1882,6 @@ renderShowS = \sds -> case sds of
     SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
-
 
 
 -- $setup
