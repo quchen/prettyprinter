@@ -17,7 +17,6 @@ import           System.Timeout        (timeout)
 import           Text.Show.Functions   ()
 
 import           Data.Text.Prettyprint.Doc
-import qualified Data.Text.Prettyprint.Doc.Internal as Internal
 import           Data.Text.Prettyprint.Doc.Render.Text
 
 import Test.Tasty
@@ -105,43 +104,6 @@ fusionDoesNotChangeRendering depth
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
 
-layouter :: CoArbitrary ann => Gen (LayoutOptions -> Doc ann -> SimpleDocStream ann)
-layouter = oneof
-    [ pure layoutPretty
-    , pure layoutSmart
-    , pure (const layoutCompact)
-    -- , Internal.layoutWadlerLeijen <$> arbitrary -- too inconsistent for fusionDoesNotChangeRendering
-    ]
-
-instance Arbitrary LayoutOptions where
-    arbitrary = LayoutOptions <$> oneof
-        [ AvailablePerLine <$> arbitrary <*> arbitrary
-        -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
-        ]
-
-instance CoArbitrary ann => Arbitrary (Internal.FittingPredicate ann) where
-    arbitrary = Internal.FittingPredicate <$> arbitrary
-
-instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
-    -- TODO: It might be more realistic to ignore the 'Char', 'Text' and 'ann'
-    -- values in the fitting predicate
-    coarbitrary s0 = case s0 of
-        SFail        -> variant' 0
-        SEmpty       -> variant' 1
-        SChar c s    -> variant' 2 . coarbitrary (c, s)
-        SText l t s  -> variant' 3 . coarbitrary (l, T.unpack t, s)
-        SLine i s    -> variant' 4 . coarbitrary (i, s)
-        SAnnPush a s -> variant' 5 . coarbitrary (a, s)
-        SAnnPop s    -> variant' 6 . coarbitrary s
-
-instance CoArbitrary PageWidth where
-    coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
-    coarbitrary Unbounded              = variant' 1
-
--- | Silences type defaulting warnings for 'variant'
-variant' :: Int -> Gen a -> Gen a
-variant' = variant
-
 newtype RandomDoc ann = RandomDoc (Doc ann)
 
 instance Arbitrary (RandomDoc ann) where
@@ -221,6 +183,45 @@ enclosingOfMany = frequency
     [ (1, encloseSep <$> document <*> document <*> pure ", " <*> listOf document)
     , (1, list       <$> listOf document)
     , (1, tupled     <$> listOf document) ]
+
+layouter :: CoArbitrary ann => Gen (LayoutOptions -> Doc ann -> SimpleDocStream ann)
+layouter = oneof
+    [ pure layoutPretty
+    , pure layoutSmart
+    , pure (const layoutCompact)
+    -- , Internal.layoutWadlerLeijen <$> arbitrary -- too inconsistent for fusionDoesNotChangeRendering
+    ]
+
+instance Arbitrary LayoutOptions where
+    arbitrary = LayoutOptions <$> oneof
+        [ AvailablePerLine <$> arbitrary <*> arbitrary
+        -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
+        ]
+
+{-
+instance CoArbitrary ann => Arbitrary (Internal.FittingPredicate ann) where
+    arbitrary = Internal.FittingPredicate <$> arbitrary
+
+instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
+    -- TODO: It might be more realistic to ignore the 'Char', 'Text' and 'ann'
+    -- values in the fitting predicate
+    coarbitrary s0 = case s0 of
+        SFail        -> variant' 0
+        SEmpty       -> variant' 1
+        SChar c s    -> variant' 2 . coarbitrary (c, s)
+        SText l t s  -> variant' 3 . coarbitrary (l, T.unpack t, s)
+        SLine i s    -> variant' 4 . coarbitrary (i, s)
+        SAnnPush a s -> variant' 5 . coarbitrary (a, s)
+        SAnnPop s    -> variant' 6 . coarbitrary s
+
+instance CoArbitrary PageWidth where
+    coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
+    coarbitrary Unbounded              = variant' 1
+
+-- | Silences type defaulting warnings for 'variant'
+variant' :: Int -> Gen a -> Gen a
+variant' = variant
+-}
 
 -- QuickCheck 2.8 does not have 'scale' yet, so for compatibility with older
 -- releases we hand-code it here
