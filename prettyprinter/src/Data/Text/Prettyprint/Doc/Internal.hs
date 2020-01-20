@@ -1921,6 +1921,24 @@ renderShowS = \sds -> case sds of
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
 
+valid :: Doc ann -> Bool
+valid = go False
+  where
+    go mayFail doc = case doc of
+        Fail -> mayFail
+        Empty -> True
+        Char c -> c /= '\n'
+        Text l t -> l == T.length t && l >= 2 && T.all (/= '\n') t
+        Line -> True
+        FlatAlt x y -> go mayFail x && go mayFail y
+        Cat x y -> go mayFail x && go mayFail y
+        Nest _ x -> go mayFail x
+        Union x y -> go True x && go mayFail y
+        Column f -> all (go mayFail) (map f [0..80])
+        WithPageWidth f -> all (go mayFail) (map f (Unbounded : [AvailablePerLine c r | c <- [1..80], r <- [0, 0.1 .. 1]]))
+        Nesting f -> all (go mayFail) (map f [0..80])
+        Annotated _ x -> go mayFail x
+
 
 -- $setup
 --
