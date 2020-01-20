@@ -16,8 +16,10 @@ import           Data.Word
 import           System.Timeout        (timeout)
 
 import           Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc.Internal.Debug
 import           Data.Text.Prettyprint.Doc.Render.Text
 
+import Test.QuickCheck.Instances.Text ()
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
@@ -86,7 +88,7 @@ tests = testGroup "Tests"
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
-  = forAll document (\doc ->
+  = forAllShrinkShow (arbitrary :: Gen (Doc Int)) shrink (show . diag) (\doc ->
     forAll arbitrary (\layouter ->
         let render = renderStrict . layout layouter
             rendered = render doc
@@ -102,10 +104,9 @@ fusionDoesNotChangeRendering depth
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
 
-newtype RandomDoc ann = RandomDoc (Doc ann)
-
-instance Arbitrary (RandomDoc ann) where
-    arbitrary = fmap RandomDoc document
+instance Arbitrary ann => Arbitrary (Doc ann) where
+    arbitrary = document
+    shrink = genericShrink
 
 document :: Gen (Doc ann)
 document = (dampen . frequency)
@@ -222,6 +223,7 @@ instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
         SLine i s    -> variant' 4 . coarbitrary (i, s)
         SAnnPush a s -> variant' 5 . coarbitrary (a, s)
         SAnnPop s    -> variant' 6 . coarbitrary s
+-}
 
 instance CoArbitrary PageWidth where
     coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
@@ -230,7 +232,6 @@ instance CoArbitrary PageWidth where
 -- | Silences type defaulting warnings for 'variant'
 variant' :: Int -> Gen a -> Gen a
 variant' = variant
--}
 
 -- QuickCheck 2.8 does not have 'scale' yet, so for compatibility with older
 -- releases we hand-code it here
