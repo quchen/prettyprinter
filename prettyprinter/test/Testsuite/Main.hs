@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans   #-}
 
 #include "version-compatibility-macros.h"
 
@@ -14,9 +15,12 @@ import           Data.Text.PgpWordlist
 import           Data.Word
 import           System.Timeout        (timeout)
 
-import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.Text
+import           Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc.Internal
+import           Data.Text.Prettyprint.Doc.Internal.Debug
+import           Data.Text.Prettyprint.Doc.Render.Text
 
+import Test.QuickCheck.Instances.Text ()
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
@@ -85,25 +89,25 @@ tests = testGroup "Tests"
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
-  = forAll document (\doc ->
-        let rendered = render doc
+  = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
+    forAll arbitrary (\layouter ->
+        let render = renderStrict . layout layouter
+            rendered = render doc
             renderedFused = render (fuse depth doc)
         in counterexample (mkCounterexample rendered renderedFused)
-                          (render doc == render (fuse depth doc)) )
+                          (render doc == render (fuse depth doc)) ))
   where
-    render = renderStrict . layoutPretty defaultLayoutOptions
     mkCounterexample rendered renderedFused
-      = (T.unpack . render . vsep)
+      = (T.unpack . renderStrict . layoutPretty defaultLayoutOptions . vsep)
             [ "Unfused and fused documents render differently!"
             , "Unfused:"
             , indent 4 (pretty rendered)
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
 
-newtype RandomDoc ann = RandomDoc (Doc ann)
-
-instance Arbitrary (RandomDoc ann) where
-    arbitrary = fmap RandomDoc document
+instance Arbitrary ann => Arbitrary (Doc ann) where
+    arbitrary = document
+    shrink = genericShrink -- Possibly not a good idea, may break invariants
 
 document :: Gen (Doc ann)
 document = (dampen . frequency)
@@ -179,6 +183,59 @@ enclosingOfMany = frequency
     [ (1, encloseSep <$> document <*> document <*> pure ", " <*> listOf document)
     , (1, list       <$> listOf document)
     , (1, tupled     <$> listOf document) ]
+
+-- A 'show'able type representing a layout algorithm.
+data Layouter ann
+    = LayoutPretty LayoutOptions
+    | LayoutSmart LayoutOptions
+    | LayoutCompact
+    | LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
+    deriving Show
+
+instance Show (FittingPredicate ann) where
+    show _ = "<fitting predicate>"
+
+instance Arbitrary (Layouter ann) where
+    arbitrary = oneof
+        [ LayoutPretty <$> arbitrary
+        , LayoutSmart <$> arbitrary
+        , pure LayoutCompact
+        -- This produces inconsistent layouts that break the fusionDoesNotChangeRendering test
+        -- , LayoutWadlerLeijen <$> arbitrary <*> arbitrary
+        ]
+
+layout :: Layouter ann -> Doc ann -> SimpleDocStream ann
+layout (LayoutPretty opts) = layoutPretty opts
+layout (LayoutSmart opts) = layoutSmart opts
+layout LayoutCompact = layoutCompact
+layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
+
+instance Arbitrary LayoutOptions where
+    arbitrary = LayoutOptions <$> oneof
+        [ AvailablePerLine <$> arbitrary <*> arbitrary
+        -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
+        ]
+
+instance Arbitrary (FittingPredicate ann) where
+    arbitrary = FittingPredicate <$> arbitrary
+
+instance CoArbitrary (SimpleDocStream ann) where
+    coarbitrary s0 = case s0 of
+        SFail         -> variant' 0
+        SEmpty        -> variant' 1
+        SChar _c s    -> variant' 2 . coarbitrary s
+        SText l _t s  -> variant' 3 . coarbitrary (l, s)
+        SLine i s     -> variant' 4 . coarbitrary (i, s)
+        SAnnPush _a s -> variant' 5 . coarbitrary s
+        SAnnPop s     -> variant' 6 . coarbitrary s
+
+instance CoArbitrary PageWidth where
+    coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
+    coarbitrary Unbounded              = variant' 1
+
+-- | Silences type defaulting warnings for 'variant'
+variant' :: Int -> Gen a -> Gen a
+variant' = variant
 
 -- QuickCheck 2.8 does not have 'scale' yet, so for compatibility with older
 -- releases we hand-code it here
