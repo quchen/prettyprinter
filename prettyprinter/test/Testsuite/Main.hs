@@ -183,6 +183,7 @@ enclosingOfMany = frequency
     , (1, list       <$> listOf document)
     , (1, tupled     <$> listOf document) ]
 
+-- A 'show'able type representing a layout algorithm.
 data Layouter
     = LayoutPretty LayoutOptions
     | LayoutSmart LayoutOptions
