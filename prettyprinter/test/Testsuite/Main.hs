@@ -19,6 +19,7 @@ import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Internal
 import           Data.Text.Prettyprint.Doc.Internal.Debug
 import           Data.Text.Prettyprint.Doc.Render.Text
+import           Data.Text.Prettyprint.Doc.Render.Util.StackMachine (renderSimplyDecorated)
 
 import Test.QuickCheck.Instances.Text ()
 import Test.Tasty
@@ -91,7 +92,8 @@ fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
   = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
     forAll arbitrary (\layouter ->
-        let render = renderStrict . layout layouter
+        let tShow = T.pack . show
+            render = renderSimplyDecorated id tShow tShow . layout layouter
             rendered = render doc
             renderedFused = render (fuse depth doc)
         in counterexample (mkCounterexample rendered renderedFused)
@@ -109,7 +111,7 @@ instance Arbitrary ann => Arbitrary (Doc ann) where
     arbitrary = document
     shrink = genericShrink -- Possibly not a good idea, may break invariants
 
-document :: Gen (Doc ann)
+document :: Arbitrary ann => Gen (Doc ann)
 document = (dampen . frequency)
     [ (20, content)
     , (1, newlines)
@@ -118,7 +120,11 @@ document = (dampen . frequency)
     , (20, concatenationOfTwo)
     , (5, concatenationOfMany)
     , (1, enclosingOfOne)
-    , (1, enclosingOfMany) ]
+    , (1, enclosingOfMany)
+    , (1, annotated) ]
+
+annotated :: Arbitrary ann => Gen (Doc ann)
+annotated = annotate <$> arbitrary <*> document
 
 content :: Gen (Doc ann)
 content = frequency
@@ -141,24 +147,24 @@ newlines = frequency
     , (1, pure softline')
     , (1, pure hardline) ]
 
-nestingAndAlignment :: Gen (Doc ann)
+nestingAndAlignment :: Arbitrary ann => Gen (Doc ann)
 nestingAndAlignment = frequency
     [ (1, nest   <$> arbitrary <*> concatenationOfMany)
     , (1, group  <$> document)
     , (1, hang   <$> arbitrary <*> concatenationOfMany)
     , (1, indent <$> arbitrary <*> concatenationOfMany) ]
 
-grouping :: Gen (Doc ann)
+grouping :: Arbitrary ann => Gen (Doc ann)
 grouping = frequency
     [ (1, align  <$> document)
     , (1, flatAlt <$> document <*> document) ]
 
-concatenationOfTwo :: Gen (Doc ann)
+concatenationOfTwo :: Arbitrary ann => Gen (Doc ann)
 concatenationOfTwo = frequency
     [ (1, (<>) <$> document <*> document)
     , (1, (<+>) <$> document <*> document) ]
 
-concatenationOfMany :: Gen (Doc ann)
+concatenationOfMany :: Arbitrary ann => Gen (Doc ann)
 concatenationOfMany = frequency
     [ (1, hsep    <$> listOf document)
     , (1, vsep    <$> listOf document)
@@ -169,7 +175,7 @@ concatenationOfMany = frequency
     , (1, fillCat <$> listOf document)
     , (1, cat     <$> listOf document) ]
 
-enclosingOfOne :: Gen (Doc ann)
+enclosingOfOne :: Arbitrary ann => Gen (Doc ann)
 enclosingOfOne = frequency
     [ (1, squotes  <$> document)
     , (1, dquotes  <$> document)
@@ -178,7 +184,7 @@ enclosingOfOne = frequency
     , (1, brackets <$> document)
     , (1, braces   <$> document) ]
 
-enclosingOfMany :: Gen (Doc ann)
+enclosingOfMany :: Arbitrary ann => Gen (Doc ann)
 enclosingOfMany = frequency
     [ (1, encloseSep <$> document <*> document <*> pure ", " <*> listOf document)
     , (1, list       <$> listOf document)
