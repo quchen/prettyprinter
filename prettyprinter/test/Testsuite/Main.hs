@@ -107,7 +107,7 @@ fusionDoesNotChangeRendering depth
 
 instance Arbitrary ann => Arbitrary (Doc ann) where
     arbitrary = document
-    shrink = genericShrink
+    shrink = genericShrink -- Possibly not a good idea, may break invariants
 
 document :: Gen (Doc ann)
 document = (dampen . frequency)
