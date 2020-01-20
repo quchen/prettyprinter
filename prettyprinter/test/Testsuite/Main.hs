@@ -14,7 +14,6 @@ import qualified Data.Text             as T
 import           Data.Text.PgpWordlist
 import           Data.Word
 import           System.Timeout        (timeout)
-import           Text.Show.Functions   ()
 
 import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Render.Text
@@ -88,13 +87,12 @@ tests = testGroup "Tests"
 fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
   = forAll document (\doc ->
-    forAll (layouter :: Gen (LayoutOptions -> Doc Int -> SimpleDocStream Int)) (\layouter_ ->
-    forAll arbitrary (\layoutOptions ->
-        let render = renderStrict . layouter_ layoutOptions
+    forAll arbitrary (\layouter ->
+        let render = renderStrict . layout layouter
             rendered = render doc
             renderedFused = render (fuse depth doc)
         in counterexample (mkCounterexample rendered renderedFused)
-                          (render doc == render (fuse depth doc)) )))
+                          (render doc == render (fuse depth doc)) ))
   where
     mkCounterexample rendered renderedFused
       = (T.unpack . renderStrict . layoutPretty defaultLayoutOptions . vsep)
@@ -184,13 +182,24 @@ enclosingOfMany = frequency
     , (1, list       <$> listOf document)
     , (1, tupled     <$> listOf document) ]
 
-layouter :: CoArbitrary ann => Gen (LayoutOptions -> Doc ann -> SimpleDocStream ann)
-layouter = oneof
-    [ pure layoutPretty
-    , pure layoutSmart
-    , pure (const layoutCompact)
-    -- , Internal.layoutWadlerLeijen <$> arbitrary -- too inconsistent for fusionDoesNotChangeRendering
-    ]
+data Layouter
+    = LayoutPretty LayoutOptions
+    | LayoutSmart LayoutOptions
+    | LayoutCompact
+    -- LayoutWadlerLeijen FittingPredicate
+    deriving Show
+
+instance Arbitrary Layouter where
+    arbitrary = oneof
+        [ LayoutPretty <$> arbitrary
+        , LayoutSmart <$> arbitrary
+        , pure LayoutCompact
+        ]
+
+layout :: Layouter -> Doc ann -> SimpleDocStream ann
+layout (LayoutPretty opts) = layoutPretty opts
+layout (LayoutSmart opts) = layoutSmart opts
+layout LayoutCompact = layoutCompact
 
 instance Arbitrary LayoutOptions where
     arbitrary = LayoutOptions <$> oneof
