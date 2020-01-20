@@ -195,7 +195,7 @@ data Layouter ann
 instance Show (FittingPredicate ann) where
     show _ = "<fitting predicate>"
 
-instance CoArbitrary ann => Arbitrary (Layouter ann) where
+instance Arbitrary (Layouter ann) where
     arbitrary = oneof
         [ LayoutPretty <$> arbitrary
         , LayoutSmart <$> arbitrary
@@ -216,10 +216,10 @@ instance Arbitrary LayoutOptions where
         -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
         ]
 
-instance CoArbitrary ann => Arbitrary (FittingPredicate ann) where
+instance Arbitrary (FittingPredicate ann) where
     arbitrary = FittingPredicate <$> arbitrary
 
-instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
+instance CoArbitrary (SimpleDocStream ann) where
     coarbitrary s0 = case s0 of
         SFail         -> variant' 0
         SEmpty        -> variant' 1
