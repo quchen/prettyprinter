@@ -16,6 +16,7 @@ import           Data.Word
 import           System.Timeout        (timeout)
 
 import           Data.Text.Prettyprint.Doc
+import           Data.Text.Prettyprint.Doc.Internal
 import           Data.Text.Prettyprint.Doc.Internal.Debug
 import           Data.Text.Prettyprint.Doc.Render.Text
 
@@ -88,7 +89,7 @@ tests = testGroup "Tests"
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
 fusionDoesNotChangeRendering depth
-  = forAllShrinkShow (arbitrary :: Gen (Doc Int)) shrink (show . diag) (\doc ->
+  = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
     forAll arbitrary (\layouter ->
         let render = renderStrict . layout layouter
             rendered = render doc
@@ -184,24 +185,30 @@ enclosingOfMany = frequency
     , (1, tupled     <$> listOf document) ]
 
 -- A 'show'able type representing a layout algorithm.
-data Layouter
+data Layouter ann
     = LayoutPretty LayoutOptions
     | LayoutSmart LayoutOptions
     | LayoutCompact
-    -- LayoutWadlerLeijen FittingPredicate
+    | LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
     deriving Show
 
-instance Arbitrary Layouter where
+instance Show (FittingPredicate ann) where
+    show _ = "<fitting predicate>"
+
+instance CoArbitrary ann => Arbitrary (Layouter ann) where
     arbitrary = oneof
         [ LayoutPretty <$> arbitrary
         , LayoutSmart <$> arbitrary
         , pure LayoutCompact
+        -- This produces inconsistent layouts that break the fusionDoesNotChangeRendering test
+        -- , LayoutWadlerLeijen <$> arbitrary <*> arbitrary
         ]
 
-layout :: Layouter -> Doc ann -> SimpleDocStream ann
+layout :: Layouter ann -> Doc ann -> SimpleDocStream ann
 layout (LayoutPretty opts) = layoutPretty opts
 layout (LayoutSmart opts) = layoutSmart opts
 layout LayoutCompact = layoutCompact
+layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
 
 instance Arbitrary LayoutOptions where
     arbitrary = LayoutOptions <$> oneof
@@ -209,22 +216,18 @@ instance Arbitrary LayoutOptions where
         -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
         ]
 
-{-
-instance CoArbitrary ann => Arbitrary (Internal.FittingPredicate ann) where
-    arbitrary = Internal.FittingPredicate <$> arbitrary
+instance CoArbitrary ann => Arbitrary (FittingPredicate ann) where
+    arbitrary = FittingPredicate <$> arbitrary
 
 instance CoArbitrary ann => CoArbitrary (SimpleDocStream ann) where
-    -- TODO: It might be more realistic to ignore the 'Char', 'Text' and 'ann'
-    -- values in the fitting predicate
     coarbitrary s0 = case s0 of
-        SFail        -> variant' 0
-        SEmpty       -> variant' 1
-        SChar c s    -> variant' 2 . coarbitrary (c, s)
-        SText l t s  -> variant' 3 . coarbitrary (l, T.unpack t, s)
-        SLine i s    -> variant' 4 . coarbitrary (i, s)
-        SAnnPush a s -> variant' 5 . coarbitrary (a, s)
-        SAnnPop s    -> variant' 6 . coarbitrary s
--}
+        SFail         -> variant' 0
+        SEmpty        -> variant' 1
+        SChar _c s    -> variant' 2 . coarbitrary s
+        SText l _t s  -> variant' 3 . coarbitrary (l, s)
+        SLine i s     -> variant' 4 . coarbitrary (i, s)
+        SAnnPush _a s -> variant' 5 . coarbitrary s
+        SAnnPop s     -> variant' 6 . coarbitrary s
 
 instance CoArbitrary PageWidth where
     coarbitrary (AvailablePerLine a b) = variant' 0 . coarbitrary (a, b)
