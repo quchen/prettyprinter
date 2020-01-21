@@ -114,7 +114,7 @@ fusionDoesNotChangeRendering depth
 
 instance Arbitrary ann => Arbitrary (Doc ann) where
     arbitrary = document
-    shrink doc = case doc of
+    shrink doc = filter valid $ case doc of
         Fail            -> [Empty]
         Empty           -> []
         Char c          -> Empty : map Char (filter (/= '\n') (shrink c))
