@@ -4,7 +4,7 @@ module Main (main) where
 
 
 
-import           Criterion.Main
+import           Gauge.Main
 import           Data.Char
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T

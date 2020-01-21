@@ -145,7 +145,7 @@ benchmark fusion
           base >= 4.5 && < 5
         , prettyprinter
 
-        , criterion      >= 1.1
+        , gauge          >= 0.2
         , mtl            >= 2.1
         , random         >= 1.0
         , text
@@ -160,7 +160,7 @@ benchmark faster-unsafe-text
           base >= 4.5 && < 5
         , prettyprinter
 
-        , criterion >= 1.1
+        , gauge >= 0.2
         , text
 
     hs-source-dirs:      bench
@@ -177,7 +177,7 @@ benchmark large-output
         , prettyprinter
         , ansi-wl-pprint
 
-        , criterion  >= 1.1
+        , gauge >= 0.2
         , QuickCheck >= 2.7
         , containers
         , text
