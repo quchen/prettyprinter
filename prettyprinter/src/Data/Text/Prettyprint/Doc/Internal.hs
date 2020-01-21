@@ -1399,7 +1399,7 @@ fuse depth = go
         Nest 0 x         -> go x
         Nest i x         -> Nest i (go x)
 
-        Annotated _ Empty -> Empty
+        Annotated ann x -> Annotated ann (go x)
 
         FlatAlt x1 x2 -> FlatAlt (go x1) (go x2)
         Union x1 x2   -> Union (go x1) (go x2)
