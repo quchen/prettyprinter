@@ -542,15 +542,12 @@ group x = case changesUponFlattening x of
 -- ticket.
 
 data FlattenResult a
-
-    -- | a is likely flatter than the input.
     = Flattened a
-
-    -- | The input was already flat, e.g. a 'Text'.
+    -- ^ a is likely flatter than the input.
     | AlreadyFlat
-
-    -- | The input couldn't be flattened: It contained a 'Line' or 'Fail'.
+    -- ^ The input was already flat, e.g. a 'Text'.
     | NeverFlat
+    -- ^ The input couldn't be flattened: It contained a 'Line' or 'Fail'.
 
 instance Functor FlattenResult where
     fmap f (Flattened a) = Flattened (f a)
