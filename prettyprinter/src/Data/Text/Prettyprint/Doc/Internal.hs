@@ -526,7 +526,7 @@ group :: Doc ann -> Doc ann
 group x = case changesUponFlattening x of
     Flattened x'  -> Union x' x
     Flat          -> x
-    Unflattenable -> Union Fail x
+    Unflattenable -> x
 
 -- Note [Group: special flattening]
 --
