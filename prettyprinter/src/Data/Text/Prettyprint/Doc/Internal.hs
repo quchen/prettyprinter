@@ -564,7 +564,7 @@ instance Functor FlattenResult where
 -- algorithm (i.e. contains differently renderable sub-documents), and 'AlreadyFlat'
 -- if the document is static (e.g. contains only a plain 'Empty' node).
 -- 'NeverFlat' is returned when the document cannot be flattened because it
--- contains a 'Line' or 'Fail'.
+-- contains a hard 'Line' or 'Fail'.
 -- See [Group: special flattening] for further explanations.
 changesUponFlattening :: Doc ann -> FlattenResult (Doc ann)
 changesUponFlattening = \doc -> case doc of
