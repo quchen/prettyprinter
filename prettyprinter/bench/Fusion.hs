@@ -9,7 +9,7 @@ module Main (main) where
 
 import           Control.Monad
 import           Control.Monad.State
-import           Criterion.Main
+import           Gauge.Main
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           System.Random
@@ -31,9 +31,9 @@ main = defaultMain
     ]
 
 benchOptimize :: Benchmark
-benchOptimize = env randomShortWords benchmark
+benchOptimize = env randomShortWords benchmark_
   where
-    benchmark = \shortWords ->
+    benchmark_ = \shortWords ->
         let doc = hsep (map pretty shortWords)
         in bgroup "Many small words"
             [ bench "Unoptimized"     (nf renderLazy (layoutPretty defaultLayoutOptions               doc))

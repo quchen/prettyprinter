@@ -10,8 +10,7 @@ import Prelude.Compat
 
 import           Control.DeepSeq
 import           Control.Monad.Compat
-import           Criterion
-import           Criterion.Main
+import           Gauge
 import           Data.Char
 import           Data.Map                              (Map)
 import qualified Data.Map                              as M
