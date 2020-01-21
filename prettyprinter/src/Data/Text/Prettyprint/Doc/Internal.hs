@@ -581,7 +581,7 @@ changesUponFlattening = \doc -> case doc of
     Empty  -> Flat
     Char{} -> Flat
     Text{} -> Flat
-    Fail   -> Flat -- TODO: Or Unflattenable?!
+    Fail   -> Unflattenable
   where
     -- Flatten, but don’t report whether anything changes.
     flatten :: Doc ann -> Doc ann
