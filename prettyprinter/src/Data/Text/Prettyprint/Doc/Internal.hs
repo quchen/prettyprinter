@@ -543,8 +543,8 @@ group x = case changesUponFlattening x of
 
 data FlattenResult a
     = Flattened a
-    | Flat
-    | Unflattenable
+    | Flat          -- TODO: AlreadyFlat!?
+    | Unflattenable -- TODO: NeverFlat!?
 
 instance Functor FlattenResult where
     fmap f (Flattened a) = Flattened (f a)
