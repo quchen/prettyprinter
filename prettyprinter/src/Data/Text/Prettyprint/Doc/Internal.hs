@@ -524,9 +524,9 @@ hardline = Line
 group :: Doc ann -> Doc ann
 -- See note [Group: special flattening]
 group x = case changesUponFlattening x of
-    Flattened x'  -> Union x' x
-    Flat          -> x
-    Unflattenable -> x
+    Flattened x' -> Union x' x
+    AlreadyFlat  -> x
+    NeverFlat    -> x
 
 -- Note [Group: special flattening]
 --
@@ -542,26 +542,34 @@ group x = case changesUponFlattening x of
 -- ticket.
 
 data FlattenResult a
+
+    -- | a is likely flatter than the input.
     = Flattened a
-    | Flat          -- TODO: AlreadyFlat!?
-    | Unflattenable -- TODO: NeverFlat!?
+
+    -- | The input was already flat, e.g. a 'Text'.
+    | AlreadyFlat
+
+    -- | The input couldn't be flattened: It contained a 'Line' or 'Fail'.
+    | NeverFlat
 
 instance Functor FlattenResult where
     fmap f (Flattened a) = Flattened (f a)
-    fmap _ Flat          = Flat
-    fmap _ Unflattenable = Unflattenable
+    fmap _ AlreadyFlat   = AlreadyFlat
+    fmap _ NeverFlat     = NeverFlat
 
 -- | Choose the first element of each @Union@, and discard the first field of
 -- all @FlatAlt@s.
 --
--- The result is 'Just' if the element might change depending on the layout
--- algorithm (i.e. contains differently renderable sub-documents), and 'Nothing'
--- if the document is static (e.g. contains only a plain 'Empty' node). See
--- [Group: special flattening] for further explanations.
+-- The result is 'Flattened' if the element might change depending on the layout
+-- algorithm (i.e. contains differently renderable sub-documents), and 'AlreadyFlat'
+-- if the document is static (e.g. contains only a plain 'Empty' node).
+-- 'NeverFlat' is returned when the document cannot be flattened because it
+-- contains a 'Line' or 'Fail'.
+-- See [Group: special flattening] for further explanations.
 changesUponFlattening :: Doc ann -> FlattenResult (Doc ann)
 changesUponFlattening = \doc -> case doc of
     FlatAlt _ y     -> Flattened (flatten y)
-    Line            -> Unflattenable
+    Line            -> NeverFlat
     Union x _       -> Flattened x
     Nest i x        -> fmap (Nest i) (changesUponFlattening x)
     Annotated ann x -> fmap (Annotated ann) (changesUponFlattening x)
@@ -571,17 +579,17 @@ changesUponFlattening = \doc -> case doc of
     WithPageWidth f -> Flattened (WithPageWidth (flatten . f))
 
     Cat x y -> case (changesUponFlattening x, changesUponFlattening y) of
-        (Unflattenable, _            ) -> Unflattenable
-        (_            , Unflattenable) -> Unflattenable
-        (Flattened x' , Flattened y')  -> Flattened (Cat x' y')
-        (Flattened x' , Flat)          -> Flattened (Cat x' y)
-        (Flat         , Flattened y')  -> Flattened (Cat x y')
-        (Flat         , Flat)          -> Flat
+        (NeverFlat    ,  _          ) -> NeverFlat
+        (_            , NeverFlat   ) -> NeverFlat
+        (Flattened x' , Flattened y') -> Flattened (Cat x' y')
+        (Flattened x' , AlreadyFlat ) -> Flattened (Cat x' y)
+        (AlreadyFlat  , Flattened y') -> Flattened (Cat x y')
+        (AlreadyFlat  , AlreadyFlat ) -> AlreadyFlat
 
-    Empty  -> Flat
-    Char{} -> Flat
-    Text{} -> Flat
-    Fail   -> Unflattenable
+    Empty  -> AlreadyFlat
+    Char{} -> AlreadyFlat
+    Text{} -> AlreadyFlat
+    Fail   -> NeverFlat
   where
     -- Flatten, but don’t report whether anything changes.
     flatten :: Doc ann -> Doc ann
