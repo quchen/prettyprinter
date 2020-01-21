@@ -543,7 +543,7 @@ group x = case changesUponFlattening x of
 
 data FlattenResult a
     = Flattened a
-    -- ^ a is likely flatter than the input.
+    -- ^ @a@ is likely flatter than the input.
     | AlreadyFlat
     -- ^ The input was already flat, e.g. a 'Text'.
     | NeverFlat
