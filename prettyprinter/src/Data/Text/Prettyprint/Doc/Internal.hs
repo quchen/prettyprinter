@@ -524,8 +524,9 @@ hardline = Line
 group :: Doc ann -> Doc ann
 -- See note [Group: special flattening]
 group x = case changesUponFlattening x of
-    Nothing -> x
-    Just x' -> Union x' x
+    Flattened x'  -> Union x' x
+    Flat          -> x
+    Unflattenable -> Union Fail x
 
 -- Note [Group: special flattening]
 --
@@ -540,6 +541,16 @@ group x = case changesUponFlattening x of
 -- See https://github.com/quchen/prettyprinter/issues/22 for the  corresponding
 -- ticket.
 
+data FlattenResult a
+    = Flattened a
+    | Flat
+    | Unflattenable
+
+instance Functor FlattenResult where
+    fmap f (Flattened a) = Flattened (f a)
+    fmap _ Flat          = Flat
+    fmap _ Unflattenable = Unflattenable
+
 -- | Choose the first element of each @Union@, and discard the first field of
 -- all @FlatAlt@s.
 --
@@ -547,28 +558,30 @@ group x = case changesUponFlattening x of
 -- algorithm (i.e. contains differently renderable sub-documents), and 'Nothing'
 -- if the document is static (e.g. contains only a plain 'Empty' node). See
 -- [Group: special flattening] for further explanations.
-changesUponFlattening :: Doc ann -> Maybe (Doc ann)
+changesUponFlattening :: Doc ann -> FlattenResult (Doc ann)
 changesUponFlattening = \doc -> case doc of
-    FlatAlt _ y     -> Just (flatten y)
-    Line            -> Just Fail
-    Union x _       -> changesUponFlattening x <|> Just x
+    FlatAlt _ y     -> Flattened (flatten y)
+    Line            -> Unflattenable
+    Union x _       -> Flattened x
     Nest i x        -> fmap (Nest i) (changesUponFlattening x)
     Annotated ann x -> fmap (Annotated ann) (changesUponFlattening x)
 
-    Column f        -> Just (Column (flatten . f))
-    Nesting f       -> Just (Nesting (flatten . f))
-    WithPageWidth f -> Just (WithPageWidth (flatten . f))
+    Column f        -> Flattened (Column (flatten . f))
+    Nesting f       -> Flattened (Nesting (flatten . f))
+    WithPageWidth f -> Flattened (WithPageWidth (flatten . f))
 
     Cat x y -> case (changesUponFlattening x, changesUponFlattening y) of
-        (Nothing, Nothing) -> Nothing
-        (Just x', Nothing) -> Just (Cat x' y )
-        (Nothing, Just y') -> Just (Cat x  y')
-        (Just x', Just y') -> Just (Cat x' y')
+        (Unflattenable, _            ) -> Unflattenable
+        (_            , Unflattenable) -> Unflattenable
+        (Flattened x' , Flattened y')  -> Flattened (Cat x' y')
+        (Flattened x' , Flat)          -> Flattened (Cat x' y)
+        (Flat         , Flattened y')  -> Flattened (Cat x y')
+        (Flat         , Flat)          -> Flat
 
-    Empty  -> Nothing
-    Char{} -> Nothing
-    Text{} -> Nothing
-    Fail   -> Nothing
+    Empty  -> Flat
+    Char{} -> Flat
+    Text{} -> Flat
+    Fail   -> Flat -- TODO: Or Unflattenable?!
   where
     -- Flatten, but don’t report whether anything changes.
     flatten :: Doc ann -> Doc ann
