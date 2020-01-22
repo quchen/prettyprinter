@@ -85,6 +85,10 @@ tests = testGroup "Tests"
             , testCase "Preserve leading indentation"
                        removeTrailingWhitespacePreserveIndentation
             ]
+        , testGroup "Unbounded layout of hard linebreak within `group` fails (#91)"
+            [ testCase "Line" regressionUnboundedGroupedLine
+            , testCase "Line within align" regressionUnboundedGroupedLineWithinAlign
+            ]
         ]
     ]
 
@@ -219,7 +223,7 @@ layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
 instance Arbitrary LayoutOptions where
     arbitrary = LayoutOptions <$> oneof
         [ AvailablePerLine <$> arbitrary <*> arbitrary
-        -- , pure Unbounded -- https://github.com/quchen/prettyprinter/issues/91
+        , pure Unbounded
         ]
 
 instance Arbitrary (FittingPredicate ann) where
@@ -359,3 +363,17 @@ removeTrailingWhitespacePreserveIndentation
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 2 (SChar 'x' SEmpty)
     in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+
+regressionUnboundedGroupedLine :: Assertion
+regressionUnboundedGroupedLine
+  = let sdoc :: SimpleDocStream ()
+        sdoc = layoutPretty (LayoutOptions Unbounded) (group hardline)
+    in assertEqual "" (SLine 0 SEmpty) sdoc
+
+regressionUnboundedGroupedLineWithinAlign :: Assertion
+regressionUnboundedGroupedLineWithinAlign
+  = let doc :: Doc ()
+        doc = group (align ("x" <> hardline <> "y"))
+        sdoc = layoutPretty (LayoutOptions Unbounded) doc
+        expected = SChar 'x' (SLine 0 (SChar 'y' SEmpty))
+    in assertEqual "" expected sdoc
