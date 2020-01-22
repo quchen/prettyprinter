@@ -1,3 +1,19 @@
+# 1.6.0
+
+## Breaking changes
+
+- Fix `fuse`'s handling of annotated documents:
+  - Don't remove annotations on empty documents.
+  - Apply fusion within annotations.
+- Fix layouting of hard linebreaks with `Unbounded` page widths.
+
+## Non-breaking changes
+
+- Speed up `group` for documents containing linebreaks and previously
+  `group`ed documents.
+- Add debugging helpers in `Data.Text.Prettyprint.Doc.Internal.Debug`
+- Documentation improvements and fixes
+
 # 1.5.1
 
 - Removing trailing whitespace sometimes restored necessary whitespace in the
