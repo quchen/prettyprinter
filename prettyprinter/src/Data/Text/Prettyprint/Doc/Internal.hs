@@ -475,7 +475,7 @@ line' = FlatAlt Line mempty
 -- 'softline' = 'group' 'line'
 -- @
 softline :: Doc ann
-softline = group line
+softline = Union (Char ' ') Line
 
 -- | @'softline''@ is like @'softline'@, but behaves like @'mempty'@ if the
 -- resulting output does not fit on the page (instead of @'space'@). In other
@@ -497,7 +497,7 @@ softline = group line
 -- 'softline'' = 'group' 'line''
 -- @
 softline' :: Doc ann
-softline' = group line'
+softline' = Union mempty Line
 
 -- | A @'hardline'@ is /always/ laid out as a line break, even when 'group'ed or
 -- when there is plenty of space. Note that it might still be simply discarded
