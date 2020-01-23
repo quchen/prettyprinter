@@ -516,8 +516,8 @@ hardline = Line
 
 group :: Doc ann -> Doc ann
 group = \doc -> case doc of
-    FlatAlt x y     -> case changesOnFlattening x of
-        HasLine  -> y
+    FlatAlt x y     -> case changesOnFlattening y of
+        HasLine  -> x
         NoChange -> Union y x
         Flat y'  -> Union y' x
     
