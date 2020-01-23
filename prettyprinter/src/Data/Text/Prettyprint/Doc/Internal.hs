@@ -1867,6 +1867,16 @@ layoutWadlerLeijen
             SAnnPush _ s -> go s
             SAnnPop s    -> go s
 
+{-
+Note [Choosing minNestingLevel for consistent layouts]
+
+The choice of minNestingLevel determines how far layoutSmart's FittingPredicate will check a
+SimpleDocStream. (layoutPretty ignores this parameter.)
+
+
+
+-}
+
 
 -- Note [Detecting failure with Unbounded page width]
 --
