@@ -122,7 +122,7 @@ groupLayoutEqualsSimpleGroupLayout = forAllShow (arbitrary :: Gen (Doc Int)) (sh
             groupedLayedOut = layout layouter grouped
             groupedSimpleLayedOut = layout layouter groupedSimple
         in counterexample ("Grouped: " ++ (show . diag) grouped)
-            (counterexample ("Grouped (Simple) " ++ (show . diag) (groupedSimple))
+            (counterexample ("Grouped (Simple) " ++ (show . diag) groupedSimple)
                 (groupedLayedOut === groupedSimpleLayedOut))))
 
 instance Arbitrary ann => Arbitrary (Doc ann) where
