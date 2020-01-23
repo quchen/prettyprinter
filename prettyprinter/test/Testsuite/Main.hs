@@ -117,12 +117,12 @@ fusionDoesNotChangeRendering depth
 groupLayoutEqualsSimpleGroupLayout :: Property
 groupLayoutEqualsSimpleGroupLayout = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
     forAll arbitrary (\layouter ->
-        let grouped = group $ doc
+        let grouped = group doc
             groupedSimple = simpleGroup doc
             groupedLayedOut = layout layouter grouped
             groupedSimpleLayedOut = layout layouter groupedSimple
-        in counterexample ("Grouped: " ++ (show . diag $ grouped))
-            (counterexample ("Grouped (Simple) " ++ (show . diag $ groupedSimple))
+        in counterexample ("Grouped: " ++ (show . diag) (grouped))
+            (counterexample ("Grouped (Simple) " ++ (show . diag) (groupedSimple))
                 (groupedLayedOut === groupedSimpleLayedOut))))
 
 instance Arbitrary ann => Arbitrary (Doc ann) where

@@ -561,8 +561,8 @@ changesOnFlattening = \doc -> case doc of
         (NoChange , Flat b' ) -> Flat (Cat a b')
         (Flat a'  , Flat b' ) -> Flat (Cat a' b')
     
-    Annotated ann x -> Annotated ann <$> (changesOnFlattening x)
-    Nest i x        -> Nest i <$> (changesOnFlattening x)
+    Annotated ann x -> Annotated ann <$> changesOnFlattening x
+    Nest i x        -> Nest i <$> changesOnFlattening x
 
     Column f        -> Flat (Column (flatten . f))
     Nesting f       -> Flat (Nesting (flatten . f))
