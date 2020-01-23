@@ -514,6 +514,96 @@ softline' = group line'
 hardline :: Doc ann
 hardline = Line
 
+group :: Doc ann -> Doc ann
+group = \doc -> case doc of
+    FlatAlt x y     -> case changesOnFlattening x of
+        HasLine  -> y
+        NoChange -> Union y x
+        Flat y'  -> Union y' x
+    
+    x@(Cat a b)  -> case (changesOnFlattening a, changesOnFlattening b) of
+        (HasLine  , _       ) -> x
+        (_        , HasLine ) -> x
+        (NoChange , NoChange) -> x
+        (NoChange , Flat b' ) -> Cat a (Union b' b)
+        (Flat a'  , NoChange) -> Cat (Union a' a) b
+        (Flat a'  , Flat b' ) -> Union (Cat a' b') (Cat a b)
+
+    Annotated ann x -> Annotated ann (group x)
+    Nest i x        -> Nest i (group x)
+
+    Column f        -> Column (group . f)
+    Nesting f       -> Nesting (group . f)
+    WithPageWidth f -> WithPageWidth (group . f)
+
+    x@Union{}       -> x
+    x@Char{}        -> x
+    x@Text{}        -> x
+    x@Line          -> x
+    x@Empty         -> x
+    -- Should never happen on a valid document
+    x@Fail          -> x
+
+changesOnFlattening :: Doc ann -> FlatteningResult (Doc ann)
+changesOnFlattening = \doc -> case doc of
+    FlatAlt _ y     -> case changesOnFlattening y of
+        HasLine  -> HasLine
+        NoChange -> Flat y
+        Flat y'  -> Flat y'
+    
+    Union x _       -> Flat x
+
+    Cat a b    -> case (changesOnFlattening a, changesOnFlattening b) of
+        (HasLine  , _       ) -> HasLine
+        (_        , HasLine ) -> HasLine
+        (NoChange , NoChange) -> NoChange
+        (Flat a'  , NoChange) -> Flat (Cat a' b)
+        (NoChange , Flat b' ) -> Flat (Cat a b')
+        (Flat a'  , Flat b' ) -> Flat (Cat a' b')
+    
+    Annotated ann x -> Annotated ann <$> (changesOnFlattening x)
+    Nest i x        -> Nest i <$> (changesOnFlattening x)
+
+    Column f        -> Flat (Column (flatten . f))
+    Nesting f       -> Flat (Nesting (flatten . f))
+    WithPageWidth f -> Flat (WithPageWidth (flatten . f))
+
+    Line            -> HasLine
+
+    -- Should actually be impossible here. HasLine has the same effect tho
+    Fail            -> HasLine
+
+    Text{}          -> NoChange
+    Char{}          -> NoChange
+    Empty           -> NoChange
+    where
+        flatten :: Doc ann -> Doc ann
+        flatten = \doc -> case doc of
+            FlatAlt _ y     -> flatten y
+            Cat x y         -> Cat (flatten x) (flatten y)
+            Nest i x        -> Nest i (flatten x)
+            Line            -> Fail
+            Union x _       -> flatten x
+            Column f        -> Column (flatten . f)
+            WithPageWidth f -> WithPageWidth (flatten . f)
+            Nesting f       -> Nesting (flatten . f)
+            Annotated ann x -> Annotated ann (flatten x)
+
+            x@Fail   -> x
+            x@Empty  -> x
+            x@Char{} -> x
+            x@Text{} -> x
+    
+data FlatteningResult a
+    = HasLine
+    | NoChange
+    | Flat a
+
+instance Functor FlatteningResult where
+    fmap _ HasLine  = HasLine
+    fmap _ NoChange = NoChange
+    fmap f (Flat a) = Flat (f a)
+
 -- | @('group' x)@ tries laying out @x@ into a single line by removing the
 -- contained line breaks; if this does not fit the page, @x@ is laid out without
 -- any changes. The 'group' function is key to layouts that adapt to available
@@ -521,9 +611,9 @@ hardline = Line
 --
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
-group :: Doc ann -> Doc ann
+simpleGroup :: Doc ann -> Doc ann
 -- See note [Group: special flattening]
-group x = case changesUponFlattening x of
+simpleGroup x = case changesUponFlattening x of
     Flattened x' -> Union x' x
     AlreadyFlat  -> x
     NeverFlat    -> x

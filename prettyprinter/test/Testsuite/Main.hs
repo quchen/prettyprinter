@@ -90,6 +90,9 @@ tests = testGroup "Tests"
             , testCase "Line within align" regressionUnboundedGroupedLineWithinAlign
             ]
         ]
+        , testGroup "Group" [
+            testProperty "simpleGroup == group" groupLayoutEqualsSimpleGroupLayout
+        ]
     ]
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
@@ -110,6 +113,17 @@ fusionDoesNotChangeRendering depth
             , indent 4 (pretty rendered)
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
+
+groupLayoutEqualsSimpleGroupLayout :: Property
+groupLayoutEqualsSimpleGroupLayout = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
+    forAll arbitrary (\layouter ->
+        let grouped = group $ doc
+            groupedSimple = simpleGroup doc
+            groupedLayedOut = layout layouter grouped
+            groupedSimpleLayedOut = layout layouter groupedSimple
+        in counterexample ("Grouped: " ++ (show . diag $ grouped))
+            (counterexample ("Grouped (Simple) " ++ (show . diag $ groupedSimple))
+                (groupedLayedOut === groupedSimpleLayedOut))))
 
 instance Arbitrary ann => Arbitrary (Doc ann) where
     arbitrary = document
