@@ -93,7 +93,7 @@ data Doc ann =
     --
     -- Since the frequently used 'T.length' of 'Text' is /O(length)/, we cache
     -- it in this constructor.
-    | Text !Int {-# UNPACK #-} !Text
+    | Text !Int !Text
 
     -- | Hard line break
     | Line
@@ -1457,7 +1457,7 @@ data SimpleDocStream ann =
     -- | Some layout algorithms use the Since the frequently used 'T.length' of
     -- the 'Text', which scales linearly with its length, we cache it in this
     -- constructor.
-    | SText !Int {-# UNPACK #-} !Text (SimpleDocStream ann)
+    | SText !Int !Text (SimpleDocStream ann)
 
     -- | @Int@ = indentation level for the (next) line
     | SLine !Int (SimpleDocStream ann)
