@@ -1482,12 +1482,12 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
         -> SimpleDocStream ann
         -> SimpleDocStream ann
     commitWhitespace is0 !n0 sds0 = case is0 of
-        []     -> commitSpaces n0 sds0
-        (i:is) -> foldr (\_ sds' -> SLine 0 sds') (SLine (i + n0) sds0) is
+        []     -> commitSpaces n0
+        (i:is) -> foldr (\_ sds -> SLine 0 sds) (SLine (i + n0) sds0) is
       where
-        commitSpaces 0 sds = sds
-        commitSpaces 1 sds = SChar ' ' sds
-        commitSpaces n sds = SText n (T.replicate n " ") sds
+        commitSpaces 0 = sds0
+        commitSpaces 1 = SChar ' ' sds0
+        commitSpaces n = SText n (T.replicate n " ") sds0
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
