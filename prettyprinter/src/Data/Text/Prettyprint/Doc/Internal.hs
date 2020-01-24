@@ -1483,8 +1483,8 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
         -> SimpleDocStream ann
     commitWhitespace is0 !n0 = commitLines is0 . commitSpaces n0
       where
-        commitLines [] = id
-        commitLines (i:is) = foldr (\_ f -> SLine 0 . f) (SLine i) is
+        commitLines []     sds = sds
+        commitLines (i:is) sds = foldr (\_ sds' -> SLine 0 sds') (SLine i sds) is
 
         commitSpaces 0 = id
         commitSpaces 1 = SChar ' '
