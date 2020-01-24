@@ -71,9 +71,9 @@ before_install:
       fi
 
 script:
-    - set -eo pipefail # http://redsymbol.net/articles/unofficial-bash-strict-mode/
     - |
       _stack() {
+          set -eo pipefail # http://redsymbol.net/articles/unofficial-bash-strict-mode/
           if [[ $# -ge 1 ]] && [[ $1 == --travis_wait ]]; then
               shift
               travis_wait stack $STACK_RESOLVER --no-terminal "$@" ${STACK_BUILD_ARGS:-""}
