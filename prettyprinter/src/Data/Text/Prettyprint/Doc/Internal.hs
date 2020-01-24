@@ -1481,11 +1481,10 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
         -> Int -- Withheld spaces
         -> SimpleDocStream ann
         -> SimpleDocStream ann
-    commitWhitespace is0 !n0 sds0 = commitLines is0 (commitSpaces n0 sds0)
+    commitWhitespace is0 !n0 sds0 = case is0 of
+        []     -> commitSpaces n0 sds0
+        (i:is) -> foldr (\_ sds' -> SLine 0 sds') (SLine (i + n0) sds0) is
       where
-        commitLines []     sds = sds
-        commitLines (i:is) sds = foldr (\_ sds' -> SLine 0 sds') (SLine i sds) is
-
         commitSpaces 0 sds = sds
         commitSpaces 1 sds = SChar ' ' sds
         commitSpaces n sds = SText n (T.replicate n " ") sds
