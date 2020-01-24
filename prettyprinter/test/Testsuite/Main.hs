@@ -375,5 +375,5 @@ regressionUnboundedGroupedLineWithinAlign
   = let doc :: Doc ()
         doc = group (align ("x" <> hardline <> "y"))
         sdoc = layoutPretty (LayoutOptions Unbounded) doc
-        expected = SChar 'x' (SLine 0 (SChar 'y' SEmpty))
+        expected = SChar 'x' (SLine 0 (SChar 'z' SEmpty))
     in assertEqual "" expected sdoc
