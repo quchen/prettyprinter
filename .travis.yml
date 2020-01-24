@@ -83,8 +83,7 @@ script:
     - _stack --travis_wait build
     - |
       if "${RUN_TESTSUITE:-false}"; then
-          _stack --travis_wait test
-          _stack --travis_wait haddock --no-haddock-deps
+          _stack --travis_wait test && _stack --travis_wait haddock --no-haddock-deps
       fi
     - |
       if "${BUILD_BENCHMARKS:-false}"; then
