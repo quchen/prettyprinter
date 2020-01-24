@@ -7,7 +7,7 @@
 -- Use the @pretty-simple@ package to get a nicer layout for 'show'n
 -- 'Diag's:
 --
--- >>> Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
+-- > Text.Pretty.Simple.pPrintNoColor . diag $ align (vcat ["foo", "bar"])
 -- Column
 --    [
 --        ( 10
@@ -59,7 +59,7 @@ data Diag ann =
 --
 -- Use `diag'` to control the function inputs yourself.
 --
--- >>> diag $ align (vcat ["foo", "bar"])
+-- >>> diag $ Doc.align (Doc.vcat ["foo", "bar"])
 -- Column [(10,Nesting [(10,Cat (Text 3 "foo") (Cat (FlatAlt Line Empty) (Text 3 "bar")))])]
 diag :: Doc ann -> Diag ann
 diag = diag' [10] [Doc.defaultPageWidth] [10]
