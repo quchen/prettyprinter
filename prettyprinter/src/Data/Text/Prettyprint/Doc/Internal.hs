@@ -86,6 +86,7 @@ data Doc ann =
     Fail
 
     -- | The empty document; conceptually the unit of 'Cat'
+    | Empty
 
     -- | invariant: not '\n'
     | Char !Char
