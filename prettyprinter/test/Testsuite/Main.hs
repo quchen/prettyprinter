@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-orphans   #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 #include "version-compatibility-macros.h"
 
