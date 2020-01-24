@@ -86,7 +86,7 @@ renderIO h = go
         SText _ t rest     -> do T.hPutStr h t
                                  go rest
         SLine n rest       -> do hPutChar h '\n'
-                                 T.hPutStr h (T.replicate n " ")
+                                 T.hPutStr h (T.replicate n (T.singleton ' '))
                                  go rest
         SAnnPush _ann rest -> go rest
         SAnnPop rest       -> go rest

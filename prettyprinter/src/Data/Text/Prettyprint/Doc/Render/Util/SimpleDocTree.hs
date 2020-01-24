@@ -75,7 +75,7 @@ renderSimplyDecorated text renderAnn = go
         STEmpty        -> mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
-        STLine i       -> text (T.singleton '\n' <> T.replicate i " ")
+        STLine i       -> text (T.singleton '\n' <> T.replicate i (T.singleton ' ')) -- don't cat texts!
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs    -> foldMap go xs
 {-# INLINE renderSimplyDecorated #-}
@@ -93,7 +93,7 @@ renderSimplyDecoratedA text renderAnn = go
         STEmpty        -> pure mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
-        STLine i       -> text (T.singleton '\n' <> T.replicate i " ")
+        STLine i       -> text (T.singleton '\n' <> T.replicate i (T.singleton ' ')) -- don't cat texts!
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs    -> fmap mconcat (traverse go xs)
 {-# INLINE renderSimplyDecoratedA #-}

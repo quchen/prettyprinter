@@ -92,7 +92,7 @@ renderStackMachine = \sds -> case sds of
         renderStackMachine x
     SLine i x -> do
         writeOutput (TLB.singleton '\n')
-        writeOutput (TLB.fromText (T.replicate i " "))
+        writeOutput (TLB.fromText (T.replicate i (T.singleton ' ')))
         renderStackMachine x
     SAnnPush s x -> do
         pushStyle s

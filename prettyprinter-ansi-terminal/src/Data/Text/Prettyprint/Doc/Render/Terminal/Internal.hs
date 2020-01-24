@@ -142,7 +142,7 @@ renderLazy sdoc = runST (do
                 writeOutput (TLB.fromText t)
                 go rest
             SLine i rest -> do
-                writeOutput (TLB.singleton '\n' <> TLB.fromText (T.replicate i " "))
+                writeOutput (TLB.singleton '\n' <> TLB.fromText (T.replicate i (T.singleton ' ')))
                 go rest
             SAnnPush style rest -> do
                 currentStyle <- unsafePeek
@@ -204,7 +204,7 @@ renderIO h sdoc = do
                 go rest
             SLine i rest -> do
                 hPutChar h '\n'
-                T.hPutStr h (T.replicate i " ")
+                T.hPutStr h (T.replicate i (T.singleton ' '))
                 go rest
             SAnnPush style rest -> do
                 currentStyle <- unsafePeek

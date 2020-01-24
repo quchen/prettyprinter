@@ -87,7 +87,7 @@ renderTree sds = case sds of
     STEmpty -> mempty
     STChar c -> TLB.singleton c
     STText _ t -> TLB.fromText t
-    STLine i -> "\n" <> TLB.fromText (T.replicate i " ")
+    STLine i -> "\n" <> TLB.fromText (T.replicate i (T.singleton ' '))
     STAnn ann content -> encloseInTagFor ann (renderTree content)
     STConcat contents -> foldMap renderTree contents
 

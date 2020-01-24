@@ -1136,7 +1136,7 @@ fillBreak f x = width x (\w ->
 
 -- | Insert a number of spaces. Negative values count as 0.
 spaces :: Int -> Doc ann
-spaces n = unsafeTextWithoutNewlines (T.replicate n " ")
+spaces n = unsafeTextWithoutNewlines (T.replicate n (T.singleton ' ')) -- constructing, then destructing a Text is stupid!
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
@@ -1488,7 +1488,7 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
 
         commitSpaces 0 = id
         commitSpaces 1 = SChar ' '
-        commitSpaces n = SText n (T.replicate n " ")
+        commitSpaces n = SText n (T.replicate n (T.singleton ' '))
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
