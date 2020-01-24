@@ -31,7 +31,6 @@ env:
     # LTS 12 uses GHC 8.4
     - >
       STACK_RESOLVER="--resolver lts-12"
-      RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
 
     # LTS 13 uses GHC 8.6
