@@ -302,19 +302,21 @@ doNotRemoveLeadingWhitespaceText :: Assertion
 doNotRemoveLeadingWhitespaceText
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SText 2 "  " (SChar 'x' SEmpty))
-    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+        sdoc' = SLine 2 (SChar 'x' SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 doNotRemoveLeadingWhitespaceChar :: Assertion
 doNotRemoveLeadingWhitespaceChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SChar 'x' SEmpty))
-    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+        sdoc' = SLine 1 (SChar 'x' SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 doNotRemoveLeadingWhitespaceTextChar :: Assertion
 doNotRemoveLeadingWhitespaceTextChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
-        sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
+        sdoc' = SLine 3 (SChar 'x' SEmpty)
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 removeTrailingWhitespaceKeepTrailingNewline :: Assertion
