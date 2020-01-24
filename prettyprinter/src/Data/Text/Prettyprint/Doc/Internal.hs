@@ -93,7 +93,7 @@ data Doc ann =
     --
     -- Since the frequently used 'T.length' of 'Text' is /O(length)/, we cache
     -- it in this constructor.
-    | Text !Int !Text
+    | Text !Int {-# UNPACK #-} !Text
 
     -- | Hard line break
     | Line
@@ -1452,12 +1452,12 @@ fuse depth = go
 data SimpleDocStream ann =
       SFail
     | SEmpty
-    | SChar Char (SimpleDocStream ann)
+    | SChar !Char (SimpleDocStream ann)
 
     -- | Some layout algorithms use the Since the frequently used 'T.length' of
     -- the 'Text', which scales linearly with its length, we cache it in this
     -- constructor.
-    | SText !Int Text (SimpleDocStream ann)
+    | SText !Int {-# UNPACK #-} !Text (SimpleDocStream ann)
 
     -- | @Int@ = indentation level for the (next) line
     | SLine !Int (SimpleDocStream ann)
@@ -1623,7 +1623,7 @@ data LayoutPipeline ann =
 -- (e.g. via 'softline'').
 data PageWidth
 
-    = AvailablePerLine Int Double
+    = AvailablePerLine !Int !Double
     -- ^ Layouters should not exceed the specified space per line.
     --
     --   - The 'Int' is the number of characters, including whitespace, that
