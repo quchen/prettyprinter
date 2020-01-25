@@ -142,6 +142,16 @@ data Doc ann =
 instance Semigroup (Doc ann) where
     (<>) = Cat
     sconcat (x :| xs) = hcat (x:xs)
+    stimes n x
+      | n <= 0    = Empty
+      | n == 1    = x
+      | otherwise = case x of
+          Fail     -> Fail
+          Empty    -> Empty
+          Char c   -> Text n' (T.replicate n' (T.singleton c))
+          Text l t -> Text (n' * l) (T.replicate n' t)
+          _        -> hcat (replicate n' x)
+      where n' = fromIntegral n
 
 -- |
 -- @
