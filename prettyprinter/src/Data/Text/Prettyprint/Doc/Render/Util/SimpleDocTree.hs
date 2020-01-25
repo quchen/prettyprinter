@@ -76,7 +76,7 @@ renderSimplyDecorated text renderAnn = go
         STEmpty        -> mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
-        STLine i       -> text (T.singleton '\n') `mappend` text (textSpaces i)
+        STLine i       -> text (T.singleton '\n') <> text (textSpaces i)
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs    -> foldMap go xs
 {-# INLINE renderSimplyDecorated #-}
