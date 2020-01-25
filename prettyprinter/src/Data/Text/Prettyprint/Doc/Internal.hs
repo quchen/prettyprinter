@@ -1922,6 +1922,52 @@ renderShowS = \sds -> case sds of
     SAnnPop x    -> renderShowS x
 
 
+data Frequencies = Frequencies
+    { _fail :: !Int
+    , _empty :: !Int
+    , _char :: !Int
+    , _text :: !Int
+    , _flatAlt :: !Int
+    , _line :: !Int
+    , _cat :: !Int
+    , _nest :: !Int
+    , _union :: !Int
+    , _column :: !Int
+    , _withPageWidth :: !Int
+    , _nesting :: !Int
+    , _annotated :: !Int
+    }
+
+emptyFrequencies :: Frequencies
+emptyFrequencies = Frequencies 0 0 0 0 0 0 0 0 0 0 0 0 0
+
+addFrequencies :: Frequencies -> Frequencies -> Frequencies
+addFrequencies
+    (Frequencies a0 b0 c0 d0 e0 f0 g0 h0 i0 j0 k0 l0 m0) 
+    (Frequencies a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 m1) =
+    Frequencies (a0 + a1) (b0 + b1) (c0 + c1) (d0 + d1) (e0 + e1) (f0 + f1) (g0 + g1) (h0 + h1) (i0 +i1) (j0 +j1) (k0 + k1) (l0 + l1) (m0 + m1)
+
+countFrequencies :: Int -> PageWidth -> Int -> Doc ann -> Frequencies
+countFrequencies column_ pageWidth_ nesting_ x = case x of
+    Fail -> e { _fail = 1 }
+    Empty -> e { _empty = 1 }
+    Char{} -> e { _char = 1 }
+    Text{} -> e { _text = 1 }
+    FlatAlt a b -> e { _flatAlt = 1 } `add` count a `add` count b
+    Line -> e { _line = 1 }
+    Cat a b -> e { _cat = 1 } `add` count a `add` count b
+    Nest _ a -> e { _nest = 1 } `add` count a
+    Union a b -> e { _union = 1 } `add` count a `add` count b
+    Column f -> e { _column = 1 } `add` count (f column_)
+    WithPageWidth f -> e { _withPageWidth = 1 } `add` count (f pageWidth_)
+    Nesting f -> e { _nesting = 1 } `add` count (f nesting_)
+    Annotated _ a -> e { _annotated = 1 } `add` count a
+  where
+    e = emptyFrequencies
+    add = addFrequencies
+    count = countFrequencies column_ pageWidth_ nesting_
+
+
 -- $setup
 --
 -- (Definitions for the doctests)
