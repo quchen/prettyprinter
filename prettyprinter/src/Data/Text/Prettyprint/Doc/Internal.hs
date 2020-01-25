@@ -81,12 +81,12 @@ import Data.Text.Prettyprint.Doc.Render.Util.Panic
 -- world
 data Doc ann =
 
-    -- | Occurs when flattening a line. The layouter will reject this document,
-    -- choosing a more suitable rendering.
-    Fail
+    -- | Concatenation of two documents
+    Cat (Doc ann) (Doc ann)
 
-    -- | The empty document; conceptually the unit of 'Cat'
-    | Empty
+    -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
+    -- styling directives or alt texts that can then be used by the renderer.
+    | Annotated ann (Doc ann)
 
     -- | invariant: not '\n'
     | Char !Char
@@ -99,16 +99,20 @@ data Doc ann =
     -- it in this constructor.
     | Text !Int !Text
 
+    -- | The empty document; conceptually the unit of 'Cat'
+    | Empty
+
     -- | Hard line break
     | Line
+
+    -- | Occurs when flattening a line. The layouter will reject this document,
+    -- choosing a more suitable rendering.
+    | Fail
 
     -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
     -- the second. The flattened version should in general be higher and
     -- narrower than the fallback.
     | FlatAlt (Doc ann) (Doc ann)
-
-    -- | Concatenation of two documents
-    | Cat (Doc ann) (Doc ann)
 
     -- | Document indented by a number of columns
     | Nest !Int (Doc ann)
@@ -126,10 +130,6 @@ data Doc ann =
 
     -- | React on the current nesting level, see 'nesting'
     | Nesting (Int -> Doc ann)
-
-    -- | Add an annotation to the enclosed 'Doc'. Can be used for example to add
-    -- styling directives or alt texts that can then be used by the renderer.
-    | Annotated ann (Doc ann)
     deriving (Generic, Typeable)
 
 -- |
