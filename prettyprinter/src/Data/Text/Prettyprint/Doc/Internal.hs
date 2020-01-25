@@ -46,10 +46,6 @@ import Data.Traversable (Traversable (..))
 import Prelude          hiding (foldr, foldr1)
 #endif
 
-#if !(MONOID_IN_PRELUDE)
-import Data.Monoid hiding ((<>))
-#endif
-
 #if FUNCTOR_IDENTITY_IN_BASE
 import Data.Functor.Identity
 #endif
