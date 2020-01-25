@@ -41,7 +41,7 @@ module Data.Text.Prettyprint.Doc.Symbols.Unicode (
 
 
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 
 
 
