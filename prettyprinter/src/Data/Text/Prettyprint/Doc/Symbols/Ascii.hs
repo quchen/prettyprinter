@@ -46,65 +46,65 @@ braces = enclose lbrace rbrace
 -- | >>> squote
 -- '
 squote :: Doc ann
-squote = "'"
+squote = Char '\''
 
 -- | >>> dquote
 -- "
 dquote :: Doc ann
-dquote = "\""
+dquote = Char '"'
 
 -- | >>> lparen
 -- (
 lparen :: Doc ann
-lparen = "("
+lparen = Char '('
 
 -- | >>> rparen
 -- )
 rparen :: Doc ann
-rparen = ")"
+rparen = Char ')'
 
 -- | >>> langle
 -- <
 langle :: Doc ann
-langle = "<"
+langle = Char '<'
 
 -- | >>> rangle
 -- >
 rangle :: Doc ann
-rangle = ">"
+rangle = Char '>'
 
 -- | >>> lbracket
 -- [
 lbracket :: Doc ann
-lbracket = "["
+lbracket = Char '['
 -- | >>> rbracket
 -- ]
 rbracket :: Doc ann
-rbracket = "]"
+rbracket = Char ']'
 
 -- | >>> lbrace
 -- {
 lbrace :: Doc ann
-lbrace = "{"
+lbrace = Char '{'
 -- | >>> rbrace
 -- }
 rbrace :: Doc ann
-rbrace = "}"
+rbrace = Char '}'
 
 -- | >>> semi
 -- ;
 semi :: Doc ann
-semi = ";"
+semi = Char ';'
 
 -- | >>> colon
 -- :
 colon :: Doc ann
-colon = ":"
+colon = Char ':'
 
 -- | >>> comma
 -- ,
 comma :: Doc ann
-comma = ","
+comma = Char ','
 
 -- | >>> "a" <> space <> "b"
 -- a b
@@ -114,17 +114,17 @@ comma = ","
 -- >>> "a" <+> "b"
 -- a b
 space :: Doc ann
-space = " "
+space = Char ' '
 
 -- | >>> dot
 -- .
 dot :: Doc ann
-dot = "."
+dot = Char '.'
 
 -- | >>> slash
 -- /
 slash :: Doc ann
-slash = "/"
+slash = Char '/'
 
 -- | >>> backslash
 -- \\
@@ -135,12 +135,12 @@ backslash = "\\"
 -- | >>> equals
 -- =
 equals :: Doc ann
-equals = "="
+equals = Char '='
 
 -- | >>> pipe
 -- |
 pipe :: Doc ann
-pipe = "|"
+pipe = Char '|'
 
 
 
