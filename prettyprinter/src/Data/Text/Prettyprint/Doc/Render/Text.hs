@@ -23,6 +23,7 @@ import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import           System.IO
 
+import Data.Text.Prettyprint.Doc
 import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
