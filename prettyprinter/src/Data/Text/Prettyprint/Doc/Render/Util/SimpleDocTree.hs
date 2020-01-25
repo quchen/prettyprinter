@@ -31,7 +31,7 @@ import qualified Data.Text           as T
 import           Data.Typeable       (Typeable)
 import           GHC.Generics
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 import qualified Control.Monad.Fail as Fail
@@ -75,7 +75,7 @@ renderSimplyDecorated text renderAnn = go
         STEmpty        -> mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
-        STLine i       -> text (T.singleton '\n') <> text (T.replicate i (T.singleton ' '))
+        STLine i       -> text (T.singleton '\n') <> text (textSpaces i)
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs    -> foldMap go xs
 {-# INLINE renderSimplyDecorated #-}
@@ -93,7 +93,7 @@ renderSimplyDecoratedA text renderAnn = go
         STEmpty        -> pure mempty
         STChar c       -> text (T.singleton c)
         STText _ t     -> text t
-        STLine i       -> text (T.cons '\n' (T.replicate i (T.singleton ' ')))
+        STLine i       -> text (T.cons '\n' (textSpaces i))
         STAnn ann rest -> renderAnn ann (go rest)
         STConcat xs    -> fmap mconcat (traverse go xs)
 {-# INLINE renderSimplyDecoratedA #-}

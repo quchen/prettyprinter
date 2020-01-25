@@ -15,11 +15,10 @@
 -- source form.
 module Data.Text.Prettyprint.Doc.Render.Tutorials.TreeRenderingTutorial where
 
-import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.SimpleDocTree
 
 #if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
@@ -87,7 +86,7 @@ renderTree sds = case sds of
     STEmpty -> mempty
     STChar c -> TLB.singleton c
     STText _ t -> TLB.fromText t
-    STLine i -> "\n" <> TLB.fromText (T.replicate i (T.singleton ' '))
+    STLine i -> "\n" <> TLB.fromText (textSpaces i)
     STAnn ann content -> encloseInTagFor ann (renderTree content)
     STConcat contents -> foldMap renderTree contents
 

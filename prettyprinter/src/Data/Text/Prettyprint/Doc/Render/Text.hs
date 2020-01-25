@@ -18,13 +18,12 @@ module Data.Text.Prettyprint.Doc.Render.Text (
 
 
 import           Data.Text              (Text)
-import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 import           System.IO
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
@@ -86,7 +85,7 @@ renderIO h = go
         SText _ t rest     -> do T.hPutStr h t
                                  go rest
         SLine n rest       -> do hPutChar h '\n'
-                                 T.hPutStr h (T.replicate n (T.singleton ' '))
+                                 T.hPutStr h (textSpaces n)
                                  go rest
         SAnnPush _ann rest -> go rest
         SAnnPop rest       -> go rest

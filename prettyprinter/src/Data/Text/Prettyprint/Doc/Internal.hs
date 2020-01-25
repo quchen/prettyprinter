@@ -1139,7 +1139,7 @@ spaces :: Int -> Doc ann
 spaces n
   | n <= 0    = Empty
   | n == 1    = Char ' '
-  | otherwise = Text n (T.replicate n (T.singleton ' '))
+  | otherwise = Text n (textSpaces n)
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
@@ -1491,7 +1491,7 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
 
         commitSpaces 0 = id
         commitSpaces 1 = SChar ' '
-        commitSpaces n = SText n (T.replicate n (T.singleton ' '))
+        commitSpaces n = SText n (textSpaces n)
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
@@ -1923,6 +1923,20 @@ renderShowS = \sds -> case sds of
     SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
+
+
+-- | A utility for producing indentation etc.
+--
+-- >>> textSpaces 3
+-- "   "
+--
+-- This produces much better Core than the equivalent
+--
+-- > T.replicate n " "
+--
+-- (See <https://github.com/quchen/prettyprinter/pull/132>.)
+textSpaces :: Int -> Text
+textSpaces n = T.replicate n (T.singleton ' ')
 
 
 -- $setup
