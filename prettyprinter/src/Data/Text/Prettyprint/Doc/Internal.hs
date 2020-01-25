@@ -1934,7 +1934,7 @@ renderShowS = \sds -> case sds of
 --
 -- > T.replicate n " "
 --
--- (See <https://github.com/quchen/prettyprinter/pull/132>.)
+-- (See <https://github.com/quchen/prettyprinter/issues/131>.)
 textSpaces :: Int -> Text
 textSpaces n = T.replicate n (T.singleton ' ')
 
