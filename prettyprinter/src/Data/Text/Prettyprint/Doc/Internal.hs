@@ -1936,7 +1936,7 @@ data Frequencies = Frequencies
     , _withPageWidth :: !Int
     , _nesting :: !Int
     , _annotated :: !Int
-    }
+    } deriving Show
 
 emptyFrequencies :: Frequencies
 emptyFrequencies = Frequencies 0 0 0 0 0 0 0 0 0 0 0 0 0
@@ -1947,8 +1947,8 @@ addFrequencies
     (Frequencies a1 b1 c1 d1 e1 f1 g1 h1 i1 j1 k1 l1 m1) =
     Frequencies (a0 + a1) (b0 + b1) (c0 + c1) (d0 + d1) (e0 + e1) (f0 + f1) (g0 + g1) (h0 + h1) (i0 +i1) (j0 +j1) (k0 + k1) (l0 + l1) (m0 + m1)
 
-countFrequencies :: Int -> PageWidth -> Int -> Doc ann -> Frequencies
-countFrequencies column_ pageWidth_ nesting_ x = case x of
+countFrequencies' :: Int -> PageWidth -> Int -> Doc ann -> Frequencies
+countFrequencies' column_ pageWidth_ nesting_ x = case x of
     Fail -> e { _fail = 1 }
     Empty -> e { _empty = 1 }
     Char{} -> e { _char = 1 }
@@ -1965,7 +1965,27 @@ countFrequencies column_ pageWidth_ nesting_ x = case x of
   where
     e = emptyFrequencies
     add = addFrequencies
-    count = countFrequencies column_ pageWidth_ nesting_
+    count = countFrequencies' column_ pageWidth_ nesting_
+
+countFrequencies :: Doc ann -> Frequencies
+countFrequencies = countFrequencies' 10 defaultPageWidth 10
+
+frequenciesToList :: Frequencies -> [(Int, Text)]
+frequenciesToList f =
+    [ (_fail f, "Fail")
+    , (_empty f, "Empty")
+    , (_char f, "Char")
+    , (_text f, "Text")
+    , (_flatAlt f, "FlatAlt")
+    , (_line f, "Line")
+    , (_cat f, "Cat")
+    , (_nest f, "Nest")
+    , (_union f, "Union")
+    , (_column f, "Column")
+    , (_withPageWidth f, "WithPageWidth")
+    , (_nesting f, "Nesting")
+    , (_annotated f, "Annotated")
+    ]
 
 
 -- $setup
