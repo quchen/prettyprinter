@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
 
@@ -36,7 +35,7 @@ import           Control.Applicative
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 
-import Data.Text.Prettyprint.Doc                   (SimpleDocStream (..))
+import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 
 #if !(SEMIGROUP_MONOID_SUPERCLASS)
@@ -78,7 +77,7 @@ renderSimplyDecorated text push pop = go []
     go (_:_)       SEmpty              = panicInputNotFullyConsumed
     go stack       (SChar c rest)      = text (T.singleton c) <> go stack rest
     go stack       (SText _l t rest)   = text t <> go stack rest
-    go stack       (SLine i rest)      = text (T.singleton '\n') <> text (T.replicate i " ") <> go stack rest
+    go stack       (SLine i rest)      = text (T.singleton '\n') <> text (textSpaces i) <> go stack rest
     go stack       (SAnnPush ann rest) = push ann <> go (ann : stack) rest
     go (ann:stack) (SAnnPop rest)      = pop ann <> go stack rest
     go []          SAnnPop{}           = panicUnpairedPop
@@ -99,7 +98,7 @@ renderSimplyDecoratedA text push pop = go []
     go (_:_)       SEmpty              = panicInputNotFullyConsumed
     go stack       (SChar c rest)      = text (T.singleton c) <++> go stack rest
     go stack       (SText _l t rest)   = text t <++> go stack rest
-    go stack       (SLine i rest)      = text (T.singleton '\n') <++> text (T.replicate i " ") <++> go stack rest
+    go stack       (SLine i rest)      = text (T.singleton '\n') <++> text (textSpaces i) <++> go stack rest
     go stack       (SAnnPush ann rest) = push ann <++> go (ann : stack) rest
     go (ann:stack) (SAnnPop rest)      = pop ann <++> go stack rest
     go []          SAnnPop{}           = panicUnpairedPop
