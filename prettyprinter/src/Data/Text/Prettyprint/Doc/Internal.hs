@@ -146,12 +146,22 @@ instance Semigroup (Doc ann) where
       | n <= 0    = Empty
       | n == 1    = x
       | otherwise = case x of
-          Fail     -> Fail
-          Empty    -> Empty
-          Char c   -> Text n' (T.replicate n' (T.singleton c))
-          Text l t -> Text (n' * l) (T.replicate n' t)
-          _        -> hcat (replicate n' x)
-      where n' = fromIntegral n
+            Fail            -> Fail
+            Empty           -> Empty
+            Char c          -> Text n' (T.replicate n' (T.singleton c))
+            Text l t        -> Text (n' * l) (T.replicate n' t)
+            Line            -> nx
+            FlatAlt{}       -> nx
+            Cat{}           -> nx
+            Nest{}          -> nx
+            Union{}         -> nx
+            Column{}        -> nx
+            WithPageWidth{} -> nx
+            Nesting{}       -> nx
+            Annotated{}     -> nx
+          where
+            n' = fromIntegral n
+            nx = hcat (replicate n' x)
 
 -- |
 -- @
