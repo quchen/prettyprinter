@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | A collection of predefined Unicode values outside of ASCII range. For
 -- ASCII, see "Data.Text.Prettyprint.Doc.Symbols.Ascii".
 module Data.Text.Prettyprint.Doc.Symbols.Unicode (
