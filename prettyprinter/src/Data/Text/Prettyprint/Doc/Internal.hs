@@ -1136,7 +1136,10 @@ fillBreak f x = width x (\w ->
 
 -- | Insert a number of spaces. Negative values count as 0.
 spaces :: Int -> Doc ann
-spaces n = unsafeTextWithoutNewlines (T.replicate n (T.singleton ' ')) -- constructing, then destructing a Text is stupid!
+spaces n
+  | n <= 0    = Empty
+  | n == 1    = Char ' '
+  | otherwise = Text n (T.replicate n (T.singleton ' '))
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
