@@ -20,11 +20,11 @@ module Data.Text.Prettyprint.Doc.Render.Tutorials.StackMachineTutorial
     {-# DEPRECATED "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
     where
 
-import qualified Data.Text              as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
 
 import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 import Data.Text.Prettyprint.Doc.Render.Util.Panic
 import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
 
@@ -92,7 +92,7 @@ renderStackMachine = \sds -> case sds of
         renderStackMachine x
     SLine i x -> do
         writeOutput (TLB.singleton '\n')
-        writeOutput (TLB.fromText (T.replicate i " "))
+        writeOutput (TLB.fromText (textSpaces i))
         renderStackMachine x
     SAnnPush s x -> do
         pushStyle s

@@ -46,10 +46,6 @@ import Data.Traversable (Traversable (..))
 import Prelude          hiding (foldr, foldr1)
 #endif
 
-#if !(MONOID_IN_PRELUDE)
-import Data.Monoid hiding ((<>))
-#endif
-
 #if FUNCTOR_IDENTITY_IN_BASE
 import Data.Functor.Identity
 #endif
@@ -1136,7 +1132,10 @@ fillBreak f x = width x (\w ->
 
 -- | Insert a number of spaces. Negative values count as 0.
 spaces :: Int -> Doc ann
-spaces n = unsafeTextWithoutNewlines (T.replicate n " ")
+spaces n
+  | n <= 0    = Empty
+  | n == 1    = Char ' '
+  | otherwise = Text n (textSpaces n)
 
 -- $
 -- prop> \(NonNegative n) -> length (show (spaces n)) == n
@@ -1487,7 +1486,7 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
       where
         commitSpaces 0 = sds0
         commitSpaces 1 = SChar ' ' sds0
-        commitSpaces n = SText n (T.replicate n " ") sds0
+        commitSpaces n = SText n (textSpaces n) sds0
 
     go :: WhitespaceStrippingState -> SimpleDocStream ann -> SimpleDocStream ann
     -- We do not strip whitespace inside annotated documents, since it might
@@ -1919,6 +1918,20 @@ renderShowS = \sds -> case sds of
     SLine i x    -> showString ('\n' : replicate i ' ') . renderShowS x
     SAnnPush _ x -> renderShowS x
     SAnnPop x    -> renderShowS x
+
+
+-- | A utility for producing indentation etc.
+--
+-- >>> textSpaces 3
+-- "   "
+--
+-- This produces much better Core than the equivalent
+--
+-- > T.replicate n " "
+--
+-- (See <https://github.com/quchen/prettyprinter/issues/131>.)
+textSpaces :: Int -> Text
+textSpaces n = T.replicate n (T.singleton ' ')
 
 
 -- $setup

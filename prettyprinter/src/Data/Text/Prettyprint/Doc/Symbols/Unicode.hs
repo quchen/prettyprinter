@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 -- | A collection of predefined Unicode values outside of ASCII range. For
 -- ASCII, see "Data.Text.Prettyprint.Doc.Symbols.Ascii".
 module Data.Text.Prettyprint.Doc.Symbols.Unicode (
@@ -41,7 +39,7 @@ module Data.Text.Prettyprint.Doc.Symbols.Unicode (
 
 
 
-import Data.Text.Prettyprint.Doc
+import Data.Text.Prettyprint.Doc.Internal
 
 
 
@@ -106,100 +104,100 @@ sGuillemetsIn = enclose rsGuillemet lsGuillemet
 -- >>> putDoc b99dquote
 -- „
 b99dquote :: Doc ann
-b99dquote = "„"
+b99dquote = Char '„'
 
 -- | Top “66” style double quotes.
 --
 -- >>> putDoc t66dquote
 -- “
 t66dquote :: Doc ann
-t66dquote = "“"
+t66dquote = Char '“'
 
 -- | Top “99” style double quotes.
 --
 -- >>> putDoc t99dquote
 -- ”
 t99dquote :: Doc ann
-t99dquote = "”"
+t99dquote = Char '”'
 
 -- | Bottom ‚9‘ style single quote.
 --
 -- >>> putDoc b9quote
 -- ‚
 b9quote :: Doc ann
-b9quote = "‚"
+b9quote = Char '‚'
 
 -- | Top ‘66’ style single quote.
 --
 -- >>> putDoc t6quote
 -- ‘
 t6quote :: Doc ann
-t6quote = "‘"
+t6quote = Char '‘'
 
 -- | Top ‘9’ style single quote.
 --
 -- >>> putDoc t9quote
 -- ’
 t9quote :: Doc ann
-t9quote = "’"
+t9quote = Char '’'
 
 -- | Right-pointing double guillemets
 --
 -- >>> putDoc rdGuillemet
 -- »
 rdGuillemet :: Doc ann
-rdGuillemet = "»"
+rdGuillemet = Char '»'
 
 -- | Left-pointing double guillemets
 --
 -- >>> putDoc ldGuillemet
 -- «
 ldGuillemet :: Doc ann
-ldGuillemet = "«"
+ldGuillemet = Char '«'
 
 -- | Right-pointing single guillemets
 --
 -- >>> putDoc rsGuillemet
 -- ›
 rsGuillemet :: Doc ann
-rsGuillemet = "›"
+rsGuillemet = Char '›'
 
 -- | Left-pointing single guillemets
 --
 -- >>> putDoc lsGuillemet
 -- ‹
 lsGuillemet :: Doc ann
-lsGuillemet = "‹"
+lsGuillemet = Char '‹'
 
 -- | >>> putDoc bullet
 -- •
 bullet :: Doc ann
-bullet = "•"
+bullet = Char '•'
 
 -- | >>> putDoc endash
 -- –
 endash :: Doc ann
-endash = "–"
+endash = Char '–'
 
 -- | >>> putDoc euro
 -- €
 euro :: Doc ann
-euro = "€"
+euro = Char '€'
 
 -- | >>> putDoc cent
 -- ¢
 cent :: Doc ann
-cent = "¢"
+cent = Char '¢'
 
 -- | >>> putDoc yen
 -- ¥
 yen :: Doc ann
-yen = "¥"
+yen = Char '¥'
 
 -- | >>> putDoc pound
 -- £
 pound :: Doc ann
-pound = "£"
+pound = Char '£'
 
 
 

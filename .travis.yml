@@ -54,6 +54,7 @@ env:
       RUN_RELEASE_CHECKS=true
       BUILD_SOURCE_DIST=true
       ALLOW_FAILURE=true
+      CLEAR_STACK_CACHE=true
 
 matrix:
     fast_finish: true
@@ -98,6 +99,12 @@ script:
               echo "Running check: $(basename "$check")"
               "./$check"
           done
+      fi
+
+before_cache:
+    - |
+      if "${CLEAR_STACK_CACHE:-false}"; then
+          rm -rf $HOME/.stack
       fi
 
 cache:
