@@ -1957,8 +1957,7 @@ indicate
 
 The choice of minNestingLevel determines how far layoutSmart's FittingPredicate will check a SimpleDocStream. (layoutPretty ignores this parameter and always stops after the first linebreak.)
 
-
-
+See https://github.com/quchen/prettyprinter/issues/83 for the bug in question.
 -}
 
 
