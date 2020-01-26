@@ -1481,10 +1481,10 @@ removeTrailingWhitespace = go (RecordedWhitespace [] 0)
         -> SimpleDocStream ann
         -> SimpleDocStream ann
     commitWhitespace is !n sds = case is of
-        []     -> case n of
-                      0 -> sds
-                      1 -> SChar ' ' sds
-                      _ -> SText n (textSpaces n) sds
+        []      -> case n of
+                       0 -> sds
+                       1 -> SChar ' ' sds
+                       _ -> SText n (textSpaces n) sds
         (i:is') -> let !end = SLine (i + n) sds
                    in prependEmptyLines is' end
 
