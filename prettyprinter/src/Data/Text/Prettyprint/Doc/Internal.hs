@@ -1550,14 +1550,6 @@ data WhitespaceStrippingState
   deriving Typeable
 
 
--- | Test whether a docstream starts with a linebreak, ignoring any annotations.
-startsWithLine :: SimpleDocStream ann -> Bool
-startsWithLine sds = case sds of
-    SLine{}      -> True
-    SAnnPush _ s -> startsWithLine s
-    SAnnPop s    -> startsWithLine s
-    _            -> False
-
 
 -- $
 -- >>> import qualified Data.Text.IO as T
@@ -1834,15 +1826,19 @@ layoutWadlerLeijen
           | fits pWidth minNestingLevel availableWidth x -> x
           where
             minNestingLevel =
-                -- See https://github.com/quchen/prettyprinter/issues/83.
-                if startsWithLine y
-                    -- y might be a (more compact) hanging layout. Let's check x
-                    -- thoroughly with the smaller lineIndent.
-                    then lineIndent
-                    -- y definitely isn't a hanging layout. Let's allow the first
-                    -- line of x to be checked on its own and format it consistently
-                    -- with subsequent lines with the same indentation.
-                    else currentColumn
+                -- See the Note
+                -- [Choosing the right minNestingLevel for consistent smart layouts]
+                case y of
+                    SLine i _ ->
+                        -- y could be a (less wide) hanging layout. If so, let's
+                        -- check x a bit more thoroughly so we don't miss a potentially
+                        -- better fitting y.
+                        min i currentColumn
+                    _ ->
+                        -- y definitely isn't a hanging layout. Let's allow the first
+                        -- line of x to be checked on its own and format it consistently
+                        -- with subsequent lines with the same indentation.
+                        currentColumn
             availableWidth = min columnsLeftInLine columnsLeftInRibbon
               where
                 columnsLeftInLine = lineLength - currentColumn
