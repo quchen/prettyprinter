@@ -1868,10 +1868,98 @@ layoutWadlerLeijen
             SAnnPop s    -> go s
 
 {-
-Note [Choosing minNestingLevel for consistent layouts]
+Note [Choosing the right minNestingLevel for consistent smart layouts]
 
-The choice of minNestingLevel determines how far layoutSmart's FittingPredicate will check a
-SimpleDocStream. (layoutPretty ignores this parameter.)
+Say you have a document like this one:
+
+    doc =
+            "Groceries: "
+        <>  align
+                (cat
+                    [ sep ["pommes", "de", "terre"]
+                    , "apples"
+                    , "Donaudampfschifffahrtskapitänskajütenmülleimer"
+                    ]
+                )
+
+... which you'd like to fit as nicely as possible into 40 columns:
+
+    opts = LayoutOptions (AvailablePerLine 40 1)
+
+You already have bad luck with the last item – it's longer than 40 characters
+on its own!
+
+We'd still like the first item, pommes de terre, to be laid out nicely, that is,
+on one line, since it's not too wide. This is what we'd like to see:
+
+    Groceries: pommes de terre
+               apples
+               Donaudampfschifffahrtskapitänskajütenmülleimer
+
+Before #83 was fixed, that wasn't what we got! Instead we got this:
+
+> renderIO stdout $ layoutSmart opts doc
+Groceries: pommes
+           de
+           terre
+           apples
+           Donaudampfschifffahrtskapitänskajütenmülleimer
+
+Why?
+
+minNestingLevel was effectively defined as
+
+    minNestingLevel = lineIndent
+
+The lineIndent for "pommes de terre" is 0.
+
+The FittingPredicate for layoutSmart will continue to check the rest of the
+document until it finds a line where the indentation <= minNestingLevel.
+In this case this meant that layoutSmart would traverse all the items,
+and note that the last item, Donaudampfschifffahrtskapitänskajütenmülleimer,
+doesn't fit into the available space! The "flatter" version of the document
+has failed, so "pommes de terre" gets spread over several lines!
+
+Obviously this would be an inconsistency with the layout of the other items.
+Their lineIndent is 11 each, so for them, the FittingPredicate stops already
+on the next line.
+
+The obvious solution is to change the definition of minNestingLevel:
+
+    minNestingLevel = currentColumn
+
+This however breaks the "python-ish" document from the documentation for
+layoutSmart:
+
+    expected: |------------------------|
+              fun(
+                fun(
+                  fun(
+                    fun(
+                      fun(
+                        [ abcdef
+                        , ghijklm ])))))
+              |------------------------|
+     but got: |------------------------|
+              fun(
+                fun(
+                  fun(
+                    fun(
+                      fun([ abcdef
+                          , ghijklm ])))))
+              |------------------------|
+
+We now accept the worse layout because the problematic last line has
+the same indentation as the current column of "[ abcdef", so we don't check it!
+
+The solution we went with in the end is a bit of a hack:
+
+We take the beginning of the alternative, "high" layout with a linebreak to
+indicate
+
+
+
+The choice of minNestingLevel determines how far layoutSmart's FittingPredicate will check a SimpleDocStream. (layoutPretty ignores this parameter and always stops after the first linebreak.)
 
 
 
