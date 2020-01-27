@@ -518,7 +518,8 @@ hardline = Line
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
 group :: Doc ann -> Doc ann
--- See note [Group: special flattening]
+-- See note [Group: special flattening] and 'simpleGroup' for a naive version
+-- of 'group'.
 group x = case changesUponFlattening x of
     Flattened x' -> Union x' x
     AlreadyFlat  -> x
@@ -601,6 +602,31 @@ changesUponFlattening = \doc -> case doc of
         x@Empty  -> x
         x@Char{} -> x
         x@Text{} -> x
+
+
+-- | This is a naive version of 'group' that produces a 'Union' no matter
+-- whether the document is actually flattenable or not.
+--
+-- The Note [Group: special flattening] explains why why this definition is too
+-- simple.
+simpleGroup :: Doc ann -> Doc ann
+simpleGroup a = Union (flatten a) a
+  where
+    flatten b = case b of
+        FlatAlt _ y     -> flatten y
+        Cat x y         -> Cat (flatten x) (flatten y)
+        Nest i x        -> Nest i (flatten x)
+        Line            -> Fail
+        Union x _       -> flatten x
+        Column f        -> Column (flatten . f)
+        WithPageWidth f -> WithPageWidth (flatten . f)
+        Nesting f       -> Nesting (flatten . f)
+        Annotated ann x -> Annotated ann (flatten x)
+
+        Fail   -> b
+        Empty  -> b
+        Char{} -> b
+        Text{} -> b
 
 
 
