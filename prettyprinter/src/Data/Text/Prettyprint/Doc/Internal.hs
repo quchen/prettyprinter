@@ -1969,6 +1969,7 @@ layoutWadlerLeijen
         Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
         Line            -> let x = best i i ds
                                i' = case x of
+                                   SEmpty  -> 0
                                    SLine{} -> 0
                                    _       -> i
                            in SLine i' x
