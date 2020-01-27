@@ -519,10 +519,16 @@ hardline = Line
 -- use of it.
 group :: Doc ann -> Doc ann
 -- See note [Group: special flattening]
-group x = case changesUponFlattening x of
-    Flattened x' -> Union x' x
-    AlreadyFlat  -> x
-    NeverFlat    -> x
+group x = case x of
+    Union{} -> x
+    FlatAlt a b -> case changesUponFlattening b of
+        Flattened b' -> Union b' a
+        AlreadyFlat  -> Union b a
+        NeverFlat    -> a
+    _ -> case changesUponFlattening x of
+        Flattened x' -> Union x' x
+        AlreadyFlat  -> x
+        NeverFlat    -> x
 
 -- Note [Group: special flattening]
 --
