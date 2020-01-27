@@ -48,6 +48,8 @@ tests = testGroup "Tests"
         , testProperty "Deep fusion does not change rendering"
                        (fusionDoesNotChangeRendering Deep)
         ]
+    , testProperty "group and simpleGroup result in the same layout"
+                   groupAndSimpleGroupResultInTheSameLayout
     , testStripTrailingSpace
     , testGroup "Performance tests"
         [ testCase "Grouping performance"
@@ -110,6 +112,17 @@ fusionDoesNotChangeRendering depth
             , indent 4 (pretty rendered)
             , "Fused:"
             , indent 4 (pretty renderedFused) ]
+
+groupAndSimpleGroupResultInTheSameLayout :: Property
+groupAndSimpleGroupResultInTheSameLayout = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
+    forAll arbitrary (\layouter ->
+        let grouped = group doc
+            groupedSimple = simpleGroup doc
+            groupedLayedOut = layout layouter grouped
+            groupedSimpleLayedOut = layout layouter groupedSimple
+        in counterexample ("Grouped: " ++ (show . diag) grouped)
+            (counterexample ("Grouped (Simple) " ++ (show . diag) groupedSimple)
+                (groupedLayedOut === groupedSimpleLayedOut))))
 
 instance Arbitrary ann => Arbitrary (Doc ann) where
     arbitrary = document
