@@ -1936,6 +1936,7 @@ layoutSmart:
                         [ abcdef
                         , ghijklm ])))))
               |------------------------|
+
      but got: |------------------------|
               fun(
                 fun(
@@ -1950,14 +1951,13 @@ the same indentation as the current column of "[ abcdef", so we don't check it!
 
 The solution we went with in the end is a bit of a hack:
 
-We take the beginning of the alternative, "high" layout with a linebreak to
-indicate
+We check whether the alternative, "high" layout is a (potentially less wide)
+hanging layout, and in that case pick its indentation as the minNestingLevel.
 
+This way we achieve the optimal layout in both scenarios.
 
-
-The choice of minNestingLevel determines how far layoutSmart's FittingPredicate will check a SimpleDocStream. (layoutPretty ignores this parameter and always stops after the first linebreak.)
-
-See https://github.com/quchen/prettyprinter/issues/83 for the bug in question.
+See https://github.com/quchen/prettyprinter/issues/83 for the bug that lead
+the current solution.
 -}
 
 
