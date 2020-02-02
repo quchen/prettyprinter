@@ -28,7 +28,7 @@ source-repository head
 library
     exposed-modules:  Data.Text.Prettyprint.Doc.Render.Terminal
                     , Data.Text.Prettyprint.Doc.Render.Terminal.Internal
-    ghc-options:      -Wall
+    ghc-options:      -Wall -O2
     hs-source-dirs:   src
     include-dirs:     misc
     default-language: Haskell2010
