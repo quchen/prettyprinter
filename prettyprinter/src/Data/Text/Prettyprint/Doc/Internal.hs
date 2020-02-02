@@ -1863,8 +1863,7 @@ layoutWadlerLeijen
             SAnnPush _ s -> go s
             SAnnPop s    -> go s
 
-{-
-Note [Choosing the right minNestingLevel for consistent smart layouts]
+{- Note [Choosing the right minNestingLevel for consistent smart layouts]
 
 Consider this document:
 
@@ -1959,6 +1958,7 @@ This way we achieve the optimal layout in both scenarios.
 See https://github.com/quchen/prettyprinter/issues/83 for the bug that lead
 the current solution.
 -}
+
 
 
 -- Note [Detecting failure with Unbounded page width]
