@@ -44,7 +44,7 @@ library
         -- Deprecated
         , Data.Text.Prettyprint.Doc.Render.ShowS
 
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
     hs-source-dirs: src
     include-dirs: misc
     default-language: Haskell2010
