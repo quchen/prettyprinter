@@ -1863,8 +1863,9 @@ layoutWadlerLeijen
             SAnnPush _ s -> go s
             SAnnPop s    -> go s
 
-{- Note [Choosing the right minNestingLevel for consistent smart layouts]
 
+{- Note [Choosing the right minNestingLevel for consistent smart layouts]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Consider this document:
 
     doc =
@@ -1957,24 +1958,23 @@ This way we achieve the optimal layout in both scenarios.
 
 See https://github.com/quchen/prettyprinter/issues/83 for the bug that lead
 the current solution.
+
+
+Note [Detecting failure with Unbounded page width]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To understand why it is sufficient to check the first line of the
+SimpleDocStream, trace how an SFail ends up there:
+
+1. We group a Doc containing a Line, producing a (Union x y) where
+   x contains Fail.
+
+2. In best, any Unions are handled recursively, rejecting any
+   alternatives that would result in SFail.
+
+So once a SimpleDocStream reaches selectNicer, any SFail in it must
+appear before the first linebreak – any other SFail would have been
+detected and rejected in a previous iteration.
 -}
-
-
-
--- Note [Detecting failure with Unbounded page width]
---
--- To understand why it is sufficient to check the first line of the
--- SimpleDocStream, trace how an SFail ends up there:
---
--- 1. We group a Doc containing a Line, producing a (Union x y) where
---    x contains Fail.
---
--- 2. In best, any Unions are handled recursively, rejecting any
---    alternatives that would result in SFail.
---
--- So once a SimpleDocStream reaches selectNicer, any SFail in it must
--- appear before the first linebreak – any other SFail would have been
--- detected and rejected in a previous iteration.
 
 
 
