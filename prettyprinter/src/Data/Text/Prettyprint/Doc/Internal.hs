@@ -1835,9 +1835,9 @@ layoutWadlerLeijen
                         -- better fitting y.
                         min i currentColumn
                     _ ->
-                        -- y definitely isn't a hanging layout. Let's allow the first
-                        -- line of x to be checked on its own and format it consistently
-                        -- with subsequent lines with the same indentation.
+                        -- y definitely isn't a hanging layout. Let's check x with the
+                        -- same minNestingLevel that any subsequent lines with the same
+                        -- indentation use.
                         currentColumn
             availableWidth = min columnsLeftInLine columnsLeftInRibbon
               where
