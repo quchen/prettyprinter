@@ -1866,7 +1866,7 @@ layoutWadlerLeijen
 {-
 Note [Choosing the right minNestingLevel for consistent smart layouts]
 
-Say you have a document like this one:
+Consider this document:
 
     doc =
             "Groceries: "
@@ -1878,11 +1878,11 @@ Say you have a document like this one:
                     ]
                 )
 
-... which you'd like to fit as nicely as possible into 40 columns:
+... and assume we want to fit it into 40 columns as nicely as possible:
 
     opts = LayoutOptions (AvailablePerLine 40 1)
 
-You already have bad luck with the last item – it's longer than 40 characters
+We already have bad luck with the last item – it's longer than 40 characters
 on its own!
 
 We'd still like the first item, pommes de terre, to be laid out nicely, that is,
