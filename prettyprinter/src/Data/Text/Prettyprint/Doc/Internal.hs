@@ -1730,22 +1730,24 @@ layoutPretty = layoutWadlerLeijen
 --           , ghijklm ])))))
 -- |------------------------|
 --
--- The key difference between @'layoutPretty'@ and @'layoutSmart'@ is that the
--- latter will check the potential document up to the end of the current
--- indentation level, instead of just having one element lookahead.
+-- The key difference between 'layoutPretty' and 'layoutSmart' is that the
+-- latter will check the potential document until it encounters a line with the
+-- same indentation or less than the start of the document. Any line encountered
+-- earlier is assumed to belong to the same syntactic structure.
+-- 'layoutPretty' checks only the first line.
 layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
 layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
   where
-    -- Search with more lookahead: assuming that nesting roughly corresponds to
-    -- syntactic depth, @fits@ checks that not only the current line fits, but
-    -- the entire syntactic structure being formatted at this level of
-    -- indentation fits. If we were to remove the second case for @SLine@, we
-    -- would check that not only the current structure fits, but also the rest
-    -- of the document, which would be slightly more intelligent but would have
-    -- exponential runtime (and is prohibitively expensive in practice).
+    -- Why doesn't layoutSmart simply check the entire document?
+    --
+    -- 1. That would be very expensive.
+    -- 2. In that case the fit of unrelated parts would influence the layout of
+    --    the current part of the document.
+    --    See https://github.com/quchen/prettyprinter/issues/83 for a related
+    --    bug.
     fits :: PageWidth
          -> Int -- ^ Minimum nesting level to fit in
          -> Int -- ^ Width in which to fit the first line
