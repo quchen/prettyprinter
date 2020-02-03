@@ -1744,8 +1744,8 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
     -- Why doesn't layoutSmart simply check the entire document?
     --
     -- 1. That would be very expensive.
-    -- 2. In that case the fit of unrelated parts would influence the layout of
-    --    the current part of the document.
+    -- 2. In that case the layout of a particular part of a document would
+    --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
     fits :: PageWidth
