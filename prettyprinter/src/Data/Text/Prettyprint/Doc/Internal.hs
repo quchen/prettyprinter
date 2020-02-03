@@ -1957,7 +1957,7 @@ hanging layout, and in that case pick its indentation as the minNestingLevel.
 This way we achieve the optimal layout in both scenarios.
 
 See https://github.com/quchen/prettyprinter/issues/83 for the bug that lead
-the current solution.
+to the current solution.
 
 
 Note [Detecting failure with Unbounded page width]
