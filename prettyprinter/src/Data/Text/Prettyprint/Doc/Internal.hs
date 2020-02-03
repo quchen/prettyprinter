@@ -1705,7 +1705,7 @@ layoutPretty = layoutWadlerLeijen
 -- >>> let hr = pipe <> pretty (replicate (26-2) '-') <> pipe
 -- >>> let go layouter x = (T.putStrLn . renderStrict . layouter (LayoutOptions (AvailablePerLine 26 1))) (vsep [hr, x, hr])
 --
--- If we render this using @'layoutPretty'@ with a page width of 26 characters
+-- If we render this using 'layoutPretty' with a page width of 26 characters
 -- per line, all the @fun@ calls fit into the first line so they will be put
 -- there,
 --
@@ -1735,6 +1735,16 @@ layoutPretty = layoutWadlerLeijen
 -- same indentation or less than the start of the document. Any line encountered
 -- earlier is assumed to belong to the same syntactic structure.
 -- 'layoutPretty' checks only the first line.
+--
+-- Visually, to decide whether the @A@s fit, 'layoutPretty' will check only
+-- line 1, ignoring whether e.g. line 2 might already be too wide.
+-- By contrast, 'layoutSmart' stops only once it reaches line 4, where the @B@
+-- has the same indentation as the first @A@.
+--
+-- > 1 A
+-- > 2   A
+-- > 4  A
+-- > 5 B
 layoutSmart
     :: LayoutOptions
     -> Doc ann
