@@ -1736,15 +1736,19 @@ layoutPretty = layoutWadlerLeijen
 -- earlier is assumed to belong to the same syntactic structure.
 -- 'layoutPretty' checks only the first line.
 --
--- Visually, to decide whether the @A@s fit, 'layoutPretty' will check only
--- line 1, ignoring whether e.g. line 2 might already be too wide.
--- By contrast, 'layoutSmart' stops only once it reaches line 4, where the @B@
--- has the same indentation as the first @A@.
+-- Consider for example the question of whether the @A@s fit into the document
+-- below:
 --
 -- > 1 A
 -- > 2   A
--- > 4  A
--- > 5 B
+-- > 3  A
+-- > 4 B
+-- > 5   B
+--
+-- 'layoutPretty' will check only line 1, ignoring whether e.g. line 2 might
+-- already be too wide.
+-- By contrast, 'layoutSmart' stops only once it reaches line 4, where the @B@
+-- has the same indentation as the first @A@.
 layoutSmart
     :: LayoutOptions
     -> Doc ann
