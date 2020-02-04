@@ -1828,13 +1828,13 @@ layoutWadlerLeijen
             minNestingLevel =
                 -- See the Note
                 -- [Choosing the right minNestingLevel for consistent smart layouts]
-                case y of
-                    SLine i _ ->
+                case initialIndentation y of
+                    Just i ->
                         -- y could be a (less wide) hanging layout. If so, let's
                         -- check x a bit more thoroughly so we don't miss a potentially
                         -- better fitting y.
                         min i currentColumn
-                    _ ->
+                    Nothing ->
                         -- y definitely isn't a hanging layout. Let's check x with the
                         -- same minNestingLevel that any subsequent lines with the same
                         -- indentation use.
@@ -1850,6 +1850,13 @@ layoutWadlerLeijen
           -- See the Note [Detecting failure with Unbounded page width].
           | not (failsOnFirstLine x) -> x
         _ -> y
+
+    initialIndentation :: SimpleDocStream ann -> Maybe Int
+    initialIndentation sds = case sds of
+        SLine i _    -> Just i
+        SAnnPush _ s -> initialIndentation s
+        SAnnPop s    -> initialIndentation s
+        _            -> Nothing
 
     failsOnFirstLine :: SimpleDocStream ann -> Bool
     failsOnFirstLine = go
