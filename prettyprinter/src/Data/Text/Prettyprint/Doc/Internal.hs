@@ -1825,16 +1825,16 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
          -> Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ w _ | w < 0                    = False
-    fits _ _ _ SFail                        = False
-    fits _ _ _ SEmpty                       = True
-    fits pw m w (SChar _ x)                 = fits pw m (w - 1) x
-    fits pw m w (SText l _t x)              = fits pw m (w - l) x
+    fits _ _ w _ | w < 0                     = False
+    fits _ _ _ SFail                         = False
+    fits _ _ _ SEmpty                        = True
+    fits pw m w (SChar _ x)                  = fits pw m (w - 1) x
+    fits pw m w (SText l _t x)               = fits pw m (w - l) x
     fits pw m _ (SLine i x)
-      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (cpl - i) x
-      | otherwise                           = True
-    fits pw m w (SAnnPush _ x)              = fits pw m w x
-    fits pw m w (SAnnPop x)                 = fits pw m w x
+      | m < i, AvailablePerLine cpl rf <- pw = fits pw m (min (cpl - i) (max 0 (round (fromIntegral cpl * rf)))) x
+      | otherwise                            = True
+    fits pw m w (SAnnPush _ x)               = fits pw m w x
+    fits pw m w (SAnnPop x)                  = fits pw m w x
 
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
