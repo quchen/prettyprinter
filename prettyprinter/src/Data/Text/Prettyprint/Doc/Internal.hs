@@ -1705,7 +1705,7 @@ layoutPretty = layoutWadlerLeijen
 -- >>> let hr = pipe <> pretty (replicate (26-2) '-') <> pipe
 -- >>> let go layouter x = (T.putStrLn . renderStrict . layouter (LayoutOptions (AvailablePerLine 26 1))) (vsep [hr, x, hr])
 --
--- If we render this using @'layoutPretty'@ with a page width of 26 characters
+-- If we render this using 'layoutPretty' with a page width of 26 characters
 -- per line, all the @fun@ calls fit into the first line so they will be put
 -- there,
 --
@@ -1730,22 +1730,38 @@ layoutPretty = layoutWadlerLeijen
 --           , ghijklm ])))))
 -- |------------------------|
 --
--- The key difference between @'layoutPretty'@ and @'layoutSmart'@ is that the
--- latter will check the potential document up to the end of the current
--- indentation level, instead of just having one element lookahead.
+-- The key difference between 'layoutPretty' and 'layoutSmart' is that the
+-- latter will check the potential document until it encounters a line with the
+-- same indentation or less than the start of the document. Any line encountered
+-- earlier is assumed to belong to the same syntactic structure.
+-- 'layoutPretty' checks only the first line.
+--
+-- Consider for example the question of whether the @A@s fit into the document
+-- below:
+--
+-- > 1 A
+-- > 2   A
+-- > 3  A
+-- > 4 B
+-- > 5   B
+--
+-- 'layoutPretty' will check only line 1, ignoring whether e.g. line 2 might
+-- already be too wide.
+-- By contrast, 'layoutSmart' stops only once it reaches line 4, where the @B@
+-- has the same indentation as the first @A@.
 layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
 layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
   where
-    -- Search with more lookahead: assuming that nesting roughly corresponds to
-    -- syntactic depth, @fits@ checks that not only the current line fits, but
-    -- the entire syntactic structure being formatted at this level of
-    -- indentation fits. If we were to remove the second case for @SLine@, we
-    -- would check that not only the current structure fits, but also the rest
-    -- of the document, which would be slightly more intelligent but would have
-    -- exponential runtime (and is prohibitively expensive in practice).
+    -- Why doesn't layoutSmart simply check the entire document?
+    --
+    -- 1. That would be very expensive.
+    -- 2. In that case the layout of a particular part of a document would
+    --    depend on the fit of completely unrelated parts of the same document.
+    --    See https://github.com/quchen/prettyprinter/issues/83 for a related
+    --    bug.
     fits :: PageWidth
          -> Int -- ^ Minimum nesting level to fit in
          -> Int -- ^ Width in which to fit the first line
