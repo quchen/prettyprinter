@@ -15,7 +15,65 @@
 -- For a stable API, use the non-internal modules. For the special case of
 -- writing adaptors to this library’s @'Doc'@ type, see
 -- "Data.Text.Prettyprint.Doc.Internal.Type".
-module Data.Text.Prettyprint.Doc.Internal where
+module Data.Text.Prettyprint.Doc.Internal (
+    -- * Documents
+    Doc(..),
+
+    -- * Basic functionality
+    Pretty(..),
+    viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
+    emptyDoc, nest, line, line', softline, softline', hardline, group, flatAlt,
+
+    -- * Alignment functions
+    align, hang, indent, encloseSep, list, tupled,
+
+    -- * Binary functions
+    (<+>),
+
+    -- * List functions
+    concatWith,
+
+    -- ** 'sep' family
+    hsep, vsep, fillSep, sep,
+    -- ** 'cat' family
+    hcat, vcat, fillCat, cat,
+    -- ** Others
+    punctuate,
+
+    -- * Reactive/conditional layouts
+    column, nesting, width, pageWidth,
+
+    -- * Filler functions
+    fill, fillBreak,
+
+    -- * General convenience
+    plural, enclose, surround,
+
+    -- ** Annotations
+    annotate,
+    unAnnotate,
+    reAnnotate,
+    alterAnnotations,
+    unAnnotateS,
+    reAnnotateS,
+    alterAnnotationsS,
+
+    -- * Optimization
+    fuse, FusionDepth(..),
+
+    -- * Layout
+    SimpleDocStream(..),
+    PageWidth(..), defaultPageWidth,
+    LayoutOptions(..), defaultLayoutOptions,
+    layoutPretty, layoutCompact, layoutSmart,
+    removeTrailingWhitespace,
+
+    -- * Rendering
+    renderShowS,
+
+    -- * Internal helpers
+    textSpaces
+) where
 
 
 
