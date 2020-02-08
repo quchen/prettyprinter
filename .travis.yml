@@ -11,27 +11,19 @@ addons:
             - libgmp-dev
 
 env:
-    # LTS 1 and 2 use GHC 7.8.4
     - >
-      STACK_VERSION="1.9.1"
-      STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
-
-    # LTS 3 to 6 use GHC 7.10.{2,3}
-    - >
-      STACK_RESOLVER="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
-
-    # LTS 7 to 9 use GHC 8.0.{1,2}
-    - >
-      STACK_RESOLVER="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
-
-    # LTS 10 and 11 uses GHC 8.2
-    - >
-      STACK_RESOLVER="--resolver lts-10"
-
-    # LTS 12 uses GHC 8.4
-    - >
-      STACK_RESOLVER="--resolver lts-12"
+      STACK_RESOLVER="--resolver nightly"
+      RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
+      BUILD_SOURCE_DIST=true
+      ALLOW_FAILURE=true
+      CLEAR_STACK_CACHE=true
+
+    - >
+      STACK_RESOLVER="--resolver lts"
+      RUN_TESTSUITE=true
+      RUN_RELEASE_CHECKS=true
+      BUILD_SOURCE_DIST=true
 
     # LTS 13 uses GHC 8.6
     - >
@@ -42,19 +34,27 @@ env:
       BUILD_BENCHMARKS=true
       BUILD_SOURCE_DIST=true
 
+    # LTS 12 uses GHC 8.4
     - >
-      STACK_RESOLVER="--resolver lts"
-      RUN_TESTSUITE=true
+      STACK_RESOLVER="--resolver lts-12"
       RUN_RELEASE_CHECKS=true
-      BUILD_SOURCE_DIST=true
 
+    # LTS 10 and 11 uses GHC 8.2
     - >
-      STACK_RESOLVER="--resolver nightly"
-      RUN_TESTSUITE=true
-      RUN_RELEASE_CHECKS=true
-      BUILD_SOURCE_DIST=true
-      ALLOW_FAILURE=true
-      CLEAR_STACK_CACHE=true
+      STACK_RESOLVER="--resolver lts-10"
+
+    # LTS 7 to 9 use GHC 8.0.{1,2}
+    - >
+      STACK_RESOLVER="--resolver lts-9 --stack-yaml stack-older-snapshots.yaml"
+
+    # LTS 3 to 6 use GHC 7.10.{2,3}
+    - >
+      STACK_RESOLVER="--resolver lts-6 --stack-yaml stack-older-snapshots.yaml"
+
+    # LTS 1 and 2 use GHC 7.8.4
+    - >
+      STACK_VERSION="1.9.1"
+      STACK_RESOLVER="--resolver lts-2 --stack-yaml stack-older-snapshots.yaml"
 
 matrix:
     fast_finish: true
