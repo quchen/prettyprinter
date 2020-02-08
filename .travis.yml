@@ -83,6 +83,7 @@ script:
     - _stack --travis_wait build
     - |
       if "${RUN_TESTSUITE:-false}"; then
+          # -j1 to work around https://github.com/commercialhaskell/stack/issues/5159.
           _stack --travis_wait test -j1 && _stack --travis_wait haddock --no-haddock-deps
       fi
     - |
