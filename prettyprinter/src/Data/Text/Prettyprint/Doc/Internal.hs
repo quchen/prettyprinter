@@ -28,7 +28,7 @@ module Data.Text.Prettyprint.Doc.Internal (
     align, hang, indent, encloseSep, list, tupled,
 
     -- * Binary functions
-    (<>), (<+>),
+    (<+>),
 
     -- * List functions
     concatWith,
