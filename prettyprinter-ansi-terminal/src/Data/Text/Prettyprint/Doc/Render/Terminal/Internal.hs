@@ -4,7 +4,35 @@
 #include "version-compatibility-macros.h"
 
 -- | __Warning:__ Internal module. May change arbitrarily between versions.
-module Data.Text.Prettyprint.Doc.Render.Terminal.Internal where
+module Data.Text.Prettyprint.Doc.Render.Terminal.Internal (
+    -- * Styling
+    AnsiStyle(..),
+    Color(..),
+
+    -- ** Font color
+    color, colorDull,
+
+    -- ** Background color
+    bgColor, bgColorDull,
+
+    -- ** Font style
+    bold, italicized, underlined,
+
+    -- ** Internal markers
+    Intensity(..),
+    Bold(..),
+    Underlined(..),
+    Italicized(..),
+
+    -- * Conversion to ANSI-infused 'Text'
+    renderLazy, renderStrict,
+
+    -- * Render directly to 'stdout'
+    renderIO,
+
+    -- ** Convenience functions
+    putDoc, hPutDoc,
+) where
 
 
 
