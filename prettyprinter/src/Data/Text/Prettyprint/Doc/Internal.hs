@@ -1550,14 +1550,6 @@ data WhitespaceStrippingState
   deriving Typeable
 
 
--- | Test whether a docstream starts with a linebreak, ignoring any annotations.
-startsWithLine :: SimpleDocStream ann -> Bool
-startsWithLine sds = case sds of
-    SLine{}      -> True
-    SAnnPush _ s -> startsWithLine s
-    SAnnPop s    -> startsWithLine s
-    _            -> False
-
 
 -- $
 -- >>> import qualified Data.Text.IO as T
@@ -1834,15 +1826,19 @@ layoutWadlerLeijen
           | fits pWidth minNestingLevel availableWidth x -> x
           where
             minNestingLevel =
-                -- See https://github.com/quchen/prettyprinter/issues/83.
-                if startsWithLine y
-                    -- y might be a (more compact) hanging layout. Let's check x
-                    -- thoroughly with the smaller lineIndent.
-                    then lineIndent
-                    -- y definitely isn't a hanging layout. Let's allow the first
-                    -- line of x to be checked on its own and format it consistently
-                    -- with subsequent lines with the same indentation.
-                    else currentColumn
+                -- See the Note
+                -- [Choosing the right minNestingLevel for consistent smart layouts]
+                case initialIndentation y of
+                    Just i ->
+                        -- y could be a (less wide) hanging layout. If so, let's
+                        -- check x a bit more thoroughly so we don't miss a potentially
+                        -- better fitting y.
+                        min i currentColumn
+                    Nothing ->
+                        -- y definitely isn't a hanging layout. Let's check x with the
+                        -- same minNestingLevel that any subsequent lines with the same
+                        -- indentation use.
+                        currentColumn
             availableWidth = min columnsLeftInLine columnsLeftInRibbon
               where
                 columnsLeftInLine = lineLength - currentColumn
@@ -1854,6 +1850,13 @@ layoutWadlerLeijen
           -- See the Note [Detecting failure with Unbounded page width].
           | not (failsOnFirstLine x) -> x
         _ -> y
+
+    initialIndentation :: SimpleDocStream ann -> Maybe Int
+    initialIndentation sds = case sds of
+        SLine i _    -> Just i
+        SAnnPush _ s -> initialIndentation s
+        SAnnPop s    -> initialIndentation s
+        _            -> Nothing
 
     failsOnFirstLine :: SimpleDocStream ann -> Bool
     failsOnFirstLine = go
@@ -1868,20 +1871,117 @@ layoutWadlerLeijen
             SAnnPop s    -> go s
 
 
--- Note [Detecting failure with Unbounded page width]
---
--- To understand why it is sufficient to check the first line of the
--- SimpleDocStream, trace how an SFail ends up there:
---
--- 1. We group a Doc containing a Line, producing a (Union x y) where
---    x contains Fail.
---
--- 2. In best, any Unions are handled recursively, rejecting any
---    alternatives that would result in SFail.
---
--- So once a SimpleDocStream reaches selectNicer, any SFail in it must
--- appear before the first linebreak – any other SFail would have been
--- detected and rejected in a previous iteration.
+{- Note [Choosing the right minNestingLevel for consistent smart layouts]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Consider this document:
+
+    doc =
+            "Groceries: "
+        <>  align
+                (cat
+                    [ sep ["pommes", "de", "terre"]
+                    , "apples"
+                    , "Donaudampfschifffahrtskapitänskajütenmülleimer"
+                    ]
+                )
+
+... and assume we want to fit it into 40 columns as nicely as possible:
+
+    opts = LayoutOptions (AvailablePerLine 40 1)
+
+We already have bad luck with the last item – it's longer than 40 characters
+on its own!
+
+We'd still like the first item, pommes de terre, to be laid out nicely, that is,
+on one line, since it's not too wide. This is what we'd like to see:
+
+    Groceries: pommes de terre
+               apples
+               Donaudampfschifffahrtskapitänskajütenmülleimer
+
+Before #83 was fixed, that wasn't what we got! Instead we got this:
+
+> renderIO stdout $ layoutSmart opts doc
+Groceries: pommes
+           de
+           terre
+           apples
+           Donaudampfschifffahrtskapitänskajütenmülleimer
+
+Why?
+
+minNestingLevel was effectively defined as
+
+    minNestingLevel = lineIndent
+
+The lineIndent for "pommes de terre" is 0.
+
+The FittingPredicate for layoutSmart will continue to check the rest of the
+document until it finds a line where the indentation <= minNestingLevel.
+In this case this meant that layoutSmart would traverse all the items,
+and note that the last item, Donaudampfschifffahrtskapitänskajütenmülleimer,
+doesn't fit into the available space! The "flatter" version of the document
+has failed, so "pommes de terre" gets spread over several lines!
+
+Obviously this would be an inconsistency with the layout of the other items.
+Their lineIndent is 11 each, so for them, the FittingPredicate stops already
+on the next line.
+
+The obvious solution is to change the definition of minNestingLevel:
+
+    minNestingLevel = currentColumn
+
+This however breaks the "python-ish" document from the documentation for
+layoutSmart:
+
+    expected: |------------------------|
+              fun(
+                fun(
+                  fun(
+                    fun(
+                      fun(
+                        [ abcdef
+                        , ghijklm ])))))
+              |------------------------|
+
+     but got: |------------------------|
+              fun(
+                fun(
+                  fun(
+                    fun(
+                      fun([ abcdef
+                          , ghijklm ])))))
+              |------------------------|
+
+We now accept the worse layout because the problematic last line has
+the same indentation as the current column of "[ abcdef", so we don't check it!
+
+The solution we went with in the end is a bit of a hack:
+
+We check whether the alternative, "high" layout is a (potentially less wide)
+hanging layout, and in that case pick its indentation as the minNestingLevel.
+
+This way we achieve the optimal layout in both scenarios.
+
+See https://github.com/quchen/prettyprinter/issues/83 for the bug that lead
+to the current solution.
+
+
+Note [Detecting failure with Unbounded page width]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+To understand why it is sufficient to check the first line of the
+SimpleDocStream, trace how an SFail ends up there:
+
+1. We group a Doc containing a Line, producing a (Union x y) where
+   x contains Fail.
+
+2. In best, any Unions are handled recursively, rejecting any
+   alternatives that would result in SFail.
+
+So once a SimpleDocStream reaches selectNicer, any SFail in it must
+appear before the first linebreak – any other SFail would have been
+detected and rejected in a previous iteration.
+-}
 
 
 
