@@ -16,7 +16,6 @@ import           Data.Word
 import           System.Timeout        (timeout)
 
 import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Internal
 import           Data.Text.Prettyprint.Doc.Internal.Debug
 import           Data.Text.Prettyprint.Doc.Render.Text
 import           Data.Text.Prettyprint.Doc.Render.Util.StackMachine (renderSimplyDecorated)
@@ -199,11 +198,13 @@ data Layouter ann
     = LayoutPretty LayoutOptions
     | LayoutSmart LayoutOptions
     | LayoutCompact
-    | LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
+    -- LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
     deriving Show
 
+{-
 instance Show (FittingPredicate ann) where
     show _ = "<fitting predicate>"
+-}
 
 instance Arbitrary (Layouter ann) where
     arbitrary = oneof
@@ -218,7 +219,7 @@ layout :: Layouter ann -> Doc ann -> SimpleDocStream ann
 layout (LayoutPretty opts) = layoutPretty opts
 layout (LayoutSmart opts) = layoutSmart opts
 layout LayoutCompact = layoutCompact
-layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
+-- layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
 
 instance Arbitrary LayoutOptions where
     arbitrary = LayoutOptions <$> oneof
@@ -226,8 +227,10 @@ instance Arbitrary LayoutOptions where
         , pure Unbounded
         ]
 
+{-
 instance Arbitrary (FittingPredicate ann) where
     arbitrary = FittingPredicate <$> arbitrary
+-}
 
 instance CoArbitrary (SimpleDocStream ann) where
     coarbitrary s0 = case s0 of
