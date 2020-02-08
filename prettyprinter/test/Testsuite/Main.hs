@@ -201,11 +201,6 @@ data Layouter ann
     -- LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
     deriving Show
 
-{-
-instance Show (FittingPredicate ann) where
-    show _ = "<fitting predicate>"
--}
-
 instance Arbitrary (Layouter ann) where
     arbitrary = oneof
         [ LayoutPretty <$> arbitrary
@@ -214,6 +209,14 @@ instance Arbitrary (Layouter ann) where
         -- This produces inconsistent layouts that break the fusionDoesNotChangeRendering test
         -- , LayoutWadlerLeijen <$> arbitrary <*> arbitrary
         ]
+
+{-
+instance Show (FittingPredicate ann) where
+    show _ = "<fitting predicate>"
+
+instance Arbitrary (FittingPredicate ann) where
+    arbitrary = FittingPredicate <$> arbitrary
+-}
 
 layout :: Layouter ann -> Doc ann -> SimpleDocStream ann
 layout (LayoutPretty opts) = layoutPretty opts
@@ -226,11 +229,6 @@ instance Arbitrary LayoutOptions where
         [ AvailablePerLine <$> arbitrary <*> arbitrary
         , pure Unbounded
         ]
-
-{-
-instance Arbitrary (FittingPredicate ann) where
-    arbitrary = FittingPredicate <$> arbitrary
--}
 
 instance CoArbitrary (SimpleDocStream ann) where
     coarbitrary s0 = case s0 of
