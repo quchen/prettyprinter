@@ -1873,11 +1873,18 @@ layoutWadlerLeijen
         Nesting f       -> best nl cc (Cons i (f i) ds)
         Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
+    -- Select the better fitting of two documents:
+    -- Choice A if it fits, otherwise choice B.
+    --
+    -- The fit of choice B is /not/ checked! It is ultimately the user's
+    -- responsibility to provide an alternative that can fit the page even when
+    -- choice A doesn't.
     selectNicer
         :: Int           -- ^ Current nesting level
         -> Int           -- ^ Current column
-        -> SimpleDocStream ann -- ^ Choice A. Invariant: first lines should not be longer than B's.
-        -> SimpleDocStream ann -- ^ Choice B.
+        -> SimpleDocStream ann -- ^ Choice A.
+        -> SimpleDocStream ann -- ^ Choice B. Should fit more easily
+                               --   (== be less wide) than choice A.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
     selectNicer lineIndent currentColumn x y = case pWidth of
         AvailablePerLine lineLength ribbonFraction
