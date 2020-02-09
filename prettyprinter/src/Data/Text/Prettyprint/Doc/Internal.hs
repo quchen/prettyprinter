@@ -481,7 +481,20 @@ nest
     -> Doc ann
     -> Doc ann
 nest 0 x = x -- Optimization
-nest i x = Nest i x
+nest i x = case x of
+    Fail            -> Fail
+    Empty           -> Empty
+    Char _          -> x
+    Text{}          -> x
+    Line            -> Nest i x
+    FlatAlt{}       -> Nest i x -- or recurse?!
+    Cat{}           -> Nest i x
+    Nest j y        -> Nest (i + j) y
+    Union{}         -> Nest i x
+    Column{}        -> Nest i x
+    WithPageWidth{} -> Nest i x -- recurse?!
+    Nesting{}       -> Nest i x -- do something smart?!
+    Annotated{}     -> Nest i x -- ?
 
 -- | The @'line'@ document advances to the next line and indents to the current
 -- nesting level.
