@@ -668,10 +668,14 @@ changesUponFlattening = \doc -> case doc of
 
 
 
--- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
--- @fallback@ when 'group'ed. Since the layout algorithms rely on 'group' having
+-- | By default, @('flatAlt' x y)@ renders as @x@. However when 'group'ed,
+-- @y@ will be preferred, with @x@ as the fallback.
+--
+-- Users should be careful to choose an @x@ that is less wide than @y@.
+-- Otherwise
+-- Since the layout algorithms rely on 'group' having
 -- an effect of shortening the width of the contained text, careless usage of
--- 'flatAlt' with wide fallbacks might lead to unappealingly long lines.
+-- 'flatAlt' with wide @x@s might lead to unappealingly long lines.
 --
 -- 'flatAlt' is particularly useful for defining conditional separators such as
 --
