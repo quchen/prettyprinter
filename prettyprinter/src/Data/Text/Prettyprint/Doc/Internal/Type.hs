@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK not-home #-}
+
 -- | __Internal module with stability guarantees__
 --
 -- This module exposes the internals of the @'Doc'@ type so other libraries can
