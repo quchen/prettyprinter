@@ -706,7 +706,7 @@ changesUponFlattening = \doc -> case doc of
 --    putStrLn greet
 flatAlt
     :: Doc ann -- ^ Default
-    -> Doc ann -- ^ Fallback when 'group'ed
+    -> Doc ann -- ^ Preferred when 'group'ed
     -> Doc ann
 flatAlt = FlatAlt
 
