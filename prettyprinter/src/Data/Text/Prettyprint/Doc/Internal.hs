@@ -156,9 +156,11 @@ data Doc ann =
     -- | Hard line break
     | Line
 
-    -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
-    -- the second. The flattened version should in general be higher and
-    -- narrower than the fallback.
+    -- | Lay out the first 'Doc', but when flattened (via 'group'), prefer
+    -- the second.
+    --
+    -- The layout algorithms work under the assumption that the first
+    -- alternative is less wide than the flattened second alternative.
     | FlatAlt (Doc ann) (Doc ann)
 
     -- | Concatenation of two documents
