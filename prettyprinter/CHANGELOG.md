@@ -1,5 +1,6 @@
 # 1.6.1
 
+- Slightly reduce the scope of the fitting predicates for some edge cases.
 - Use an export list in `Data.Text.Prettyprint.Doc.Internal`.
 - Improve `group` for `Union` and `FlatAlt`.
 - Speed up `removeTrailingWhitespace`.
