@@ -1,3 +1,13 @@
+# 1.6.1
+
+- Use an export list in `Data.Text.Prettyprint.Doc.Internal`.
+- Improve `group` for `Union` and `FlatAlt`.
+- Speed up `removeTrailingWhitespace`.
+- Improve generating spaces for indentation and `spaces`.
+- Simplify some `Doc` constants by defining them as `Doc` literals.
+- Enable `-O2`.
+- Various documentation fixes and improvements.
+
 # 1.6.0
 
 ## Breaking changes

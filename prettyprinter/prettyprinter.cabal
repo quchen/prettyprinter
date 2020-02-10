@@ -1,5 +1,5 @@
 name:                prettyprinter
-version:             1.6.0
+version:             1.6.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            A modern, easy to use, well-documented, extensible pretty-printer.
