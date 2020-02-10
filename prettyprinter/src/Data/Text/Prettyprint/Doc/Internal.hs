@@ -671,18 +671,29 @@ changesUponFlattening = \doc -> case doc of
 
 
 -- | By default, @('flatAlt' x y)@ renders as @x@. However when 'group'ed,
--- @y@ will be preferred, with @x@ as the fallback for the case where @y@
+-- @y@ will be preferred, with @x@ as the fallback for the case when @y@
 -- doesn't fit.
 --
--- Users should be careful to choose @x@ to be less wide than @y@.
--- Otherwise the layout may contain unappealingly long lines.
+-- >>> let doc = flatAlt "a" "b"
+-- >>> putDoc doc
+-- a
+-- >>> putDoc (group doc)
+-- b
+-- >>> putDocW 0 (group doc)
+-- a
 --
 -- 'flatAlt' is particularly useful for defining conditional separators such as
 --
 -- @
--- softHyphen = 'flatAlt' 'mempty' "-"
--- softline   = 'flatAlt' 'space' 'line'
+-- softline = 'group' ('flatAlt' 'hardline' " ")
 -- @
+--
+-- >>> let hello = "Hello" <> softline <> "world!"
+-- >>> putDocW 12 hello
+-- Hello world!
+-- >>> putDocW 11 hello
+-- Hello
+-- world!
 --
 -- We can use this to render Haskell's do-notation nicely:
 --
@@ -704,6 +715,27 @@ changesUponFlattening = \doc -> case doc of
 -- do name:_ <- getArgs
 --    let greet = "Hello, " <> name
 --    putStrLn greet
+--
+-- __Notes:__
+--
+-- Users should be careful to choose @x@ to be less wide than @y@.
+-- Otherwise, if @y@ turns out not to fit the page, we fall back on an even
+-- wider layout:
+--
+-- >>> let ugly = group (flatAlt "even wider" "too wide")
+-- >>> putDocW 7 ugly
+-- even wider
+--
+-- Also note that 'group' will flatten @y@:
+--
+-- >>> putDoc (group (flatAlt "x" ("y" <> line <> "y")))
+-- y y
+--
+-- This also means that an "unflattenable" @y@ which contains a hard linebreak
+-- will /never/ be rendered:
+--
+-- >>> putDoc (group (flatAlt "x" ("y" <> hardline <> "y")))
+-- x
 flatAlt
     :: Doc ann -- ^ Default
     -> Doc ann -- ^ Preferred when 'group'ed
