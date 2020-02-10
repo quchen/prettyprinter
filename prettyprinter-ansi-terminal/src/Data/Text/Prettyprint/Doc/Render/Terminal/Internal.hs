@@ -1,6 +1,8 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# OPTIONS_HADDOCK not-home #-}
+
 #include "version-compatibility-macros.h"
 
 -- | __Warning:__ Internal module. May change arbitrarily between versions.

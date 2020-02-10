@@ -6,6 +6,8 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
+{-# OPTIONS_HADDOCK not-home #-}
+
 #include "version-compatibility-macros.h"
 
 -- | __Warning: internal module!__ This means that the API may change
