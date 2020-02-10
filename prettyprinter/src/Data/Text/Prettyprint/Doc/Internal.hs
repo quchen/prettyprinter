@@ -22,7 +22,10 @@ module Data.Text.Prettyprint.Doc.Internal (
     -- * Basic functionality
     Pretty(..),
     viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
-    emptyDoc, nest, line, line', softline, softline', hardline, group, flatAlt,
+    emptyDoc, nest, line, line', softline, softline', hardline,
+
+    -- ** Primitives for alternative layouts
+    group, flatAlt,
 
     -- * Alignment functions
     align, hang, indent, encloseSep, list, tupled,
