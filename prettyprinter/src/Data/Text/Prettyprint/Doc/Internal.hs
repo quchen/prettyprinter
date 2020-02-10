@@ -698,6 +698,8 @@ changesUponFlattening = \doc -> case doc of
 -- Hello
 -- world!
 --
+-- === __Example: Haskell's do-notation__
+--
 -- We can use this to render Haskell's do-notation nicely:
 --
 -- >>> let open        = flatAlt "" "{ "
@@ -719,7 +721,7 @@ changesUponFlattening = \doc -> case doc of
 --    let greet = "Hello, " <> name
 --    putStrLn greet
 --
--- __Notes:__
+-- === Notes
 --
 -- Users should be careful to choose @x@ to be less wide than @y@.
 -- Otherwise, if @y@ turns out not to fit the page, we fall back on an even
