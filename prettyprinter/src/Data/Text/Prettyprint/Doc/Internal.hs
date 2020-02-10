@@ -670,7 +670,7 @@ changesUponFlattening = \doc -> case doc of
 
 -- | By default, @('flatAlt' x y)@ renders as @x@. However when 'group'ed,
 -- @y@ will be preferred, with @x@ as the fallback for the case where @y@
--- fit.
+-- doesn't fit.
 --
 -- Users should be careful to choose @x@ to be less wide than @y@.
 -- Otherwise the layout may contain unappealingly long lines.
