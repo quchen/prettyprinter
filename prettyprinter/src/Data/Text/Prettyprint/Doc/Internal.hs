@@ -1661,10 +1661,12 @@ instance Traversable SimpleDocStream where
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
 --   - page width
+--   - ribbon fraction
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line
 newtype FittingPredicate ann
-  = FittingPredicate (PageWidth
+  = FittingPredicate (Int
+                   -> Double
                    -> Int
                    -> Int
                    -> SimpleDocStream ann
@@ -1732,7 +1734,7 @@ layoutPretty
     -> Doc ann
     -> SimpleDocStream ann
 layoutPretty = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
+    (FittingPredicate (\_pWidth _ribbonFraction _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1820,21 +1822,22 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
-    fits :: PageWidth
-         -> Int -- ^ Minimum nesting level to fit in
-         -> Int -- ^ Width in which to fit the first line
+    fits :: Int     -- ^ Page width
+         -> Double  -- ^ Ribbon fraction
+         -> Int     -- ^ Minimum nesting level to fit in
+         -> Int     -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ w _ | w < 0                     = False
-    fits _ _ _ SFail                         = False
-    fits _ _ _ SEmpty                        = True
-    fits pw m w (SChar _ x)                  = fits pw m (w - 1) x
-    fits pw m w (SText l _t x)               = fits pw m (w - l) x
-    fits pw m _ (SLine i x)
-      | m < i, AvailablePerLine cpl rf <- pw = fits pw m (min (cpl - i) (max 0 (round (fromIntegral cpl * rf)))) x
+    fits _ _ _ w _ | w < 0                     = False
+    fits _ _ _ _ SFail                         = False
+    fits _ _ _ _ SEmpty                        = True
+    fits pw rf m w (SChar _ x)                  = fits pw rf m (w - 1) x
+    fits pw rf m w (SText l _t x)               = fits pw rf m (w - l) x
+    fits pw rf m _ (SLine i x)
+      | m < i                                = fits pw rf m (min (pw - i) (max 0 (round (fromIntegral pw * rf)))) x
       | otherwise                            = True
-    fits pw m w (SAnnPush _ x)               = fits pw m w x
-    fits pw m w (SAnnPop x)                  = fits pw m w x
+    fits pw rf m w (SAnnPush _ x)               = fits pw rf m w x
+    fits pw rf m w (SAnnPop x)                  = fits pw rf m w x
 
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
@@ -1890,7 +1893,7 @@ layoutWadlerLeijen
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
     selectNicer lineIndent currentColumn x y = case pWidth of
         AvailablePerLine lineLength ribbonFraction
-          | fits pWidth minNestingLevel availableWidth x -> x
+          | fits lineLength ribbonFraction minNestingLevel availableWidth x -> x
           where
             minNestingLevel =
                 -- See the Note
