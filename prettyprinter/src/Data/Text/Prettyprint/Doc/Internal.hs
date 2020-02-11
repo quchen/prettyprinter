@@ -1828,16 +1828,18 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
          -> Int     -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ _ w _ | w < 0                     = False
-    fits _ _ _ _ SFail                         = False
-    fits _ _ _ _ SEmpty                        = True
-    fits pw rf m w (SChar _ x)                  = fits pw rf m (w - 1) x
-    fits pw rf m w (SText l _t x)               = fits pw rf m (w - l) x
-    fits pw rf m _ (SLine i x)
-      | m < i                                = fits pw rf m (min (pw - i) (max 0 (round (fromIntegral pw * rf)))) x
-      | otherwise                            = True
-    fits pw rf m w (SAnnPush _ x)               = fits pw rf m w x
-    fits pw rf m w (SAnnPop x)                  = fits pw rf m w x
+    fits !pageWidth_ !ribbonFraction !minNestingLevel = go
+      where
+        go w _ | w < 0          = False
+        go _ SFail              = False
+        go _ SEmpty             = True
+        go w (SChar _ x)        = go (w - 1) x
+        go w (SText l _t x)     = go (w - l) x
+        go _ (SLine i x)
+          | minNestingLevel < i = go (min (pageWidth_ - i) (max 0 (round (fromIntegral pageWidth_ * ribbonFraction)))) x
+          | otherwise           = True
+        go w (SAnnPush _ x)     = go w x
+        go w (SAnnPop x)        = go w x
 
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
