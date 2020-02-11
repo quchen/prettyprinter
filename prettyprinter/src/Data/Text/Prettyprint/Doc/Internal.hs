@@ -1813,7 +1813,7 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
+layoutSmart opts doc = layoutWadlerLeijen (FittingPredicate fits) opts doc
   where
     -- Why doesn't layoutSmart simply check the entire document?
     --
@@ -1941,6 +1941,7 @@ layoutWadlerLeijen
             SLine _ _    -> False
             SAnnPush _ s -> go s
             SAnnPop s    -> go s
+{-# inline layoutWadlerLeijen #-}
 
 
 {- Note [Choosing the right minNestingLevel for consistent smart layouts]
