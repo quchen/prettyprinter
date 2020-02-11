@@ -1836,6 +1836,24 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
     fits pw m w (SAnnPush _ x)              = fits pw m w x
     fits pw m w (SAnnPop x)                 = fits pw m w x
 
+layoutUnbounded :: Doc ann -> SimpleDocStream ann
+layoutUnbounded = layoutWadlerLeijen
+    (FittingPredicate (\_pWidth _minNestingLevel _maxWidth sdoc -> not (failsOnFirstLine sdoc)))
+    (error "layoutUnbounded")
+  where
+    -- See the Note [Detecting failure with Unbounded page width].
+    failsOnFirstLine :: SimpleDocStream ann -> Bool
+    failsOnFirstLine = go
+      where
+        go sds = case sds of
+            SFail        -> True
+            SEmpty       -> False
+            SChar _ s    -> go s
+            SText _ _ s  -> go s
+            SLine _ _    -> False
+            SAnnPush _ s -> go s
+            SAnnPop s    -> go s
+
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
     :: forall ann. FittingPredicate ann
