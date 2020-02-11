@@ -1731,8 +1731,9 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutPretty = layoutWadlerLeijen
+layoutPretty opts@(LayoutOptions AvailablePerLine{}) = layoutWadlerLeijen
     (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
+    opts
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1745,6 +1746,7 @@ layoutPretty = layoutWadlerLeijen
     fits _ SLine{}        = True
     fits w (SAnnPush _ x) = fits w x
     fits w (SAnnPop x)    = fits w x
+layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
 -- line breaks earlier if the content does not (or will not, rather) fit into
@@ -1811,7 +1813,9 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
+layoutSmart opts@(LayoutOptions (AvailablePerLine cpl _rf)) = layoutWadlerLeijen
+    (FittingPredicate fits)
+    opts
   where
     -- Why doesn't layoutSmart simply check the entire document?
     --
@@ -1825,21 +1829,22 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
          -> Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ w _ | w < 0                    = False
-    fits _ _ _ SFail                        = False
-    fits _ _ _ SEmpty                       = True
-    fits pw m w (SChar _ x)                 = fits pw m (w - 1) x
-    fits pw m w (SText l _t x)              = fits pw m (w - l) x
+    fits _ _ w _ | w < 0       = False
+    fits _ _ _ SFail           = False
+    fits _ _ _ SEmpty          = True
+    fits pw m w (SChar _ x)    = fits pw m (w - 1) x
+    fits pw m w (SText l _t x) = fits pw m (w - l) x
     fits pw m _ (SLine i x)
-      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (cpl - i) x
-      | otherwise                           = True
-    fits pw m w (SAnnPush _ x)              = fits pw m w x
-    fits pw m w (SAnnPop x)                 = fits pw m w x
+      | m < i                  = fits pw m (cpl - i) x
+      | otherwise              = True
+    fits pw m w (SAnnPush _ x) = fits pw m w x
+    fits pw m w (SAnnPop x)    = fits pw m w x
+layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
 layoutUnbounded = layoutWadlerLeijen
     (FittingPredicate (\_pWidth _minNestingLevel _maxWidth sdoc -> not (failsOnFirstLine sdoc)))
-    (error "layoutUnbounded")
+    (LayoutOptions Unbounded)
   where
     -- See the Note [Detecting failure with Unbounded page width].
     failsOnFirstLine :: SimpleDocStream ann -> Bool
