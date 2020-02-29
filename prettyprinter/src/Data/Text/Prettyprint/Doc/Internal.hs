@@ -1665,6 +1665,7 @@ instance Traversable SimpleDocStream where
 newtype FittingPredicate ann
   = FittingPredicate (Int
                    -> Int
+                   -> Maybe Int
                    -> SimpleDocStream ann
                    -> Bool)
   deriving Typeable
@@ -1813,7 +1814,7 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart opts@(LayoutOptions (AvailablePerLine cpl _rf)) = layoutWadlerLeijen
+layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) = layoutWadlerLeijen
     (FittingPredicate fits)
     opts
   where
@@ -1824,25 +1825,51 @@ layoutSmart opts@(LayoutOptions (AvailablePerLine cpl _rf)) = layoutWadlerLeijen
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
-    fits :: Int -- ^ Minimum nesting level to fit in
-         -> Int -- ^ Width in which to fit the first line
+    fits :: Int -- ^ lineIndent
+         -> Int -- ^ currentColumn
+         -> Maybe Int -- ^ The alternative's initial indentation
          -> SimpleDocStream ann
          -> Bool
-    fits _ w _ | w < 0      = False
-    fits _ _ SFail          = False
-    fits _ _ SEmpty         = True
-    fits m w (SChar _ x)    = fits m (w - 1) x
-    fits m w (SText l _t x) = fits m (w - l) x
-    fits m _ (SLine i x)
-      | m < i               = fits m (cpl - i) x
-      | otherwise           = True
-    fits m w (SAnnPush _ x) = fits m w x
-    fits m w (SAnnPop x)    = fits m w x
+    fits lineIndent currentColumn initialIndentY = go availableWidth
+      where
+        go w _ | w < 0          = False
+        go _ SFail              = False
+        go _ SEmpty             = True
+        go w (SChar _ x)        = go (w - 1) x
+        go w (SText l _t x)     = go (w - l) x
+        go _ (SLine i x)
+          | minNestingLevel < i = go (lineLength - i) x -- TODO: Take ribbonFraction into account?!
+          | otherwise           = True
+        go w (SAnnPush _ x)     = go w x
+        go w (SAnnPop x)        = go w x
+
+        minNestingLevel =
+                -- See the Note
+                -- [Choosing the right minNestingLevel for consistent smart layouts]
+                case initialIndentY of
+                    Just i ->
+                        -- y could be a (less wide) hanging layout. If so, let's
+                        -- check x a bit more thoroughly so we don't miss a potentially
+                        -- better fitting y.
+                        min i currentColumn
+                    Nothing ->
+                        -- y definitely isn't a hanging layout. Let's check x with the
+                        -- same minNestingLevel that any subsequent lines with the same
+                        -- indentation use.
+                        currentColumn
+
+        availableWidth = min columnsLeftInLine columnsLeftInRibbon
+              where
+                columnsLeftInLine = lineLength - currentColumn
+                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+                ribbonWidth =
+                    (max 0 . min lineLength . round)
+                        (fromIntegral lineLength * ribbonFraction)
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
 layoutUnbounded = layoutWadlerLeijen
-    (FittingPredicate (\_minNestingLevel _maxWidth sdoc -> not (failsOnFirstLine sdoc)))
+    (FittingPredicate (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
     (LayoutOptions Unbounded)
   where
     -- See the Note [Detecting failure with Unbounded page width].
@@ -1910,35 +1937,9 @@ layoutWadlerLeijen
         -> SimpleDocStream ann -- ^ Choice B. Should fit more easily
                                --   (== be less wide) than choice A.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
-    selectNicer lineIndent currentColumn x y = case pWidth of
-        AvailablePerLine lineLength ribbonFraction
-          | fits minNestingLevel availableWidth x -> x
-          where
-            minNestingLevel =
-                -- See the Note
-                -- [Choosing the right minNestingLevel for consistent smart layouts]
-                case initialIndentation y of
-                    Just i ->
-                        -- y could be a (less wide) hanging layout. If so, let's
-                        -- check x a bit more thoroughly so we don't miss a potentially
-                        -- better fitting y.
-                        min i currentColumn
-                    Nothing ->
-                        -- y definitely isn't a hanging layout. Let's check x with the
-                        -- same minNestingLevel that any subsequent lines with the same
-                        -- indentation use.
-                        currentColumn
-            availableWidth = min columnsLeftInLine columnsLeftInRibbon
-              where
-                columnsLeftInLine = lineLength - currentColumn
-                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
-                ribbonWidth =
-                    (max 0 . min lineLength . round)
-                        (fromIntegral lineLength * ribbonFraction)
-        Unbounded
-          -- See the Note [Detecting failure with Unbounded page width].
-          | not (failsOnFirstLine x) -> x
-        _ -> y
+    selectNicer lineIndent currentColumn x y
+        | fits lineIndent currentColumn (initialIndentation y) x = x
+        | otherwise = y
 
     initialIndentation :: SimpleDocStream ann -> Maybe Int
     initialIndentation sds = case sds of
@@ -1946,18 +1947,6 @@ layoutWadlerLeijen
         SAnnPush _ s -> initialIndentation s
         SAnnPop s    -> initialIndentation s
         _            -> Nothing
-
-    failsOnFirstLine :: SimpleDocStream ann -> Bool
-    failsOnFirstLine = go
-      where
-        go sds = case sds of
-            SFail        -> True
-            SEmpty       -> False
-            SChar _ s    -> go s
-            SText _ _ s  -> go s
-            SLine _ _    -> False
-            SAnnPush _ s -> go s
-            SAnnPop s    -> go s
 
 
 {- Note [Choosing the right minNestingLevel for consistent smart layouts]
