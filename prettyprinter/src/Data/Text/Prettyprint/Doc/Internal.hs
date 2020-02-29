@@ -1660,7 +1660,10 @@ instance Traversable SimpleDocStream where
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
---   - minimum nesting level to fit in
+--   - original indentation of the current line
+--   - current column
+--   - initial indentation of the alternative 'SimpleDocStream' (used by
+--     'layoutSmart')
 --   - width in which to fit the first line
 newtype FittingPredicate ann
   = FittingPredicate (Int
