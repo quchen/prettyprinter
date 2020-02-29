@@ -67,7 +67,7 @@ module Data.Text.Prettyprint.Doc.Internal (
     SimpleDocStream(..),
     PageWidth(..), defaultPageWidth,
     LayoutOptions(..), defaultLayoutOptions,
-    layoutPretty, layoutCompact, layoutSmart,
+    {- layoutPretty, -} layoutCompact, layoutSmart,
     removeTrailingWhitespace,
 
     -- * Rendering
@@ -1717,6 +1717,7 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 
+{-
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
 --
@@ -1745,6 +1746,7 @@ layoutPretty opts@(LayoutOptions AvailablePerLine{}) = layoutWadlerLeijen
     fits w (SAnnPush _ x) = fits w x
     fits w (SAnnPop x)    = fits w x
 layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
+-}
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
 -- line breaks earlier if the content does not (or will not, rather) fit into
@@ -2109,10 +2111,12 @@ layoutCompact doc = scan 0 [doc]
         Nesting f       -> scan col (f 0 : ds)
         Annotated _ x   -> scan col (x:ds)
 
+{-
 -- | @('show' doc)@ prettyprints document @doc@ with 'defaultLayoutOptions',
 -- ignoring all annotations.
 instance Show (Doc ann) where
     showsPrec _ doc = renderShowS (layoutPretty defaultLayoutOptions doc)
+-}
 
 -- | Render a 'SimpleDocStream' to a 'ShowS', useful to write 'Show' instances
 -- based on the prettyprinter.
