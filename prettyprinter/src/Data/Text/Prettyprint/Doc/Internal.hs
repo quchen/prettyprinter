@@ -1660,12 +1660,10 @@ instance Traversable SimpleDocStream where
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
---   - page width
 --   - minimum nesting level to fit in
 --   - width in which to fit the first line
 newtype FittingPredicate ann
-  = FittingPredicate (PageWidth
-                   -> Int
+  = FittingPredicate (Int
                    -> Int
                    -> SimpleDocStream ann
                    -> Bool)
@@ -1732,7 +1730,7 @@ layoutPretty
     -> Doc ann
     -> SimpleDocStream ann
 layoutPretty opts@(LayoutOptions AvailablePerLine{}) = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
+    (FittingPredicate (\_minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
     opts
   where
     fits :: Int -- ^ Width in which to fit the first line
@@ -1824,26 +1822,25 @@ layoutSmart opts@(LayoutOptions (AvailablePerLine cpl _rf)) = layoutWadlerLeijen
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
-    fits :: PageWidth
-         -> Int -- ^ Minimum nesting level to fit in
+    fits :: Int -- ^ Minimum nesting level to fit in
          -> Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
          -> Bool
-    fits _ _ w _ | w < 0       = False
-    fits _ _ _ SFail           = False
-    fits _ _ _ SEmpty          = True
-    fits pw m w (SChar _ x)    = fits pw m (w - 1) x
-    fits pw m w (SText l _t x) = fits pw m (w - l) x
-    fits pw m _ (SLine i x)
-      | m < i                  = fits pw m (cpl - i) x
-      | otherwise              = True
-    fits pw m w (SAnnPush _ x) = fits pw m w x
-    fits pw m w (SAnnPop x)    = fits pw m w x
+    fits _ w _ | w < 0      = False
+    fits _ _ SFail          = False
+    fits _ _ SEmpty         = True
+    fits m w (SChar _ x)    = fits m (w - 1) x
+    fits m w (SText l _t x) = fits m (w - l) x
+    fits m _ (SLine i x)
+      | m < i               = fits m (cpl - i) x
+      | otherwise           = True
+    fits m w (SAnnPush _ x) = fits m w x
+    fits m w (SAnnPop x)    = fits m w x
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
 layoutUnbounded = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel _maxWidth sdoc -> not (failsOnFirstLine sdoc)))
+    (FittingPredicate (\_minNestingLevel _maxWidth sdoc -> not (failsOnFirstLine sdoc)))
     (LayoutOptions Unbounded)
   where
     -- See the Note [Detecting failure with Unbounded page width].
@@ -1913,7 +1910,7 @@ layoutWadlerLeijen
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
     selectNicer lineIndent currentColumn x y = case pWidth of
         AvailablePerLine lineLength ribbonFraction
-          | fits pWidth minNestingLevel availableWidth x -> x
+          | fits minNestingLevel availableWidth x -> x
           where
             minNestingLevel =
                 -- See the Note
