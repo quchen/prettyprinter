@@ -1858,19 +1858,19 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
         availableWidth = remainingWidth lineLength ribbonFraction lineIndent currentColumn
 
         minNestingLevel =
-                -- See the Note
-                -- [Choosing the right minNestingLevel for consistent smart layouts]
-                case initialIndentY of
-                    Just i ->
-                        -- y could be a (less wide) hanging layout. If so, let's
-                        -- check x a bit more thoroughly so we don't miss a potentially
-                        -- better fitting y.
-                        min i currentColumn
-                    Nothing ->
-                        -- y definitely isn't a hanging layout. Let's check x with the
-                        -- same minNestingLevel that any subsequent lines with the same
-                        -- indentation use.
-                        currentColumn
+            -- See the Note
+            -- [Choosing the right minNestingLevel for consistent smart layouts]
+            case initialIndentY of
+                Just i ->
+                    -- y could be a (less wide) hanging layout. If so, let's
+                    -- check x a bit more thoroughly so we don't miss a potentially
+                    -- better fitting y.
+                    min i currentColumn
+                Nothing ->
+                    -- y definitely isn't a hanging layout. Let's check x with the
+                    -- same minNestingLevel that any subsequent lines with the same
+                    -- indentation use.
+                    currentColumn
 
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
