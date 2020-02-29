@@ -1662,8 +1662,8 @@ instance Traversable SimpleDocStream where
 --
 --   - original indentation of the current line
 --   - current column
---   - initial indentation of the alternative 'SimpleDocStream' (used by
---     'layoutSmart')
+--   - initial indentation of the alternative 'SimpleDocStream' if it
+--     starts with a line break (used by 'layoutSmart')
 --   - width in which to fit the first line
 newtype FittingPredicate ann
   = FittingPredicate (Int
