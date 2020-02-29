@@ -1841,11 +1841,7 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
-    fits :: Int -- ^ lineIndent
-         -> Int -- ^ currentColumn
-         -> Maybe Int -- ^ The alternative's initial indentation
-         -> SimpleDocStream ann
-         -> Bool
+    fits :: Int -> Int -> Maybe Int -> SimpleDocStream ann -> Bool
     fits lineIndent currentColumn initialIndentY = go availableWidth
       where
         go w _ | w < 0          = False
@@ -1858,6 +1854,8 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
           | otherwise           = True
         go w (SAnnPush _ x)     = go w x
         go w (SAnnPop x)        = go w x
+
+        availableWidth = remainingWidth lineLength ribbonFraction lineIndent currentColumn
 
         minNestingLevel =
                 -- See the Note
@@ -1873,8 +1871,6 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
                         -- same minNestingLevel that any subsequent lines with the same
                         -- indentation use.
                         currentColumn
-
-        availableWidth = remainingWidth lineLength ribbonFraction lineIndent currentColumn
 
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
