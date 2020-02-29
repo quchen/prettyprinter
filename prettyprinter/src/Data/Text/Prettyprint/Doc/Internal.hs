@@ -1721,6 +1721,7 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 
+-- | The remaining width on the current line.
 remainingWidth :: Int -> Double -> Int -> Int -> Int
 remainingWidth lineLength ribbonFraction lineIndent currentColumn =
     min columnsLeftInLine columnsLeftInRibbon
