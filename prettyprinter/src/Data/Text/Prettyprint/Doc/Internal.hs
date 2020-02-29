@@ -1850,7 +1850,7 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
         go w (SChar _ x)        = go (w - 1) x
         go w (SText l _t x)     = go (w - l) x
         go _ (SLine i x)
-          | minNestingLevel < i = go (lineLength - i) x -- TODO: Take ribbonFraction into account?!
+          | minNestingLevel < i = go (lineLength - i) x -- TODO: Take ribbon width into account?! (#142)
           | otherwise           = True
         go w (SAnnPush _ x)     = go w x
         go w (SAnnPop x)        = go w x
