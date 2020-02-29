@@ -1764,6 +1764,7 @@ layoutPretty (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFracti
     fits _ SLine{}        = True
     fits w (SAnnPush _ x) = fits w x
     fits w (SAnnPop x)    = fits w x
+
 layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
