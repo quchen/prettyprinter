@@ -1740,14 +1740,14 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutPretty opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) =
+layoutPretty (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFraction)) =
     layoutWadlerLeijen
         (FittingPredicate
              (\lineIndent currentColumn _initialIndentY sdoc ->
                  fits
                      (remainingWidth lineLength ribbonFraction lineIndent currentColumn)
                      sdoc))
-        opts
+        pageWidth_
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1827,8 +1827,8 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) =
-    layoutWadlerLeijen (FittingPredicate fits) opts
+layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFraction)) =
+    layoutWadlerLeijen (FittingPredicate fits) pageWidth_
   where
     -- Why doesn't layoutSmart simply check the entire document?
     --
@@ -1875,10 +1875,11 @@ layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) =
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
-layoutUnbounded = layoutWadlerLeijen
-    (FittingPredicate
-        (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
-    (LayoutOptions Unbounded)
+layoutUnbounded =
+    layoutWadlerLeijen
+        (FittingPredicate
+            (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
+        Unbounded
   where
     -- See the Note [Detecting failure with Unbounded page width].
     failsOnFirstLine :: SimpleDocStream ann -> Bool
@@ -1896,12 +1897,12 @@ layoutUnbounded = layoutWadlerLeijen
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
     :: forall ann. FittingPredicate ann
-    -> LayoutOptions
+    -> PageWidth
     -> Doc ann
     -> SimpleDocStream ann
 layoutWadlerLeijen
     (FittingPredicate fits)
-    LayoutOptions { layoutPageWidth = pWidth }
+    pageWidth_
     doc
   = best 0 0 (Cons 0 doc Nil)
   where
@@ -1928,7 +1929,7 @@ layoutWadlerLeijen
                                y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
+        WithPageWidth f -> best nl cc (Cons i (f pageWidth_) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
