@@ -1718,6 +1718,16 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 
+remainingWidth :: Int -> Double -> Int -> Int -> Int
+remainingWidth lineLength ribbonFraction lineIndent currentColumn =
+    min columnsLeftInLine columnsLeftInRibbon
+  where
+    columnsLeftInLine = lineLength - currentColumn
+    columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+    ribbonWidth =
+        (max 0 . min lineLength . round)
+            (fromIntegral lineLength * ribbonFraction)
+
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
 --
@@ -1730,9 +1740,14 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutPretty opts@(LayoutOptions AvailablePerLine{}) = layoutWadlerLeijen
-    (FittingPredicate (\_minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
-    opts
+layoutPretty opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) =
+    layoutWadlerLeijen
+        (FittingPredicate
+             (\lineIndent currentColumn _initialIndentY sdoc ->
+                 fits
+                     (remainingWidth lineLength ribbonFraction lineIndent currentColumn)
+                     sdoc))
+        opts
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1812,9 +1827,8 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) = layoutWadlerLeijen
-    (FittingPredicate fits)
-    opts
+layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) =
+    layoutWadlerLeijen (FittingPredicate fits) opts
   where
     -- Why doesn't layoutSmart simply check the entire document?
     --
@@ -1856,18 +1870,14 @@ layoutSmart opts@(LayoutOptions (AvailablePerLine lineLength ribbonFraction)) = 
                         -- indentation use.
                         currentColumn
 
-        availableWidth = min columnsLeftInLine columnsLeftInRibbon
-              where
-                columnsLeftInLine = lineLength - currentColumn
-                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
-                ribbonWidth =
-                    (max 0 . min lineLength . round)
-                        (fromIntegral lineLength * ribbonFraction)
+        availableWidth = remainingWidth lineLength ribbonFraction lineIndent currentColumn
+
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
 layoutUnbounded = layoutWadlerLeijen
-    (FittingPredicate (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
+    (FittingPredicate
+        (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
     (LayoutOptions Unbounded)
   where
     -- See the Note [Detecting failure with Unbounded page width].
