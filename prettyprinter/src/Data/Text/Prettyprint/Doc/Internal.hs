@@ -1841,6 +1841,7 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
+
     fits :: Int -> Int -> Maybe Int -> SimpleDocStream ann -> Bool
     fits lineIndent currentColumn initialIndentY = go availableWidth
       where
