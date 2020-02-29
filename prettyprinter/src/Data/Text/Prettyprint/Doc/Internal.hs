@@ -1704,6 +1704,17 @@ data PageWidth
 defaultPageWidth :: PageWidth
 defaultPageWidth = AvailablePerLine 80 1
 
+-- | The remaining width on the current line.
+remainingWidth :: Int -> Double -> Int -> Int -> Int
+remainingWidth lineLength ribbonFraction lineIndent currentColumn =
+    min columnsLeftInLine columnsLeftInRibbon
+  where
+    columnsLeftInLine = lineLength - currentColumn
+    columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+    ribbonWidth =
+        (max 0 . min lineLength . round)
+            (fromIntegral lineLength * ribbonFraction)
+
 -- $ Test to avoid surprising behaviour
 -- >>> Unbounded > AvailablePerLine maxBound 1
 -- True
@@ -1720,17 +1731,6 @@ newtype LayoutOptions = LayoutOptions { layoutPageWidth :: PageWidth }
 -- LayoutOptions {layoutPageWidth = AvailablePerLine 80 1.0}
 defaultLayoutOptions :: LayoutOptions
 defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
-
--- | The remaining width on the current line.
-remainingWidth :: Int -> Double -> Int -> Int -> Int
-remainingWidth lineLength ribbonFraction lineIndent currentColumn =
-    min columnsLeftInLine columnsLeftInRibbon
-  where
-    columnsLeftInLine = lineLength - currentColumn
-    columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
-    ribbonWidth =
-        (max 0 . min lineLength . round)
-            (fromIntegral lineLength * ribbonFraction)
 
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
