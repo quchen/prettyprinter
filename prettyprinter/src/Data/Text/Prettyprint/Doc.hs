@@ -197,7 +197,10 @@ module Data.Text.Prettyprint.Doc (
     -- * Basic functionality
     Pretty(..),
     viaShow, unsafeViaShow,
-    emptyDoc, nest, line, line', softline, softline', hardline, group, flatAlt,
+    emptyDoc, nest, line, line', softline, softline', hardline,
+
+    -- ** Primitives for alternative layouts
+    group, flatAlt,
 
     -- * Alignment functions
     --

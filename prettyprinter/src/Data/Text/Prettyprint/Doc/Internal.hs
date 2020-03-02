@@ -24,7 +24,10 @@ module Data.Text.Prettyprint.Doc.Internal (
     -- * Basic functionality
     Pretty(..),
     viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
-    emptyDoc, nest, line, line', softline, softline', hardline, group, flatAlt,
+    emptyDoc, nest, line, line', softline, softline', hardline,
+
+    -- ** Primitives for alternative layouts
+    group, flatAlt,
 
     -- * Alignment functions
     align, hang, indent, encloseSep, list, tupled,
@@ -158,9 +161,11 @@ data Doc ann =
     -- | Hard line break
     | Line
 
-    -- | Lay out the first 'Doc', but when flattened (via 'group'), fall back to
-    -- the second. The flattened version should in general be higher and
-    -- narrower than the fallback.
+    -- | Lay out the first 'Doc', but when flattened (via 'group'), prefer
+    -- the second.
+    --
+    -- The layout algorithms work under the assumption that the first
+    -- alternative is less wide than the flattened second alternative.
     | FlatAlt (Doc ann) (Doc ann)
 
     -- | Concatenation of two documents
@@ -670,17 +675,32 @@ changesUponFlattening = \doc -> case doc of
 
 
 
--- | @('flatAlt' x fallback)@ renders as @x@ by default, but falls back to
--- @fallback@ when 'group'ed. Since the layout algorithms rely on 'group' having
--- an effect of shortening the width of the contained text, careless usage of
--- 'flatAlt' with wide fallbacks might lead to unappealingly long lines.
+-- | By default, @('flatAlt' x y)@ renders as @x@. However when 'group'ed,
+-- @y@ will be preferred, with @x@ as the fallback for the case when @y@
+-- doesn't fit.
+--
+-- >>> let doc = flatAlt "a" "b"
+-- >>> putDoc doc
+-- a
+-- >>> putDoc (group doc)
+-- b
+-- >>> putDocW 0 (group doc)
+-- a
 --
 -- 'flatAlt' is particularly useful for defining conditional separators such as
 --
 -- @
--- softHyphen = 'flatAlt' 'mempty' "-"
--- softline   = 'flatAlt' 'space' 'line'
+-- softline = 'group' ('flatAlt' 'hardline' " ")
 -- @
+--
+-- >>> let hello = "Hello" <> softline <> "world!"
+-- >>> putDocW 12 hello
+-- Hello world!
+-- >>> putDocW 11 hello
+-- Hello
+-- world!
+--
+-- === __Example: Haskell's do-notation__
 --
 -- We can use this to render Haskell's do-notation nicely:
 --
@@ -702,9 +722,30 @@ changesUponFlattening = \doc -> case doc of
 -- do name:_ <- getArgs
 --    let greet = "Hello, " <> name
 --    putStrLn greet
+--
+-- === Notes
+--
+-- Users should be careful to choose @x@ to be less wide than @y@.
+-- Otherwise, if @y@ turns out not to fit the page, we fall back on an even
+-- wider layout:
+--
+-- >>> let ugly = group (flatAlt "even wider" "too wide")
+-- >>> putDocW 7 ugly
+-- even wider
+--
+-- Also note that 'group' will flatten @y@:
+--
+-- >>> putDoc (group (flatAlt "x" ("y" <> line <> "y")))
+-- y y
+--
+-- This also means that an "unflattenable" @y@ which contains a hard linebreak
+-- will /never/ be rendered:
+--
+-- >>> putDoc (group (flatAlt "x" ("y" <> hardline <> "y")))
+-- x
 flatAlt
     :: Doc ann -- ^ Default
-    -> Doc ann -- ^ Fallback when 'group'ed
+    -> Doc ann -- ^ Preferred when 'group'ed
     -> Doc ann
 flatAlt = FlatAlt
 
