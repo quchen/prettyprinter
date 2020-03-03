@@ -1701,13 +1701,15 @@ instance Traversable SimpleDocStream where
 
 -- | Decide whether a 'SimpleDocStream' fits the constraints given, namely
 --
---   - page width
---   - minimum nesting level to fit in
+--   - original indentation of the current line
+--   - current column
+--   - initial indentation of the alternative 'SimpleDocStream' if it
+--     starts with a line break (used by 'layoutSmart')
 --   - width in which to fit the first line
 newtype FittingPredicate ann
-  = FittingPredicate (PageWidth
+  = FittingPredicate (Int
                    -> Int
-                   -> Int
+                   -> Maybe Int
                    -> SimpleDocStream ann
                    -> Bool)
   deriving Typeable
@@ -1743,6 +1745,17 @@ data PageWidth
 defaultPageWidth :: PageWidth
 defaultPageWidth = AvailablePerLine 80 1
 
+-- | The remaining width on the current line.
+remainingWidth :: Int -> Double -> Int -> Int -> Int
+remainingWidth lineLength ribbonFraction lineIndent currentColumn =
+    min columnsLeftInLine columnsLeftInRibbon
+  where
+    columnsLeftInLine = lineLength - currentColumn
+    columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
+    ribbonWidth =
+        (max 0 . min lineLength . round)
+            (fromIntegral lineLength * ribbonFraction)
+
 -- $ Test to avoid surprising behaviour
 -- >>> Unbounded > AvailablePerLine maxBound 1
 -- True
@@ -1772,8 +1785,14 @@ layoutPretty
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutPretty = layoutWadlerLeijen
-    (FittingPredicate (\_pWidth _minNestingLevel maxWidth sdoc -> fits maxWidth sdoc))
+layoutPretty (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFraction)) =
+    layoutWadlerLeijen
+        (FittingPredicate
+             (\lineIndent currentColumn _initialIndentY sdoc ->
+                 fits
+                     (remainingWidth lineLength ribbonFraction lineIndent currentColumn)
+                     sdoc))
+        pageWidth_
   where
     fits :: Int -- ^ Width in which to fit the first line
          -> SimpleDocStream ann
@@ -1786,6 +1805,8 @@ layoutPretty = layoutWadlerLeijen
     fits _ SLine{}        = True
     fits w (SAnnPush _ x) = fits w x
     fits w (SAnnPop x)    = fits w x
+
+layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
 -- line breaks earlier if the content does not (or will not, rather) fit into
@@ -1852,7 +1873,8 @@ layoutSmart
     :: LayoutOptions
     -> Doc ann
     -> SimpleDocStream ann
-layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
+layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFraction)) =
+    layoutWadlerLeijen (FittingPredicate fits) pageWidth_
   where
     -- Why doesn't layoutSmart simply check the entire document?
     --
@@ -1861,31 +1883,70 @@ layoutSmart = layoutWadlerLeijen (FittingPredicate fits)
     --    depend on the fit of completely unrelated parts of the same document.
     --    See https://github.com/quchen/prettyprinter/issues/83 for a related
     --    bug.
-    fits :: PageWidth
-         -> Int -- ^ Minimum nesting level to fit in
-         -> Int -- ^ Width in which to fit the first line
-         -> SimpleDocStream ann
-         -> Bool
-    fits _ _ w _ | w < 0                    = False
-    fits _ _ _ SFail                        = False
-    fits _ _ _ SEmpty                       = True
-    fits pw m w (SChar _ x)                 = fits pw m (w - 1) x
-    fits pw m w (SText l _t x)              = fits pw m (w - l) x
-    fits pw m _ (SLine i x)
-      | m < i, AvailablePerLine cpl _ <- pw = fits pw m (cpl - i) x
-      | otherwise                           = True
-    fits pw m w (SAnnPush _ x)              = fits pw m w x
-    fits pw m w (SAnnPop x)                 = fits pw m w x
+
+    fits :: Int -> Int -> Maybe Int -> SimpleDocStream ann -> Bool
+    fits lineIndent currentColumn initialIndentY = go availableWidth
+      where
+        go w _ | w < 0          = False
+        go _ SFail              = False
+        go _ SEmpty             = True
+        go w (SChar _ x)        = go (w - 1) x
+        go w (SText l _t x)     = go (w - l) x
+        go _ (SLine i x)
+          | minNestingLevel < i = go (lineLength - i) x -- TODO: Take ribbon width into account?! (#142)
+          | otherwise           = True
+        go w (SAnnPush _ x)     = go w x
+        go w (SAnnPop x)        = go w x
+
+        availableWidth = remainingWidth lineLength ribbonFraction lineIndent currentColumn
+
+        minNestingLevel =
+            -- See the Note
+            -- [Choosing the right minNestingLevel for consistent smart layouts]
+            case initialIndentY of
+                Just i ->
+                    -- y could be a (less wide) hanging layout. If so, let's
+                    -- check x a bit more thoroughly so we don't miss a potentially
+                    -- better fitting y.
+                    min i currentColumn
+                Nothing ->
+                    -- y definitely isn't a hanging layout. Let's check x with the
+                    -- same minNestingLevel that any subsequent lines with the same
+                    -- indentation use.
+                    currentColumn
+
+layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
+
+-- | Layout a document with @Unbounded@ page width.
+layoutUnbounded :: Doc ann -> SimpleDocStream ann
+layoutUnbounded =
+    layoutWadlerLeijen
+        (FittingPredicate
+            (\_lineIndent _currentColumn _initialIndentY sdoc -> not (failsOnFirstLine sdoc)))
+        Unbounded
+  where
+    -- See the Note [Detecting failure with Unbounded page width].
+    failsOnFirstLine :: SimpleDocStream ann -> Bool
+    failsOnFirstLine = go
+      where
+        go sds = case sds of
+            SFail        -> True
+            SEmpty       -> False
+            SChar _ s    -> go s
+            SText _ _ s  -> go s
+            SLine _ _    -> False
+            SAnnPush _ s -> go s
+            SAnnPop s    -> go s
 
 -- | The Wadler/Leijen layout algorithm
 layoutWadlerLeijen
     :: forall ann. FittingPredicate ann
-    -> LayoutOptions
+    -> PageWidth
     -> Doc ann
     -> SimpleDocStream ann
 layoutWadlerLeijen
     (FittingPredicate fits)
-    LayoutOptions { layoutPageWidth = pWidth }
+    pageWidth_
     doc
   = best 0 0 (Cons 0 doc Nil)
   where
@@ -1912,7 +1973,7 @@ layoutWadlerLeijen
                                y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
         Column f        -> best nl cc (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc (Cons i (f pWidth) ds)
+        WithPageWidth f -> best nl cc (Cons i (f pageWidth_) ds)
         Nesting f       -> best nl cc (Cons i (f i) ds)
         Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
@@ -1929,35 +1990,9 @@ layoutWadlerLeijen
         -> SimpleDocStream ann -- ^ Choice B. Should fit more easily
                                --   (== be less wide) than choice A.
         -> SimpleDocStream ann -- ^ Choice A if it fits, otherwise B.
-    selectNicer lineIndent currentColumn x y = case pWidth of
-        AvailablePerLine lineLength ribbonFraction
-          | fits pWidth minNestingLevel availableWidth x -> x
-          where
-            minNestingLevel =
-                -- See the Note
-                -- [Choosing the right minNestingLevel for consistent smart layouts]
-                case initialIndentation y of
-                    Just i ->
-                        -- y could be a (less wide) hanging layout. If so, let's
-                        -- check x a bit more thoroughly so we don't miss a potentially
-                        -- better fitting y.
-                        min i currentColumn
-                    Nothing ->
-                        -- y definitely isn't a hanging layout. Let's check x with the
-                        -- same minNestingLevel that any subsequent lines with the same
-                        -- indentation use.
-                        currentColumn
-            availableWidth = min columnsLeftInLine columnsLeftInRibbon
-              where
-                columnsLeftInLine = lineLength - currentColumn
-                columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
-                ribbonWidth =
-                    (max 0 . min lineLength . round)
-                        (fromIntegral lineLength * ribbonFraction)
-        Unbounded
-          -- See the Note [Detecting failure with Unbounded page width].
-          | not (failsOnFirstLine x) -> x
-        _ -> y
+    selectNicer lineIndent currentColumn x y
+        | fits lineIndent currentColumn (initialIndentation y) x = x
+        | otherwise = y
 
     initialIndentation :: SimpleDocStream ann -> Maybe Int
     initialIndentation sds = case sds of
@@ -1965,18 +2000,6 @@ layoutWadlerLeijen
         SAnnPush _ s -> initialIndentation s
         SAnnPop s    -> initialIndentation s
         _            -> Nothing
-
-    failsOnFirstLine :: SimpleDocStream ann -> Bool
-    failsOnFirstLine = go
-      where
-        go sds = case sds of
-            SFail        -> True
-            SEmpty       -> False
-            SChar _ s    -> go s
-            SText _ _ s  -> go s
-            SLine _ _    -> False
-            SAnnPush _ s -> go s
-            SAnnPop s    -> go s
 
 
 {- Note [Choosing the right minNestingLevel for consistent smart layouts]
