@@ -1876,6 +1876,7 @@ layoutSmart (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFractio
 
 layoutSmart (LayoutOptions Unbounded) = layoutUnbounded
 
+-- | Layout a document with @Unbounded@ page width.
 layoutUnbounded :: Doc ann -> SimpleDocStream ann
 layoutUnbounded =
     layoutWadlerLeijen
