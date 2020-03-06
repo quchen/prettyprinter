@@ -1775,7 +1775,7 @@ remainingWidth lineLength ribbonFraction lineIndent currentColumn =
     columnsLeftInLine = lineLength - currentColumn
     columnsLeftInRibbon = lineIndent + ribbonWidth - currentColumn
     ribbonWidth =
-        (max 0 . min lineLength . round)
+        (max 0 . min lineLength . floor)
             (fromIntegral lineLength * ribbonFraction)
 
 -- $ Test to avoid surprising behaviour
