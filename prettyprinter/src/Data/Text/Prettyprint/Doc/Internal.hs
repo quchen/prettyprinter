@@ -2103,10 +2103,10 @@ Note [Detecting failure with Unbounded page width]
 To understand why it is sufficient to check the first line of the
 SimpleDocStream, trace how an SFail ends up there:
 
-1. We group a Doc containing a Line, producing a (Union x y) where
-   x contains Fail.
+1. We group a Doc containing a hard linebreak (hardline), producing a
+   (Union x y) where x contains Fail.
 
-2. In best, any Unions are handled recursively, rejecting any
+2. In layoutWadlerLeijen.best, any Unions are handled recursively, rejecting any
    alternatives that would result in SFail.
 
 So once a SimpleDocStream reaches selectNicer, any SFail in it must
