@@ -81,7 +81,7 @@ testStripping doc = case hasTrailingWhitespace (render removeTrailingWhitespace 
   where
 
     render :: (SimpleDocStream ann -> SimpleDocStream ann) -> Doc ann -> Text
-    render f = renderSimplyDecorated id (const "<ann>") (const "</ann>") . f . layoutPretty defaultLayoutOptions
+    render f = renderSimplyDecorated (const id) (const "<ann>") (const "</ann>") . f . layoutPretty defaultLayoutOptions
 
     removeTrailingSpaceText :: Text -> Text
     removeTrailingSpaceText = unlines' . map T.stripEnd . T.lines

@@ -96,7 +96,7 @@ fusionDoesNotChangeRendering depth
   = forAllShow (arbitrary :: Gen (Doc Int)) (show . diag) (\doc ->
     forAll arbitrary (\layouter ->
         let tShow = T.pack . show
-            render = renderSimplyDecorated id tShow tShow . layout layouter
+            render = renderSimplyDecorated (const id) tShow tShow . layout layouter
             rendered = render doc
             renderedFused = render (fuse depth doc)
         in counterexample (mkCounterexample rendered renderedFused)

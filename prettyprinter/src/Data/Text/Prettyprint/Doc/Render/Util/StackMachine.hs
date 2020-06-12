@@ -59,13 +59,13 @@ import Data.Monoid
 --
 -- >>> let doc = "hello" <+> annotate () "world" <> "!"
 -- >>> let sdoc = layoutPretty defaultLayoutOptions doc
--- >>> T.putStrLn (renderSimplyDecorated id (\() -> ">>>") (\() -> "<<<") sdoc)
+-- >>> T.putStrLn (renderSimplyDecorated (const id) (\() -> ">>>") (\() -> "<<<") sdoc)
 -- hello >>>world<<<!
 --
 -- The monoid will be concatenated in a /right associative/ fashion.
 renderSimplyDecorated
     :: Monoid out
-    => (Text -> out) -- ^ Render plain 'Text'
+    => ([ann] -> Text -> out) -- ^ Render plain 'Text'
     -> (ann -> out)  -- ^ How to render an annotation
     -> (ann -> out)  -- ^ How to render the removed annotation
     -> SimpleDocStream ann
@@ -75,9 +75,9 @@ renderSimplyDecorated text push pop = go []
     go _           SFail               = panicUncaughtFail
     go []          SEmpty              = mempty
     go (_:_)       SEmpty              = panicInputNotFullyConsumed
-    go stack       (SChar c rest)      = text (T.singleton c) <> go stack rest
-    go stack       (SText _l t rest)   = text t <> go stack rest
-    go stack       (SLine i rest)      = text (T.singleton '\n') <> text (textSpaces i) <> go stack rest
+    go stack       (SChar c rest)      = text stack (T.singleton c) <> go stack rest
+    go stack       (SText _l t rest)   = text stack t <> go stack rest
+    go stack       (SLine i rest)      = text stack (T.singleton '\n') <> text stack (textSpaces i) <> go stack rest
     go stack       (SAnnPush ann rest) = push ann <> go (ann : stack) rest
     go (ann:stack) (SAnnPop rest)      = pop ann <> go stack rest
     go []          SAnnPop{}           = panicUnpairedPop

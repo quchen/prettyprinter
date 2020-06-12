@@ -56,7 +56,7 @@ import Control.Applicative
 --       (foo bar)
 --       sit amet
 renderLazy :: SimpleDocStream ann -> TL.Text
-renderLazy = TLB.toLazyText . renderSimplyDecorated TLB.fromText (pure mempty) (pure mempty)
+renderLazy = TLB.toLazyText . renderSimplyDecorated (const TLB.fromText) (pure mempty) (pure mempty)
 
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to strict text.
