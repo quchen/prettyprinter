@@ -1968,6 +1968,9 @@ layoutWadlerLeijen
         Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
         Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
         Line            -> let x = best i i ds
+                               -- Don't produce indentation if there's no
+                               -- following text on the same line.
+                               -- This prevents trailing whitespace.
                                i' = case x of
                                    SEmpty  -> 0
                                    SLine{} -> 0
