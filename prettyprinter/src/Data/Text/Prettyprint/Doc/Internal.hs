@@ -1950,7 +1950,7 @@ layoutWadlerLeijen
     (FittingPredicate fits)
     pageWidth_
     doc
-  = best 0 0 0 (Cons 0 doc Nil)
+  = best 0 0 (Cons 0 doc Nil)
   where
 
     -- * current column >= current nesting level
@@ -1958,38 +1958,34 @@ layoutWadlerLeijen
     best
         :: Int -- Current nesting level
         -> Int -- Current column, i.e. "where the cursor is"
-        -> Int -- Current annotation nesting level
         -> LayoutPipeline ann -- Documents remaining to be handled (in order)
         -> SimpleDocStream ann
-    best !_ !_ !_ Nil           = SEmpty
-    best nl cc an (UndoAnn ds)  = SAnnPop (best nl cc (an-1) ds)
-    best nl cc an (Cons i d ds) = case d of
+    best !_ !_ Nil           = SEmpty
+    best nl cc (UndoAnn ds)  = SAnnPop (best nl cc ds)
+    best nl cc (Cons i d ds) = case d of
         Fail            -> SFail
-        Empty           -> best nl cc an ds
-        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' an ds)
-        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' an ds)
-        Line            -> let x = best i i an ds
+        Empty           -> best nl cc ds
+        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
+        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
+        Line            -> let x = best i i ds
                                -- Don't produce indentation if there's no
                                -- following text on the same line.
                                -- This prevents trailing whitespace.
-                               i' =
-                                   if an > 0
-                                       then i
-                                       else case x of
-                                           SEmpty  -> 0
-                                           SLine{} -> 0
-                                           _       -> i
+                               i' = case x of
+                                   SEmpty  -> 0
+                                   SLine{} -> 0
+                                   _       -> i
                            in SLine i' x
-        FlatAlt x _     -> best nl cc an (Cons i x ds)
-        Cat x y         -> best nl cc an (Cons i x (Cons i y ds))
-        Nest j x        -> let !ij = i+j in best nl cc an (Cons ij x ds)
-        Union x y       -> let x' = best nl cc an (Cons i x ds)
-                               y' = best nl cc an (Cons i y ds)
+        FlatAlt x _     -> best nl cc (Cons i x ds)
+        Cat x y         -> best nl cc (Cons i x (Cons i y ds))
+        Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
+        Union x y       -> let x' = best nl cc (Cons i x ds)
+                               y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
-        Column f        -> best nl cc an (Cons i (f cc) ds)
-        WithPageWidth f -> best nl cc an (Cons i (f pageWidth_) ds)
-        Nesting f       -> best nl cc an (Cons i (f i) ds)
-        Annotated ann x -> SAnnPush ann (best nl cc (an+1) (Cons i x (UndoAnn ds)))
+        Column f        -> best nl cc (Cons i (f cc) ds)
+        WithPageWidth f -> best nl cc (Cons i (f pageWidth_) ds)
+        Nesting f       -> best nl cc (Cons i (f i) ds)
+        Annotated ann x -> SAnnPush ann (best nl cc (Cons i x (UndoAnn ds)))
 
     -- Select the better fitting of two documents:
     -- Choice A if it fits, otherwise choice B.
