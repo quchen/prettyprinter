@@ -576,9 +576,11 @@ hardline :: Doc ann
 hardline = Line
 
 -- | @('group' x)@ tries laying out @x@ into a single line by removing the
--- contained line breaks; if this does not fit the page, @x@ is laid out without
--- any changes. The 'group' function is key to layouts that adapt to available
--- space nicely.
+-- contained line breaks; if this does not fit the page, or when a 'hardline'
+-- within @x@ prevents it from being flattened, @x@ is laid out without any
+-- changes.
+--
+-- The 'group' function is key to layouts that adapt to available space nicely.
 --
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
