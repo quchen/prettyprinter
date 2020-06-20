@@ -1,3 +1,9 @@
+# 1.6.2
+
+- Speed up rendering to lazy and strict `Text`.
+- Documentation improvements for `group` and `flatAlt`.
+- Internal refactoring of the `layoutWadlerLeijen`-based layouters.
+
 # 1.6.1
 
 - Slightly reduce the scope of the fitting predicates for some edge cases.
