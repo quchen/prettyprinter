@@ -158,9 +158,7 @@ data SimpleDocTree ann
     = STEmpty
     | STChar Char
 
-    -- | Some layout algorithms use the Since the frequently used 'T.length' of
-    -- the 'Text', which scales linearly with its length, we cache it in this
-    -- constructor.
+    -- | 'Data.Text.length' is /O(n)/, so we cache it in the 'Int' field.
     | STText !Int Text
 
     -- | @Int@ = indentation level for the (next) line

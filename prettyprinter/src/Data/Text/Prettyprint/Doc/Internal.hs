@@ -1577,9 +1577,7 @@ data SimpleDocStream ann =
     | SEmpty
     | SChar !Char (SimpleDocStream ann)
 
-    -- | Some layout algorithms use the Since the frequently used 'T.length' of
-    -- the 'Text', which scales linearly with its length, we cache it in this
-    -- constructor.
+    -- | 'T.length' is /O(n)/, so we cache it in the 'Int' field.
     | SText !Int !Text (SimpleDocStream ann)
 
     -- | @Int@ = indentation level for the (next) line
