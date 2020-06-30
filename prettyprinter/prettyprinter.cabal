@@ -41,9 +41,6 @@ library
         , Data.Text.Prettyprint.Doc.Symbols.Unicode
         , Data.Text.Prettyprint.Doc.Symbols.Ascii
 
-        -- Deprecated
-        , Data.Text.Prettyprint.Doc.Render.ShowS
-
     ghc-options: -Wall -O2
     hs-source-dirs: src
     include-dirs: misc
