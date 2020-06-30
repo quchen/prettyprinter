@@ -95,7 +95,7 @@ script:
       fi
     - |
       if "${BUILD_SOURCE_DIST:-false}"; then
-          stack sdist
+          _stack sdist
       fi
     - |
       if "${RUN_RELEASE_CHECKS:-false}"; then
