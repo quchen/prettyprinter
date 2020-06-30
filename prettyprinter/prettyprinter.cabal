@@ -25,7 +25,23 @@ source-repository head
 
 library
     exposed-modules:
-          Data.Text.Prettyprint.Doc
+          Prettyprinter
+        , Prettyprinter.Internal
+        , Prettyprinter.Internal.Debug
+        , Prettyprinter.Internal.Type
+        , Prettyprinter.Render.String
+        , Prettyprinter.Render.Text
+        , Prettyprinter.Render.Tutorials.StackMachineTutorial
+        , Prettyprinter.Render.Tutorials.TreeRenderingTutorial
+        , Prettyprinter.Render.Util.Panic
+        , Prettyprinter.Render.Util.SimpleDocTree
+        , Prettyprinter.Render.Util.StackMachine
+        , Prettyprinter.Util
+
+        , Prettyprinter.Symbols.Unicode
+        , Prettyprinter.Symbols.Ascii
+
+        , Data.Text.Prettyprint.Doc
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Internal.Debug
         , Data.Text.Prettyprint.Doc.Internal.Type

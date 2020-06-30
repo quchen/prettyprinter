@@ -1,10 +1,9 @@
+-- | This module is part of the old @prettyprinter@ API which is planned to be
+-- deprecated and eventually removed.
+--
+-- Use "Prettyprinter.Render.String" instead.
 module Data.Text.Prettyprint.Doc.Render.String (
-    renderString,
-    renderShowS,
+    module Prettyprinter.Render.String
 ) where
 
-import Data.Text.Prettyprint.Doc.Internal (SimpleDocStream, renderShowS)
-
--- | Render a 'SimpleDocStream' to a 'String'.
-renderString :: SimpleDocStream ann -> String
-renderString s = renderShowS s ""
+import Prettyprinter.Render.String
