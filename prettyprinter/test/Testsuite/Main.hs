@@ -88,9 +88,11 @@ tests = testGroup "Tests"
             [ testCase "Line" regressionUnboundedGroupedLine
             , testCase "Line within align" regressionUnboundedGroupedLineWithinAlign
             ]
-        ]
         , testCase "Indentation on otherwise empty lines results in trailing whitespace (#139)"
                    indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
+        , testCase "Ribbon width should be computed with `floor` instead of `round` (#157)"
+                   computeRibbonWidthWithFloor
+        ]
     ]
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
@@ -389,4 +391,12 @@ indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
         doc = indent 1 ("x" <> hardline <> hardline <> "y" <> hardline)
         sdoc = layoutPretty (LayoutOptions Unbounded) doc
         expected = SChar ' ' (SChar 'x' (SLine 0 (SLine 1 (SChar 'y' (SLine 0 SEmpty)))))
+    in assertEqual "" expected sdoc
+
+computeRibbonWidthWithFloor :: Assertion
+computeRibbonWidthWithFloor
+  = let doc :: Doc ()
+        doc = "a" <> softline' <> "b"
+        sdoc = layoutPretty (LayoutOptions (AvailablePerLine 3 0.5)) doc
+        expected = SChar 'a' (SLine 0 (SChar 'b' SEmpty))
     in assertEqual "" expected sdoc
