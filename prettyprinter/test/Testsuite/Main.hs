@@ -89,6 +89,8 @@ tests = testGroup "Tests"
             , testCase "Line within align" regressionUnboundedGroupedLineWithinAlign
             ]
         ]
+        , testCase "Indentation on otherwise empty lines results in trailing whitespace (#139)"
+                   indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
     ]
 
 fusionDoesNotChangeRendering :: FusionDepth -> Property
@@ -379,4 +381,12 @@ regressionUnboundedGroupedLineWithinAlign
         doc = group (align ("x" <> hardline <> "y"))
         sdoc = layoutPretty (LayoutOptions Unbounded) doc
         expected = SChar 'x' (SLine 0 (SChar 'y' SEmpty))
+    in assertEqual "" expected sdoc
+
+indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines :: Assertion
+indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
+  = let doc :: Doc ()
+        doc = indent 1 ("x" <> hardline <> hardline <> "y" <> hardline)
+        sdoc = layoutPretty (LayoutOptions Unbounded) doc
+        expected = SChar ' ' (SChar 'x' (SLine 0 (SLine 1 (SChar 'y' (SLine 0 SEmpty)))))
     in assertEqual "" expected sdoc
