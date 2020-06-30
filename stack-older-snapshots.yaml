@@ -10,5 +10,7 @@ extra-deps:
     - pgp-wordlist-0.1.0.2
     - ansi-wl-pprint-0.6.8
     - fail-4.9.0.0
+    - semigroups-0.17.0.1
+    - void-0.7.3
 flags: {}
 extra-package-dbs: []
