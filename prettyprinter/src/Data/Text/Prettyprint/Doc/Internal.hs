@@ -435,6 +435,15 @@ instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
     prettyList = prettyList . catMaybes
 
+-- | Print 'Left' and 'Right' contents.
+--
+-- >>> pretty (Left True :: Either Bool Bool)
+-- True
+-- >>> pretty (Right True :: Either Bool Bool)
+-- True
+instance (Pretty a, Pretty b) => Pretty (Either a b) where
+    pretty = either pretty pretty
+
 -- | Automatically converts all newlines to @'line'@.
 --
 -- >>> pretty ("hello\nworld" :: Text)
@@ -459,7 +468,141 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 -- []
 instance Pretty Void where pretty = absurd
 
+-- | Overloaded conversion to 'Doc', lifted to unary type constructors.
+--
+-- This is most useful for:
+-- 1. defining 'Pretty' instances for recursive types,
+-- 2. defining 'Pretty' instances for type constructors without 'Functor'
+--    instances, and
+-- 3. efficiently pretty-printing type constructors with 'Functor' instances
+--    whose 'fmap' traverses the whole structure.
+--
+-- Laws:
+--
+--   1. @'Pretty1' f@ and @'Pretty' (f a)@ should result in identical behaviour
+--      when @'prettyList' = 'list' . map 'pretty'@ (the default definition):
+--
+--      @
+--      liftPretty pretty f = pretty f
+--      @
+--
+-- Note that since 'liftPretty' does not receive a function corresponding to
+-- 'prettyList', the behaviour will differ for '[]', 'Maybe', and other types
+-- whose instances customize 'prettyList':
+--
+-- >>> liftPretty pretty ("hello" :: String)
+-- [h, e, l, l, o]
+--
+-- ==== __Examples__
+--
+-- Using 'Pretty1' to provide a (decidable) 'Pretty' instance for a recursive
+-- type:
+--
+-- >>> data Expr a = Plus a a | Times a a | Const Int
+-- >>> newtype Fix f = Fix (f (Fix f))
+-- >>> :{
+-- >>> instance Pretty1 Expr where
+-- >>>   liftPretty p (Plus  a b) = parens (p a <+> pretty '+' <+> p b)
+-- >>>   liftPretty p (Times a b) =         p a <+> pretty '*' <+> p b
+-- >>>   liftPretty _ (Const i)   = pretty i
+-- >>> :}
+--
+-- >>> :{
+-- >>> instance Pretty1 f => Pretty (Fix f) where
+-- >>>   pretty (Fix f) = liftPretty pretty f
+-- >>> :}
+--
+-- >>> pretty (Fix (Times (Fix (Plus (Fix (Const 1)) (Fix (Const 2)))) (Fix (Const 3))))
+-- (1 + 2) * 3
+class Pretty1 f where
 
+    -- | Pretty-print a container using the supplied function to print its
+    -- contents.
+    --
+    -- >>> liftPretty (parens . pretty) (Just "hello")
+    -- (hello)
+    liftPretty
+        :: (a -> Doc ann) -- ^ A function to print a value.
+        -> f a
+        -> Doc ann
+
+-- | >>> liftPretty (parens . pretty) [1,2,3]
+-- [(1), (2), (3)]
+instance Pretty1 [] where
+    liftPretty pretty' = list . map pretty'
+
+instance Pretty1 NonEmpty where
+    liftPretty pretty' (x:|xs) = liftPretty pretty' (x:xs)
+
+-- | Ignore 'Nothing's, print 'Just' contents with the supplied function.
+--
+-- >>> liftPretty (parens . pretty) (Just True)
+-- (True)
+-- >>> braces (liftPretty (parens . pretty) (Nothing :: Maybe Bool))
+-- {}
+instance Pretty1 Maybe where
+    liftPretty prettyJust = maybe mempty prettyJust
+
+-- | Print 'Left' contents with 'pretty', and 'Right' contents with the supplied
+-- function.
+--
+-- >>> liftPretty (parens . pretty) (Left True :: Either Bool Bool)
+-- True
+-- >>> liftPretty (parens . pretty) (Right True :: Either Bool Bool)
+-- (True)
+instance Pretty a => Pretty1 (Either a) where
+    liftPretty prettyRight = either pretty prettyRight
+
+-- | >>> liftPretty (parens . pretty) (123, "hello")
+-- (123, (hello))
+instance Pretty a => Pretty1 ((,) a) where
+    liftPretty pretty2 (x1, x2) = tupled [pretty x1, pretty2 x2]
+
+-- | Overloaded conversion to 'Doc', lifted to binary type constructors.
+--
+-- This is most useful for:
+-- 1. defining 'Pretty' instances for recursive types,
+-- 2. defining 'Pretty' instances for type constructors without 'Functor'
+--    instances, and
+-- 3. efficiently pretty-printing type constructors with 'Functor' instances
+--    whose 'fmap' traverses the whole structure.
+--
+-- Laws:
+--
+--   1. @'Pretty2' f@, @'Pretty1' (f a)@, and @'Pretty' (f a b)@ should result in
+--      identical behaviour when @'prettyList' = 'list' . map 'pretty'@ (the
+--      default definition):
+--
+--      @
+--      liftPretty2 pretty pretty f = liftPretty pretty f = pretty f
+--      @
+class Pretty2 f where
+
+    -- | Pretty-print a container using the supplied functions to print its
+    -- contents.
+    --
+    -- >>> liftPretty2 (parens . pretty) pretty (("hello", 0) :: (String, Int))
+    -- ((hello), 0)
+    liftPretty2
+        :: (a -> Doc ann) -- ^ A function to print a value of the first parameter.
+        -> (b -> Doc ann) -- ^ A function to print a value of the second parameter.
+        -> f a b
+        -> Doc ann
+
+-- | Print 'Left' and 'Right' contents with the supplied functions.
+--
+-- >>> let parenthesized = parens . pretty
+-- >>> liftPretty2 parenthesized parenthesized (Left True :: Either Bool Bool)
+-- (True)
+-- >>> liftPretty2 parenthesized parenthesized (Right True :: Either Bool Bool)
+-- (True)
+instance Pretty2 Either where
+    liftPretty2 prettyLeft prettyRight = either prettyLeft prettyRight
+
+-- | >>> liftPretty2 (parens . pretty) (parens . pretty) (123, "hello")
+-- ((123), (hello))
+instance Pretty2 (,) where
+    liftPretty2 pretty1 pretty2 (x1, x2) = tupled [pretty1 x1, pretty2 x2]
 
 -- | @(unsafeTextWithoutNewlines s)@ contains the literal string @s@.
 --

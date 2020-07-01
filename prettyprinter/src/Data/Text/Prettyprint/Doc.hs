@@ -290,6 +290,10 @@ module Data.Text.Prettyprint.Doc (
     layoutPretty, layoutCompact, layoutSmart,
     removeTrailingWhitespace,
 
+    -- * Lifted classes.
+    Pretty1(..),
+    Pretty2(..),
+
     -- * Migration guide
     --
     -- $migration
