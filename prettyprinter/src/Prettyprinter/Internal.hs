@@ -944,8 +944,8 @@ infixr 6 <+> -- like <>
 --
 -- This is also useful to define customized joiners,
 --
--- >>> concatWith (surround dot) ["Data", "Text", "Prettyprint", "Doc"]
--- Prettyprinter
+-- >>> concatWith (surround dot) ["Prettyprinter", "Render", "Text"]
+-- Prettyprinter.Render.Text
 concatWith :: Foldable t => (Doc ann -> Doc ann -> Doc ann) -> t (Doc ann) -> Doc ann
 concatWith f ds
 #if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
@@ -1320,8 +1320,8 @@ enclose l r x = l <> x <> r
 -- This is merely an argument reordering of @'enclose'@, but allows for
 -- definitions like
 --
--- >>> concatWith (surround ".") ["Data", "Text", "Prettyprint", "Doc"]
--- Prettyprinter
+-- >>> concatWith (surround dot) ["Prettyprinter", "Render", "Text"]
+-- Prettyprinter.Render.Text
 surround
     :: Doc ann
     -> Doc ann
