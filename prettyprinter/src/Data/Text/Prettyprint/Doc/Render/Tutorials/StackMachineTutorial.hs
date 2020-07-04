@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Wno-deprecations #-}
-
 -- | This module is part of the old @prettyprinter@ API which is planned to be
 -- deprecated and eventually removed.
 --
