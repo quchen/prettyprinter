@@ -25,6 +25,7 @@ source-repository head
 
 library
     exposed-modules:  Data.Text.Prettyprint.Convert.AnsiWlPprint
+                    , Prettyprinter.Convert.AnsiWlPprint
     ghc-options:      -Wall
     hs-source-dirs:   src
     default-language: Haskell2010
