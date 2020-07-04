@@ -28,6 +28,8 @@ source-repository head
 library
     exposed-modules:  Data.Text.Prettyprint.Doc.Render.Terminal
                     , Data.Text.Prettyprint.Doc.Render.Terminal.Internal
+                    , Prettyprinter.Render.Terminal
+                    , Prettyprinter.Render.Terminal.Internal
     ghc-options:      -Wall -O2
     hs-source-dirs:   src
     include-dirs:     misc
