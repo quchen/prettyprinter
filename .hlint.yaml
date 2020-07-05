@@ -31,7 +31,7 @@
 - ignore: {name: "Use lambda-case"}
 
 # Not all 3-liners should be deduplicated
-- ignore: {name: Reduce duplication, within: Data.Text.Prettyprint.Doc.Render.Terminal.Internal}
+- ignore: {name: Reduce duplication, within: Prettyprinter.Render.Terminal.Internal}
 
 # I don’t like $
 - error:
