@@ -32,7 +32,6 @@ env:
     # LTS 13 uses GHC 8.6
     - >
       STACK_RESOLVER="--resolver lts-13"
-      STACK_BUILD_ARGS="--ghc-options '-Wno-deprecations -Werror'"
       RUN_TESTSUITE=true
       RUN_RELEASE_CHECKS=true
       BUILD_BENCHMARKS=true
