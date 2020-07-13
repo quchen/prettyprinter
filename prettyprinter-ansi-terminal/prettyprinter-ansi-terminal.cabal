@@ -62,3 +62,28 @@ test-suite doctest
     if impl (ghc < 7.10)
         buildable: False
         -- Doctest cannot search folders in old versions it seems :-(
+
+benchmark large-output
+    build-depends:
+          base >= 4.5 && < 5
+        , base-compat >=0.9.3 && <0.12
+        , prettyprinter
+        , prettyprinter-ansi-terminal
+
+        , gauge >= 0.2
+        , QuickCheck >= 2.7
+        , containers
+        , text
+        , deepseq
+
+    hs-source-dirs:      bench
+    main-is:             LargeOutput.hs
+    ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
+    default-language:    Haskell2010
+    type:                exitcode-stdio-1.0
+
+    if !impl(ghc >= 7.6)
+        build-depends: ghc-prim
+
+    if !impl(ghc >= 8.0)
+        build-depends: semigroups
