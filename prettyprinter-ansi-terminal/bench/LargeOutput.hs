@@ -1,5 +1,5 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
