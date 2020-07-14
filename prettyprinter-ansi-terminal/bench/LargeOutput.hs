@@ -12,7 +12,6 @@ import Prelude.Compat
 
 import           Control.DeepSeq
 import           Control.Monad.Compat
-import           Gauge
 import           Data.Char
 import           Data.Map                              (Map)
 import qualified Data.Map                              as M
@@ -20,10 +19,11 @@ import           Data.Text                             (Text)
 import qualified Data.Text                             as T
 import qualified Data.Text.IO                          as T
 import qualified Data.Text.Lazy                        as TL
-import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Render.Terminal as Terminal
-import qualified Data.Text.Prettyprint.Doc.Render.Text as Text
+import           Gauge
 import           GHC.Generics
+import           Prettyprinter
+import           Prettyprinter.Render.Terminal         as Terminal
+import qualified Prettyprinter.Render.Text             as Text
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
