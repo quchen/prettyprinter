@@ -4,6 +4,7 @@
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+-- | This benchmark is derived from the large-output benchmark in prettyprinter, but contains additional annotations.
 module Main (main) where
 
 import Prelude        ()
