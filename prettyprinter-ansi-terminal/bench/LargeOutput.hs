@@ -143,12 +143,13 @@ randomProgram seed size = let MkGen gen = arbitrary in gen (mkQCGen seed) size
 main :: IO ()
 main = do
     let prog = randomProgram 1 60
-        renderedProg = (renderLazy . layoutPretty defaultLayoutOptions { layoutPageWidth = Unbounded } . prettyProgram) prog
+        layoutOpts = defaultLayoutOptions { layoutPageWidth = Unbounded }
+        renderedProg = (renderLazy . layoutPretty layoutOpts . prettyProgram) prog
         (progLines, progWidth) = let l = TL.lines renderedProg in (length l, maximum (map TL.length l))
     putDoc ("Program size:" <+> pretty progLines <+> "lines, maximum width:" <+> pretty progWidth)
 
     let render :: (SimpleDocStream AnsiStyle -> TL.Text) -> Program -> TL.Text
-        render r = r . layoutPretty defaultLayoutOptions . prettyProgram
+        render r = r . layoutPretty layoutOpts . prettyProgram
 
     rnf prog `seq` T.putStrLn "Starting benchmark…"
 
