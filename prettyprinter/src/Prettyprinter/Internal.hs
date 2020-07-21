@@ -2145,7 +2145,8 @@ detected and rejected in a previous iteration.
 
 
 -- | @(layoutCompact x)@ lays out the document @x@ without adding any
--- indentation. Since no \'pretty\' printing is involved, this layouter is very
+-- indentation and without preserving annotations.
+-- Since no \'pretty\' printing is involved, this layouter is very
 -- fast. The resulting output contains fewer characters than a prettyprinted
 -- version and can be used for output that is read by other programs.
 --
@@ -2162,7 +2163,7 @@ detected and rejected in a previous iteration.
 -- ipsum
 -- dolor
 -- sit
-layoutCompact :: Doc ann -> SimpleDocStream ann
+layoutCompact :: Doc ann1 -> SimpleDocStream ann2
 layoutCompact doc = scan 0 [doc]
   where
     scan _ [] = SEmpty
