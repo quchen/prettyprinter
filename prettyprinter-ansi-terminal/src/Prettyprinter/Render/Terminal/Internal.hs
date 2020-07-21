@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_HADDOCK not-home #-}
@@ -39,10 +40,8 @@ module Prettyprinter.Render.Terminal.Internal (
 
 
 import           Control.Applicative
-import           Control.Monad.ST
 import           Data.IORef
 import           Data.Maybe
-import           Data.STRef
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
@@ -149,47 +148,33 @@ underlined = mempty { ansiUnderlining = Just Underlined }
 --
 -- Run the above via @echo -e '...'@ in your terminal to see the coloring.
 renderLazy :: SimpleDocStream AnsiStyle -> TL.Text
-renderLazy sdoc = runST (do
-    styleStackRef <- newSTRef [mempty]
-    outputRef <- newSTRef mempty
-
-    let push x = modifySTRef' styleStackRef (x :)
-        unsafePeek = readSTRef styleStackRef >>= \tok -> case tok of
+renderLazy =
+    let push x = (x :)
+        unsafePeek = \case
             []  -> panicPeekedEmpty
-            x:_ -> pure x
-        unsafePop = readSTRef styleStackRef >>= \tok -> case tok of
+            x:_ -> x
+        unsafePop = \case
             []   -> panicPeekedEmpty
-            x:xs -> writeSTRef styleStackRef xs >> pure x
-        writeOutput x = modifySTRef outputRef (<> x)
+            x:xs -> (x, xs)
 
-    let go = \sds -> case sds of
+        go :: [AnsiStyle] -> SimpleDocStream AnsiStyle -> TLB.Builder
+        go s = \case
             SFail -> panicUncaughtFail
-            SEmpty -> pure ()
-            SChar c rest -> do
-                writeOutput (TLB.singleton c)
-                go rest
-            SText _ t rest -> do
-                writeOutput (TLB.fromText t)
-                go rest
-            SLine i rest -> do
-                writeOutput (TLB.singleton '\n' <> TLB.fromText (T.replicate i (T.singleton ' ')))
-                go rest
-            SAnnPush style rest -> do
-                currentStyle <- unsafePeek
-                let newStyle = style <> currentStyle
-                push newStyle
-                writeOutput (TLB.fromText (styleToRawText newStyle))
-                go rest
-            SAnnPop rest -> do
-                _currentStyle <- unsafePop
-                newStyle <- unsafePeek
-                writeOutput (TLB.fromText (styleToRawText newStyle))
-                go rest
-    go sdoc
-    readSTRef styleStackRef >>= \stack -> case stack of
-        []  -> panicStyleStackFullyConsumed
-        [_] -> fmap TLB.toLazyText (readSTRef outputRef)
-        xs  -> panicStyleStackNotFullyConsumed (length xs) )
+            SEmpty -> mempty
+            SChar c rest -> TLB.singleton c <> go s rest
+            SText _ t rest -> TLB.fromText t <> go s rest
+            SLine i rest -> TLB.singleton '\n' <> TLB.fromText (T.replicate i " ") <> go s rest
+            SAnnPush style rest ->
+                let currentStyle = unsafePeek s
+                    newStyle = style <> currentStyle
+                in  TLB.fromText (styleToRawText newStyle) <> go (push style s) rest
+            SAnnPop rest ->
+                let (_currentStyle, s') = unsafePop s
+                    newStyle = unsafePeek s'
+                in  TLB.fromText (styleToRawText newStyle) <> go s' rest
+
+    in  TLB.toLazyText . go [mempty]
+
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the handle @h@.
 --
