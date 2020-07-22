@@ -821,7 +821,7 @@ hang
     -> Doc ann
 hang i d = align (nest i d)
 
--- | @('indent' i x)@ indents document @x@ with @i@ spaces, starting from the
+-- | @('indent' i x)@ indents document @x@ by @i@ columns, starting from the
 -- current cursor position.
 --
 -- >>> let doc = reflow "The indent function indents these words!"
