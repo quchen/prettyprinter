@@ -1599,6 +1599,12 @@ data SimpleDocStream ann =
 -- no (trimmable) whitespace, since the annotation might actually be /about/ the
 -- whitespace, for example a renderer that colors the background of trailing
 -- whitespace, as e.g. @git diff@ can be configured to do.
+--
+-- /Historical note:/ Since v1.7.0, 'layoutPretty' and 'layoutSmart' avoid
+-- producing the trailing whitespace that was the original motivation for
+-- creating 'removeTrailingWhitespace'.
+-- See <https://github.com/quchen/prettyprinter/pull/139> for some background
+-- info.
 removeTrailingWhitespace :: SimpleDocStream ann -> SimpleDocStream ann
 removeTrailingWhitespace = go (RecordedWhitespace [] 0)
   where
