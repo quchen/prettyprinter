@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 #include "version-compatibility-macros.h"
@@ -58,7 +57,7 @@ import Control.Applicative
 renderLazy :: SimpleDocStream ann -> TL.Text
 renderLazy = TLB.toLazyText . go
   where
-    go = \case
+    go x = case x of
         SFail              -> panicUncaughtFail
         SEmpty             -> mempty
         SChar c rest       -> TLB.singleton c <> go rest
