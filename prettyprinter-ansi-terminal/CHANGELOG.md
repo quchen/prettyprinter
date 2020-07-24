@@ -1,3 +1,7 @@
+# 1.2.0
+
+- Make `renderLazy` lazy, and speed it up.
+
 # 1.1.1.2
 
 - Fix documentation claiming there would be a trailing newline in `renderIO`
