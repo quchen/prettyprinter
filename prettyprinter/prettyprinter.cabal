@@ -10,7 +10,7 @@ extra-source-files:  README.md
                    , CHANGELOG.md
                    , misc/version-compatibility-macros.h
 author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
-maintainer:          David Luposchainsky <dluposchainsky at google>
+maintainer:          Simon Jakobi <simon.jakobi@gmail.com>, David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
