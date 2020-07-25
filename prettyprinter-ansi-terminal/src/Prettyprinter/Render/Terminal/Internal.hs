@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP               #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_HADDOCK not-home #-}
@@ -63,12 +62,6 @@ modifyIORef' ref f = do
     x <- readIORef ref
     let x' = f x
     x' `seq` writeIORef ref x'
-
-modifySTRef' :: STRef s a -> (a -> a) -> ST s ()
-modifySTRef' ref f = do
-    x <- readSTRef ref
-    let x' = f x
-    x' `seq` writeSTRef ref x'
 #endif
 
 -- $setup
@@ -150,15 +143,15 @@ underlined = mempty { ansiUnderlining = Just Underlined }
 renderLazy :: SimpleDocStream AnsiStyle -> TL.Text
 renderLazy =
     let push x = (x :)
-        unsafePeek = \case
-            []  -> panicPeekedEmpty
-            x:_ -> x
-        unsafePop = \case
-            []   -> panicPeekedEmpty
-            x:xs -> (x, xs)
+
+        unsafePeek []    = panicPeekedEmpty
+        unsafePeek (x:_) = x
+
+        unsafePop []     = panicPoppedEmpty
+        unsafePop (x:xs) = (x, xs)
 
         go :: [AnsiStyle] -> SimpleDocStream AnsiStyle -> TLB.Builder
-        go s = \case
+        go s sds = case sds of
             SFail -> panicUncaughtFail
             SEmpty -> mempty
             SChar c rest -> TLB.singleton c <> go s rest
@@ -205,7 +198,7 @@ renderIO h sdoc = do
             [] -> panicPeekedEmpty
             x:_ -> pure x
         unsafePop = readIORef styleStackRef >>= \tok -> case tok of
-            [] -> panicPeekedEmpty
+            [] -> panicPoppedEmpty
             x:xs -> writeIORef styleStackRef xs >> pure x
 
     let go = \sds -> case sds of
