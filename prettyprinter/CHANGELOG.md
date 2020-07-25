@@ -1,19 +1,25 @@
 # 1.7.0
 
-- Add shallower `Prettyprinter` module hierarchy. The plan for the existing
-  `Data.Text.Prettyprint.Doc*` modules is:
-  * Start deprecation in early 2021.
-  * Remove the modules after a deprecation period of at least one year.
-- Generalize the type of `layoutCompact` to clarify that it doesn't preserve
-  annotations.
-- Remove deprecated `Data.Text.Prettyprint.Doc.Render.ShowS` module.
-- Use `floor` instead of `round` to compute ribbon width.
-- Add strictness annotations in `SimpleDocStream` and `PageWidth`.
-- Add optimized implementation of `stimes` for `Doc`.
+## Breaking changes
+
 - Fix `layoutPretty` and `layoutSmart` so they don't produce trailing whitespace
   as a result of indenting empty lines. Users of `removeTrailingWhitespace`
   should check whether it is still needed.
+- Use `floor` instead of `round` to compute ribbon width.
+- Remove deprecated `Data.Text.Prettyprint.Doc.Render.ShowS` module.
+- Add optimized implementation of `stimes` for `Doc`.
+- Generalize the type of `layoutCompact` to clarify that it doesn't preserve
+  annotations.
+
+## Non-breaking changes
+
+- Add shallower `Prettyprinter` module hierarchy. The current plan for the
+  existing `Data.Text.Prettyprint.Doc*` modules is:
+  * Start deprecation in early 2021.
+  * Remove the modules after a deprecation period of at least one year.
+- Add strictness annotations in `SimpleDocStream` and `PageWidth`.
 - Documentation improvements.
+- Fix build with GHC 7.4.
 
 # 1.6.2
 

@@ -1,6 +1,14 @@
-# 1.2.0
+# 1.1.2
 
+- Add shallower `Prettyprinter` module hierarchy exposing the same API.
+  The current plan for the existing `Data.Text.Prettyprint.Doc*` modules is:
+  * Start deprecation in early 2021.
+  * Remove the modules after a deprecation period of at least one year.
 - Make `renderLazy` lazy, and speed it up.
+- Add export list for Prettyprinter.Render.Terminal.Internal.
+- Optimize generating spaces for indentation.
+- Enable `-O2`.
+- Extend GHC support to 7.6 and 7.4.
 
 # 1.1.1.2
 
