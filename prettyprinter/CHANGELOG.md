@@ -2,24 +2,22 @@
 
 ## Breaking changes
 
-- Fix `layoutPretty` and `layoutSmart` so they don't produce trailing whitespace
-  as a result of indenting empty lines. Users of `removeTrailingWhitespace`
-  should check whether it is still needed.
-- Use `floor` instead of `round` to compute ribbon width.
-- Remove deprecated `Data.Text.Prettyprint.Doc.Render.ShowS` module.
-- Add optimized implementation of `stimes` for `Doc`.
-- Generalize the type of `layoutCompact` to clarify that it doesn't preserve
-  annotations.
+- [Fix `layoutPretty` and `layoutSmart` so they don't produce trailing whitespace as a result of indenting empty lines.](https://github.com/quchen/prettyprinter/pull/139)
+  * Users of `removeTrailingWhitespace` should check whether it is still needed.
+- [Use `floor` instead of `round` to compute ribbon width.](https://github.com/quchen/prettyprinter/pull/160)
+- [Remove deprecated `Data.Text.Prettyprint.Doc.Render.ShowS` module.](https://github.com/quchen/prettyprinter/pull/173)
+- [Add optimized implementation of `stimes` for `Doc`.](https://github.com/quchen/prettyprinter/pull/135)
+- [Generalize the type of `layoutCompact` to clarify that it doesn't preserve annotations.](https://github.com/quchen/prettyprinter/pull/183)
+- [Add strictness annotations in `SimpleDocStream` and `PageWidth`.](https://github.com/quchen/prettyprinter/pull/129)
 
 ## Non-breaking changes
 
-- Add shallower `Prettyprinter` module hierarchy exposing the same API.
-  The current plan for the existing `Data.Text.Prettyprint.Doc*` modules is:
-  * Start deprecation in early 2021.
-  * Remove the modules after a deprecation period of at least one year.
-- Add strictness annotations in `SimpleDocStream` and `PageWidth`.
-- Documentation improvements.
-- Fix build with GHC 7.4.
+- [Add shallower `Prettyprinter` module hierarchy exposing the same API.](https://github.com/quchen/prettyprinter/pull/174)
+  * The current plan for the existing `Data.Text.Prettyprint.Doc*` modules is:
+    * Start deprecation in early 2021.
+    * Remove the modules after a deprecation period of at least one year.
+- [Fix build with GHC 7.4.](https://github.com/quchen/prettyprinter/pull/187)
+- Various documentation improvements.
 
 [1.7.0]: https://github.com/quchen/prettyprinter/compare/v1.6.2...v1.7.0
 
