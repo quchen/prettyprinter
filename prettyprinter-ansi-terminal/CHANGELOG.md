@@ -1,4 +1,4 @@
-# 1.1.2
+# [1.1.2]
 
 - Add shallower `Prettyprinter` module hierarchy exposing the same API.
   The current plan for the existing `Data.Text.Prettyprint.Doc*` modules is:
@@ -9,6 +9,8 @@
 - Optimize generating spaces for indentation.
 - Enable `-O2`.
 - Extend GHC support to 7.6 and 7.4.
+
+[1.1.2]: https://github.com/quchen/prettyprinter/compare/ansi-terminal-v1.1.1.2...ansi-terminal-v1.1.2
 
 # 1.1.1.2
 

@@ -1,4 +1,4 @@
-# 1.7.0
+# [1.7.0]
 
 ## Breaking changes
 
@@ -13,13 +13,15 @@
 
 ## Non-breaking changes
 
-- Add shallower `Prettyprinter` module hierarchy. The current plan for the
-  existing `Data.Text.Prettyprint.Doc*` modules is:
+- Add shallower `Prettyprinter` module hierarchy exposing the same API.
+  The current plan for the existing `Data.Text.Prettyprint.Doc*` modules is:
   * Start deprecation in early 2021.
   * Remove the modules after a deprecation period of at least one year.
 - Add strictness annotations in `SimpleDocStream` and `PageWidth`.
 - Documentation improvements.
 - Fix build with GHC 7.4.
+
+[1.7.0]: https://github.com/quchen/prettyprinter/compare/v1.6.2...v1.7.0
 
 # 1.6.2
 
