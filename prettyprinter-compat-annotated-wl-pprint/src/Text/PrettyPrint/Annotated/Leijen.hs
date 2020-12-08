@@ -2,7 +2,7 @@
 
 #include "version-compatibility-macros.h"
 
-module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module for users of annotated-wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
+module Text.PrettyPrint.Annotated.Leijen {-# DEPRECATED "Compatibility module for users of annotated-wl-pprint - use \"Prettyprinter\" instead" #-} (
 
     Doc, SimpleDoc, SpanList, putDoc, hPutDoc, empty, char, text, (<>), nest,
     line, linebreak, group, softline, softbreak, align, hang, indent,
@@ -32,10 +32,10 @@ import qualified Data.Text           as T
 import qualified Data.Text.IO        as T
 import           System.IO
 
-import           Data.Text.Prettyprint.Doc
-import qualified Data.Text.Prettyprint.Doc.Render.String     as New
-import qualified Data.Text.Prettyprint.Doc.Render.Text       as New
-import           Data.Text.Prettyprint.Doc.Render.Util.Panic
+import           Prettyprinter
+import qualified Prettyprinter.Render.String     as New
+import qualified Prettyprinter.Render.Text       as New
+import           Prettyprinter.Render.Util.Panic
 
 
 
