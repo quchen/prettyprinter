@@ -1,0 +1,20 @@
+-- configuration for haskell-ci
+-- so we don't need to pass all via command line arguments
+
+-- build only master branch, or PRs to master branch
+branches: master
+
+-- gauge works only with newer GHC
+benchmarks: >=7.8.4
+
+-- Doctests fail with GHC 7.10
+tests: >=8.0
+
+cabal-check: False
+
+hlint: True
+hlint-yaml: .hlint.yaml
+hlint-download-binary: True
+-- haskell-ci runs hlint within the package directories, so the CPP include
+-- path has to be adjusted so it can find version-compatibility-macros.h.
+hlint-options: --cpp-include=misc
