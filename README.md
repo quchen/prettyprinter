@@ -5,6 +5,8 @@
 A modern Wadler/Leijen Prettyprinter
 ====================================
 
+[![](https://img.shields.io/hackage/v/prettyprinter.svg?style=flat-square&label=Hackage&colorB=0a7bbb)](https://hackage.haskell.org/package/prettyprinter)
+
 tl;dr
 -----
 
