@@ -1,4 +1,4 @@
-resolver: lts-13.21
+resolver: lts-17.1
 packages:
     - 'prettyprinter'
     - 'prettyprinter-ansi-terminal'
