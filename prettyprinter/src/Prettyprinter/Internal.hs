@@ -1976,7 +1976,6 @@ layoutWadlerLeijen
     doc
   = best 0 0 (Cons 0 doc Nil)
   where
-
     -- * current column >= current nesting level
     -- * current column - current indentaion = number of chars inserted in line
     best
@@ -1989,8 +1988,8 @@ layoutWadlerLeijen
     best nl cc (Cons i d ds) = case d of
         Fail            -> SFail
         Empty           -> best nl cc ds
-        Char c          -> let !cc' = cc+1 in SChar c (best nl cc' ds)
-        Text l t        -> let !cc' = cc+l in SText l t (best nl cc' ds)
+        Char c          -> SChar c (best nl (cc + 1) ds)
+        Text l t        -> SText l t (best nl (cc + l) ds)
         Line            -> let x = best i i ds
                                -- Don't produce indentation if there's no
                                -- following text on the same line.
@@ -2002,7 +2001,7 @@ layoutWadlerLeijen
                            in SLine i' x
         FlatAlt x _     -> best nl cc (Cons i x ds)
         Cat x y         -> best nl cc (Cons i x (Cons i y ds))
-        Nest j x        -> let !ij = i+j in best nl cc (Cons ij x ds)
+        Nest j x        -> best nl cc (Cons (i + j) x ds)
         Union x y       -> let x' = best nl cc (Cons i x ds)
                                y' = best nl cc (Cons i y ds)
                            in selectNicer nl cc x' y'
