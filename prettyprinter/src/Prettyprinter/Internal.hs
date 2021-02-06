@@ -315,7 +315,7 @@ instance Pretty a => Pretty (NonEmpty a) where
 -- | >>> pretty ()
 -- ()
 --
--- The argument is not used,
+-- The argument is not used:
 --
 -- >>> pretty (error "Strict?" :: ())
 -- ()
@@ -732,13 +732,13 @@ changesUponFlattening = \doc -> case doc of
 -- >>> let prettyDo xs = group ("do" <+> align (encloseSep open close separator xs))
 -- >>> let statements  = ["name:_ <- getArgs", "let greet = \"Hello, \" <> name", "putStrLn greet"]
 --
--- This is put into a single line with @{;}@ style if it fits,
+-- This is put into a single line with @{;}@ style if it fits:
 --
 -- >>> putDocW 80 (prettyDo statements)
 -- do { name:_ <- getArgs; let greet = "Hello, " <> name; putStrLn greet }
 --
 -- When there is not enough space the statements are broken up into lines
--- nicely,
+-- nicely:
 --
 -- >>> putDocW 10 (prettyDo statements)
 -- do name:_ <- getArgs
@@ -778,14 +778,14 @@ flatAlt = FlatAlt
 --
 -- As an example, we will put a document right above another one, regardless of
 -- the current nesting level. Without 'align'ment, the second line is put simply
--- below everything we've had so far,
+-- below everything we've had so far:
 --
 -- >>> "lorem" <+> vsep ["ipsum", "dolor"]
 -- lorem ipsum
 -- dolor
 --
 -- If we add an 'align' to the mix, the @'vsep'@'s contents all start in the
--- same column,
+-- same column:
 --
 -- >>> "lorem" <+> align (vsep ["ipsum", "dolor"])
 -- lorem ipsum
@@ -843,7 +843,7 @@ indent i d = hang i (spaces i <> d)
 -- | @('encloseSep' l r sep xs)@ concatenates the documents @xs@ separated by
 -- @sep@, and encloses the resulting document by @l@ and @r@.
 --
--- The documents are laid out horizontally if that fits the page,
+-- The documents are laid out horizontally if that fits the page:
 --
 -- >>> let doc = "list" <+> align (encloseSep lbracket rbracket comma (map pretty [1,20,300,4000]))
 -- >>> putDocW 80 doc
@@ -934,15 +934,15 @@ infixr 6 <+> -- like <>
 -- 'concatWith' (**) [x,y,z] = x ** y ** z
 -- @
 --
--- Multiple convenience definitions based on 'concatWith' are alredy predefined,
--- for example
+-- Multiple convenience definitions based on 'concatWith' are already predefined,
+-- for example:
 --
 -- @
 -- 'hsep'    = 'concatWith' ('<+>')
 -- 'fillSep' = 'concatWith' (\\x y -> x '<>' 'softline' '<>' y)
 -- @
 --
--- This is also useful to define customized joiners,
+-- This is also useful to define customized joiners:
 --
 -- >>> concatWith (surround dot) ["Prettyprinter", "Render", "Text"]
 -- Prettyprinter.Render.Text
@@ -1092,7 +1092,7 @@ vcat = concatWith (\x y -> x <> line' <> y)
 -- instead of newlines. See 'fillSep' if you want a 'space' instead.)
 --
 -- Observe the difference between 'fillSep' and 'fillCat'. 'fillSep'
--- concatenates the entries 'space'd when 'group'ed,
+-- concatenates the entries 'space'd when 'group'ed:
 --
 -- >>> let docs = take 20 (cycle (["lorem", "ipsum", "dolor", "sit", "amet"]))
 -- >>> putDocW 40 ("Grouped:" <+> group (fillSep docs))
@@ -1102,7 +1102,7 @@ vcat = concatWith (\x y -> x <> line' <> y)
 -- amet
 --
 -- On the other hand, 'fillCat' concatenates the entries directly when
--- 'group'ed,
+-- 'group'ed:
 --
 -- >>> putDocW 40 ("Grouped:" <+> group (fillCat docs))
 -- Grouped: loremipsumdolorsitametlorem
@@ -1120,7 +1120,7 @@ fillCat = concatWith (\x y -> x <> softline' <> y)
 -- >>> putDocW 80 ("Docs:" <+> cat docs)
 -- Docs: loremipsumdolor
 --
--- When there is enough space, the documents are put above one another,
+-- When there is enough space, the documents are put above one another:
 --
 -- >>> putDocW 10 ("Docs:" <+> cat docs)
 -- Docs: lorem
@@ -1364,7 +1364,7 @@ unAnnotate = alterAnnotations (const [])
 -- | Change the annotation of a 'Doc'ument.
 --
 -- Useful in particular to embed documents with one form of annotation in a more
--- generlly annotated document.
+-- generally annotated document.
 --
 -- Since this traverses the entire @'Doc'@ tree, including parts that are not
 -- rendered due to other layouts fitting better, it is preferrable to reannotate
@@ -1511,7 +1511,7 @@ data FusionDepth =
 -- which is only a single 'SimpleDocStream' entry, and can be processed faster.
 --
 -- It is therefore a good idea to run 'fuse' on concatenations of lots of small
--- strings that are used many times,
+-- strings that are used many times:
 --
 -- >>> let oftenUsed = fuse Shallow ("a" <> "b" <> pretty 'c' <> "d")
 -- >>> hsep (replicate 5 oftenUsed)
@@ -1844,7 +1844,7 @@ layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 -- >>> let doc = (fun . fun . fun . fun . fun) (align (list ["abcdef", "ghijklm"]))
 --
 -- which we’ll be rendering using the following pipeline (where the layout
--- algorithm has been left open),
+-- algorithm has been left open):
 --
 -- >>> import Data.Text.IO as T
 -- >>> import Prettyprinter.Render.Text
@@ -1853,7 +1853,7 @@ layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 --
 -- If we render this using 'layoutPretty' with a page width of 26 characters
 -- per line, all the @fun@ calls fit into the first line so they will be put
--- there,
+-- there:
 --
 -- >>> go layoutPretty doc
 -- |------------------------|
