@@ -630,6 +630,24 @@ group x = case x of
 -- See https://github.com/quchen/prettyprinter/issues/22 for the  corresponding
 -- ticket.
 
+-- Note [Group: Optimial placement of Union and loss of information]
+-- 
+-- group will create a 'Union' in place or not at all. A 'Union' for the layout
+-- algorithm represents a branch, and if that branch ends up failing, it would
+-- be beneficial to keep it as short as possible. Thus group could make an extra
+-- effort to push the resulting 'Union' further down or eliminate the branch
+-- altogether. The result would be a fewer and smaller branches and thus cheaper
+-- failure for the layout algorithm.
+-- This approach would not increase the cost of a call to group at all as
+-- changesUponFlattening already traverses deep enough already, however, due to
+-- an unrelated property of group, placing the resulting 'Union' further down or
+-- not at all will harm subsequent calls to group. Currently when calling group
+-- with a document that cannot be flattened or an already flat document the Doc
+-- will not change at all. This looses information as subsequent calls to group
+-- have to come to the same conclusion again and thus retraverse. If we now
+-- place the Union (the only evidence that we have done some work) deeper in the
+-- tree, subsequent calls will have to retraverse even more nodes.
+
 data FlattenResult a
     = Flattened a
     -- ^ @a@ is likely flatter than the input.
