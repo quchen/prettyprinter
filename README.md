@@ -5,12 +5,7 @@
 A modern Wadler/Leijen Prettyprinter
 ====================================
 
-[![](https://img.shields.io/travis/quchen/prettyprinter/master.svg?style=flat-square&label=Master%20build)](https://travis-ci.org/quchen/prettyprinter)
 [![](https://img.shields.io/hackage/v/prettyprinter.svg?style=flat-square&label=Hackage&colorB=0a7bbb)](https://hackage.haskell.org/package/prettyprinter)
-[![](https://www.stackage.org/package/prettyprinter/badge/lts?style=flat-square&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)
-[![](https://www.stackage.org/package/prettyprinter/badge/nightly?style=flat-square&label=stackage%20nightly&colorB=0a7bbb)](https://www.stackage.org/package/prettyprinter)
-
-
 
 tl;dr
 -----

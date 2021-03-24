@@ -1,5 +1,5 @@
 name:                prettyprinter-convert-ansi-wl-pprint
-version:             1.1
+version:             1.1.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            Converter from »ansi-wl-pprint« documents to »prettyprinter«-based ones.
@@ -8,16 +8,11 @@ license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
 author:              David Luposchainsky
-maintainer:          David Luposchainsky <dluposchainsky at google>
+maintainer:          Simon Jakobi <simon.jakobi@gmail.com>, David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
-tested-with:         GHC == 7.8.4
-                   , GHC == 7.10.2
-                   , GHC == 7.10.3
-                   , GHC == 8.0.1
-                   , GHC == 8.0.2
-                   , GHC == 8.2.2
+tested-with:         GHC==8.10.3, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2
 
 source-repository head
   type: git
@@ -25,6 +20,7 @@ source-repository head
 
 library
     exposed-modules:  Data.Text.Prettyprint.Convert.AnsiWlPprint
+                    , Prettyprinter.Convert.AnsiWlPprint
     ghc-options:      -Wall
     hs-source-dirs:   src
     default-language: Haskell2010

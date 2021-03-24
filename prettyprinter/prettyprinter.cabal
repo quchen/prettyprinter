@@ -1,5 +1,5 @@
 name:                prettyprinter
-version:             1.6.0
+version:             1.7.0
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            A modern, easy to use, well-documented, extensible pretty-printer.
@@ -9,11 +9,12 @@ license-file:        LICENSE.md
 extra-source-files:  README.md
                    , CHANGELOG.md
                    , misc/version-compatibility-macros.h
-author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky
-maintainer:          David Luposchainsky <dluposchainsky at google>
+author:              Phil Wadler, Daan Leijen, Max Bolingbroke, Edward Kmett, David Luposchainsky, Simon Jakobi
+maintainer:          Simon Jakobi <simon.jakobi@gmail.com>, David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
+tested-with:         GHC==8.10.3, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2
 
 
 
@@ -25,7 +26,23 @@ source-repository head
 
 library
     exposed-modules:
-          Data.Text.Prettyprint.Doc
+          Prettyprinter
+        , Prettyprinter.Internal
+        , Prettyprinter.Internal.Debug
+        , Prettyprinter.Internal.Type
+        , Prettyprinter.Render.String
+        , Prettyprinter.Render.Text
+        , Prettyprinter.Render.Tutorials.StackMachineTutorial
+        , Prettyprinter.Render.Tutorials.TreeRenderingTutorial
+        , Prettyprinter.Render.Util.Panic
+        , Prettyprinter.Render.Util.SimpleDocTree
+        , Prettyprinter.Render.Util.StackMachine
+        , Prettyprinter.Util
+
+        , Prettyprinter.Symbols.Unicode
+        , Prettyprinter.Symbols.Ascii
+
+        , Data.Text.Prettyprint.Doc
         , Data.Text.Prettyprint.Doc.Internal
         , Data.Text.Prettyprint.Doc.Internal.Debug
         , Data.Text.Prettyprint.Doc.Internal.Type
@@ -41,10 +58,7 @@ library
         , Data.Text.Prettyprint.Doc.Symbols.Unicode
         , Data.Text.Prettyprint.Doc.Symbols.Ascii
 
-        -- Deprecated
-        , Data.Text.Prettyprint.Doc.Render.ShowS
-
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
     hs-source-dirs: src
     include-dirs: misc
     default-language: Haskell2010
@@ -65,7 +79,7 @@ library
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
     if !impl(ghc >= 8.0)
-        build-depends: semigroups >= 0.16.1
+        build-depends: semigroups >= 0.17
         build-depends: fail >= 4.9.0.0 && <4.10
     if !impl(ghc >= 7.10)
         build-depends: void >=0.4 && <0.8
@@ -123,7 +137,7 @@ test-suite testsuite
         , prettyprinter
 
         , pgp-wordlist     >= 0.1
-        , bytestring       >= 0.10
+        , bytestring
         , quickcheck-instances >= 0.3
         , tasty            >= 0.10
         , tasty-hunit      >= 0.9

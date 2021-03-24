@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS_GHC -Wno-orphans   #-}
+{-# OPTIONS_GHC -fno-warn-orphans   #-}
 
 #include "version-compatibility-macros.h"
 
@@ -16,7 +16,6 @@ import           Data.Word
 import           System.Timeout        (timeout)
 
 import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Internal
 import           Data.Text.Prettyprint.Doc.Internal.Debug
 import           Data.Text.Prettyprint.Doc.Render.Text
 import           Data.Text.Prettyprint.Doc.Render.Util.StackMachine (renderSimplyDecorated)
@@ -89,6 +88,10 @@ tests = testGroup "Tests"
             [ testCase "Line" regressionUnboundedGroupedLine
             , testCase "Line within align" regressionUnboundedGroupedLineWithinAlign
             ]
+        , testCase "Indentation on otherwise empty lines results in trailing whitespace (#139)"
+                   indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
+        , testCase "Ribbon width should be computed with `floor` instead of `round` (#157)"
+                   computeRibbonWidthWithFloor
         ]
         , testGroup "Group" [
             testProperty "simpleGroup == group" groupLayoutEqualsSimpleGroupLayout
@@ -213,11 +216,8 @@ data Layouter ann
     = LayoutPretty LayoutOptions
     | LayoutSmart LayoutOptions
     | LayoutCompact
-    | LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
+    -- LayoutWadlerLeijen (FittingPredicate ann) LayoutOptions
     deriving Show
-
-instance Show (FittingPredicate ann) where
-    show _ = "<fitting predicate>"
 
 instance Arbitrary (Layouter ann) where
     arbitrary = oneof
@@ -228,20 +228,25 @@ instance Arbitrary (Layouter ann) where
         -- , LayoutWadlerLeijen <$> arbitrary <*> arbitrary
         ]
 
+{-
+instance Show (FittingPredicate ann) where
+    show _ = "<fitting predicate>"
+
+instance Arbitrary (FittingPredicate ann) where
+    arbitrary = FittingPredicate <$> arbitrary
+-}
+
 layout :: Layouter ann -> Doc ann -> SimpleDocStream ann
 layout (LayoutPretty opts) = layoutPretty opts
 layout (LayoutSmart opts) = layoutSmart opts
 layout LayoutCompact = layoutCompact
-layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
+-- layout (LayoutWadlerLeijen fp opts) = layoutWadlerLeijen fp opts
 
 instance Arbitrary LayoutOptions where
     arbitrary = LayoutOptions <$> oneof
         [ AvailablePerLine <$> arbitrary <*> arbitrary
         , pure Unbounded
         ]
-
-instance Arbitrary (FittingPredicate ann) where
-    arbitrary = FittingPredicate <$> arbitrary
 
 instance CoArbitrary (SimpleDocStream ann) where
     coarbitrary s0 = case s0 of
@@ -316,19 +321,21 @@ doNotRemoveLeadingWhitespaceText :: Assertion
 doNotRemoveLeadingWhitespaceText
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SText 2 "  " (SChar 'x' SEmpty))
-    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+        sdoc' = SLine 2 (SChar 'x' SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 doNotRemoveLeadingWhitespaceChar :: Assertion
 doNotRemoveLeadingWhitespaceChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SChar 'x' SEmpty))
-    in assertEqual "" sdoc (removeTrailingWhitespace sdoc)
+        sdoc' = SLine 1 (SChar 'x' SEmpty)
+    in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 doNotRemoveLeadingWhitespaceTextChar :: Assertion
 doNotRemoveLeadingWhitespaceTextChar
   = let sdoc :: SimpleDocStream ()
         sdoc = SLine 0 (SChar ' ' (SText 2 "  " (SChar 'x' SEmpty)))
-        sdoc' = SLine 0 (SText 3 "   " (SChar 'x' SEmpty))
+        sdoc' = SLine 3 (SChar 'x' SEmpty)
     in assertEqual "" sdoc' (removeTrailingWhitespace sdoc)
 
 removeTrailingWhitespaceKeepTrailingNewline :: Assertion
@@ -390,4 +397,20 @@ regressionUnboundedGroupedLineWithinAlign
         doc = group (align ("x" <> hardline <> "y"))
         sdoc = layoutPretty (LayoutOptions Unbounded) doc
         expected = SChar 'x' (SLine 0 (SChar 'y' SEmpty))
+    in assertEqual "" expected sdoc
+
+indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines :: Assertion
+indentationShouldntCauseTrailingWhitespaceOnOtherwiseEmptyLines
+  = let doc :: Doc ()
+        doc = indent 1 ("x" <> hardline <> hardline <> "y" <> hardline)
+        sdoc = layoutPretty (LayoutOptions Unbounded) doc
+        expected = SChar ' ' (SChar 'x' (SLine 0 (SLine 1 (SChar 'y' (SLine 0 SEmpty)))))
+    in assertEqual "" expected sdoc
+
+computeRibbonWidthWithFloor :: Assertion
+computeRibbonWidthWithFloor
+  = let doc :: Doc ()
+        doc = "a" <> softline' <> "b"
+        sdoc = layoutPretty (LayoutOptions (AvailablePerLine 3 0.5)) doc
+        expected = SChar 'a' (SLine 0 (SChar 'b' SEmpty))
     in assertEqual "" expected sdoc

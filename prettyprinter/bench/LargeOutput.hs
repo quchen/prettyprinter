@@ -183,12 +183,27 @@ main = do
         (progLines, progWidth) = let l = TL.lines renderedProg in (length l, maximum (map TL.length l))
     putDoc ("Program size:" <+> pretty progLines <+> "lines, maximum width:" <+> pretty progWidth)
 
-    rnf prog `seq` T.putStrLn "Staring benchmark…"
+    let renderWith :: (Doc ann -> SimpleDocStream ann) -> Program -> TL.Text
+        renderWith f = renderLazy . f . pretty
+
+    let _80ColumnsLayoutOptions = defaultLayoutOptions { layoutPageWidth = AvailablePerLine 80 0.5 }
+        unboundedLayoutOptions  = defaultLayoutOptions { layoutPageWidth = Unbounded }
+
+    rnf prog `seq` T.putStrLn "Starting benchmark…"
+
     defaultMain
         [ bgroup "80 characters, 50% ribbon"
-            [ bench "prettyprinter" (nf (renderLazy . layoutPretty defaultLayoutOptions { layoutPageWidth = AvailablePerLine 80 0.5 } . pretty) prog)
+            [ bgroup "prettyprinter"
+                [ bench "layoutPretty"  (nf (renderWith (layoutPretty _80ColumnsLayoutOptions)) prog)
+                , bench "layoutSmart"   (nf (renderWith (layoutSmart  _80ColumnsLayoutOptions)) prog)
+                , bench "layoutCompact" (nf (renderWith layoutCompact                         ) prog)
+                ]
             , bench "ansi-wl-pprint" (nf (($ "") . WL.displayS . WL.renderPretty 0.5 80 . WL.pretty) prog) ]
         , bgroup "Infinite/large page width"
-            [ bench "prettyprinter" (nf (renderLazy . layoutPretty defaultLayoutOptions { layoutPageWidth = Unbounded } . pretty) prog)
+            [ bgroup "prettyprinter"
+                [ bench "layoutPretty"  (nf (renderWith (layoutPretty unboundedLayoutOptions)) prog)
+                , bench "layoutSmart"   (nf (renderWith (layoutSmart  unboundedLayoutOptions)) prog)
+                , bench "layoutCompact" (nf (renderWith layoutCompact                        ) prog)
+                ]
             , bench "ansi-wl-pprint" (nf (($ "") . WL.displayS . WL.renderPretty 1 (fromIntegral progWidth + 10) . WL.pretty) prog) ]
         ]
