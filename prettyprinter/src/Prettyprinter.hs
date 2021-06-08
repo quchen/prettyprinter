@@ -38,7 +38,10 @@
 -- Let’s prettyprint a simple Haskell type definition. First, intersperse @->@
 -- and add a leading @::@,
 --
--- >>> let prettyType = align . sep . zipWith (<+>) ("::" : repeat "->")
+-- >>> :{
+-- >>> prettyprintType :: [Doc x] -> Doc x
+-- >>> prettyprintType = align . sep . zipWith (<+>) ("::" : repeat "->")
+-- >>> :}
 --
 -- The 'sep' function is one way of concatenating documents, there are multiple
 -- others, e.g. 'vsep', 'cat' and 'fillSep'. In our case, 'sep' space-separates
@@ -47,11 +50,11 @@
 --
 -- Second, prepend the name to the type,
 --
--- >>> let prettyDecl n tys = pretty n <+> prettyType tys
+-- >>> let prettyprintDeclaration n tys = pretty n <+> prettyprintType tys
 --
 -- Now we can define a document that contains some type signature:
 --
--- >>> let doc = prettyDecl "example" ["Int", "Bool", "Char", "IO ()"]
+-- >>> let doc = prettyprintDeclaration "example" ["Int", "Bool", "Char", "IO ()"]
 --
 -- This document can now be printed, and it automatically adapts to available
 -- space. If the page is wide enough (80 characters in this case), the
