@@ -69,7 +69,17 @@ library
 
     build-depends:
           base >= 4.5 && < 5
-        , text >= 1.2
+
+    if flag(text)
+        build-depends: text >= 1.2
+    else
+        -- A fake text package, emulating the same API, but backed by String
+        hs-source-dirs: src-text
+        other-modules:
+              Data.Text
+            , Data.Text.IO
+            , Data.Text.Lazy
+            , Data.Text.Lazy.Builder
 
     if !impl(ghc >= 7.6)
         build-depends: ghc-prim
@@ -88,6 +98,14 @@ Flag buildReadme
   Description: Build the readme generator
   Default:     False
 
+Flag text
+  Description: While it's a core value of @prettyprinter@ to use @Text@, there are rare
+               circumstances (mostly when @prettyprinter@ arises as a dependency of
+               test suites of packages like @bytestring@ or @text@ themselves) when
+               this is inconvenient. In this case one can disable this flag, so that
+               @prettyprinter@ fallbacks to @String@.
+  Default:     True
+
 
 executable generate_readme
     hs-source-dirs: app
@@ -103,7 +121,7 @@ executable generate_readme
     other-extensions: OverloadedStrings
                     , TemplateHaskell
                     , QuasiQuotes
-    if flag(buildReadme)
+    if flag(buildReadme) && flag(text)
         buildable: True
     else
         buildable: False
@@ -147,6 +165,8 @@ test-suite testsuite
     if !impl(ghc >= 8.0)
         build-depends: semigroups >= 0.6
 
+    if !flag(text)
+        buildable: False
 
 
 benchmark fusion
@@ -167,6 +187,9 @@ benchmark fusion
     default-language: Haskell2010
     other-extensions: OverloadedStrings
 
+    if !flag(text)
+        buildable: False
+
 benchmark faster-unsafe-text
     build-depends:
           base >= 4.5 && < 5
@@ -181,6 +204,8 @@ benchmark faster-unsafe-text
     default-language:    Haskell2010
     type:                exitcode-stdio-1.0
 
+    if !flag(text)
+        buildable: False
 
 benchmark large-output
     build-depends:
@@ -206,3 +231,6 @@ benchmark large-output
 
     if !impl(ghc >= 8.0)
         build-depends: semigroups
+
+    if !flag(text)
+        buildable: False
