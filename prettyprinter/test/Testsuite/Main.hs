@@ -17,7 +17,11 @@ import           System.Timeout        (timeout)
 
 import           Data.Text.Prettyprint.Doc
 import           Data.Text.Prettyprint.Doc.Internal.Debug
+#ifdef MIN_VERSION_text
 import           Data.Text.Prettyprint.Doc.Render.Text
+#else
+import           Data.Text.Prettyprint.Doc.Render.String
+#endif
 import           Data.Text.Prettyprint.Doc.Render.Util.StackMachine (renderSimplyDecorated)
 
 import Test.QuickCheck.Instances.Text ()
@@ -138,7 +142,7 @@ content = frequency
     [ (1, pure emptyDoc)
     , (10, do word <- choose (minBound, maxBound :: Word8)
               let pgp8Word = toText (BSL.singleton word)
-              pure (pretty pgp8Word) )
+              pure (pretty (read (show pgp8Word) :: T.Text)) )
     , (1, (fmap pretty . elements . mconcat)
               [ ['a'..'z']
               , ['A'..'Z']
@@ -400,3 +404,8 @@ computeRibbonWidthWithFloor
         sdoc = layoutPretty (LayoutOptions (AvailablePerLine 3 0.5)) doc
         expected = SChar 'a' (SLine 0 (SChar 'b' SEmpty))
     in assertEqual "" expected sdoc
+
+#ifndef MIN_VERSION_text
+renderStrict :: SimpleDocStream ann -> String
+renderStrict = renderString
+#endif

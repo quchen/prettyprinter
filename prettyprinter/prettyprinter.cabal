@@ -1,6 +1,6 @@
 name:                prettyprinter
 version:             1.7.0
-cabal-version:       >= 1.10
+cabal-version:       2.0
 category:            User Interfaces, Text
 synopsis:            A modern, easy to use, well-documented, extensible pretty-printer.
 description:         A modern, easy to use, well-documented, extensible pretty-printer. For more see README.md
@@ -73,13 +73,7 @@ library
     if flag(text)
         build-depends: text >= 1.2
     else
-        -- A fake text package, emulating the same API, but backed by String
-        hs-source-dirs: src-text
-        other-modules:
-              Data.Text
-            , Data.Text.IO
-            , Data.Text.Lazy
-            , Data.Text.Lazy.Builder
+        build-depends: fake-text
 
     if !impl(ghc >= 7.6)
         build-depends: ghc-prim
@@ -92,7 +86,19 @@ library
     if !impl(ghc >= 7.10)
         build-depends: void >=0.4 && <0.8
 
-
+-- A fake text package, emulating the same API, but backed by String
+library fake-text
+    build-depends: base
+    ghc-options: -Wall -O2
+    default-language: Haskell2010
+    hs-source-dirs: src-text
+    exposed-modules:
+          Data.Text
+        , Data.Text.IO
+        , Data.Text.Lazy
+        , Data.Text.Lazy.Builder
+    if flag(text)
+        buildable: False
 
 Flag buildReadme
   Description: Build the readme generator
@@ -158,16 +164,16 @@ test-suite testsuite
         , tasty            >= 0.10
         , tasty-hunit      >= 0.9
         , tasty-quickcheck >= 0.8
-        , text
     ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
     default-language: Haskell2010
 
     if !impl(ghc >= 8.0)
         build-depends: semigroups >= 0.6
 
-    if !flag(text)
-        buildable: False
-
+    if flag(text)
+        build-depends: text
+    else
+        build-depends: fake-text
 
 benchmark fusion
     type: exitcode-stdio-1.0

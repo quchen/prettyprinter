@@ -32,5 +32,5 @@ jobs:
       with:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
         key: ${{ runner.os }}-${{ matrix.ghc }}
-    - name: Build
-      run: cabal build -f-text prettyprinter:prettyprinter
+    - name: Test
+      run: cabal test -f-text prettyprinter:test:testsuite
