@@ -23,7 +23,7 @@ module Prettyprinter.Convert.AnsiWlPprint (
 
 import qualified Data.Text as T
 
-import qualified Prettyprinter.Doc.Internal             as New
+import qualified Prettyprinter.Internal                 as New
 import qualified Prettyprinter.Render.Terminal.Internal as NewTerm
 import qualified System.Console.ANSI                    as Ansi
 import qualified Text.PrettyPrint.ANSI.Leijen.Internal  as Old
