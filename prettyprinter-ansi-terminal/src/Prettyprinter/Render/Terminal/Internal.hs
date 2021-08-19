@@ -49,8 +49,8 @@ import qualified Data.Text.Lazy.Builder as TLB
 import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, hPutChar, stdout)
 
-import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.Util.Panic
+import Prettyprinter
+import Prettyprinter.Util.Panic
 
 #if !(SEMIGROUP_MONOID_SUPERCLASS)
 import Data.Semigroup

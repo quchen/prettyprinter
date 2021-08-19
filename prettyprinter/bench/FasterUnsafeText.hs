@@ -6,9 +6,9 @@ module Main (main) where
 
 import           Gauge.Main
 import           Data.Char
-import           Data.Text                          (Text)
-import qualified Data.Text                          as T
-import           Data.Text.Prettyprint.Doc.Internal
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import           Prettyprinter.Internal
 
 
 

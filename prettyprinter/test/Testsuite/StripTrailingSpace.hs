@@ -10,8 +10,8 @@ module StripTrailingSpace (testStripTrailingSpace) where
 import           Data.Text (Text)
 import qualified Data.Text as T
 
-import Data.Text.Prettyprint.Doc
-import Data.Text.Prettyprint.Doc.Render.Util.StackMachine
+import Prettyprinter
+import Prettyprinter.Render.Util.StackMachine
 
 import Test.Tasty
 import Test.Tasty.HUnit

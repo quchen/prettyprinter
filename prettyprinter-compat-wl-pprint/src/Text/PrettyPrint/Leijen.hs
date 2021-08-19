@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 
-module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of wl-pprint - use Data.Text.Prettyprint.Doc instead" #-} (
+module Text.PrettyPrint.Leijen {-# DEPRECATED "Compatibility module for users of wl-pprint - use \"Prettyprinter\" instead" #-} (
 
     Doc, putDoc, hPutDoc, empty, char, text, (<>), nest, line, linebreak, group,
     softline, softbreak, align, hang, indent, encloseSep, list, tupled,
@@ -25,9 +25,9 @@ import Prelude
 import qualified Data.Text.Lazy as TL
 import           System.IO
 
-import           Data.Text.Prettyprint.Doc             (Pretty (..))
-import qualified Data.Text.Prettyprint.Doc             as New
-import qualified Data.Text.Prettyprint.Doc.Render.Text as NewT
+import           Prettyprinter             (Pretty (..))
+import qualified Prettyprinter             as New
+import qualified Prettyprinter.Render.Text as NewT
 
 #if !(MIN_VERSION_base(4,11,0))
 import Data.Semigroup

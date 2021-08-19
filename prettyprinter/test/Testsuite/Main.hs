@@ -15,10 +15,10 @@ import           Data.Text.PgpWordlist
 import           Data.Word
 import           System.Timeout        (timeout)
 
-import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Internal.Debug
-import           Data.Text.Prettyprint.Doc.Render.Text
-import           Data.Text.Prettyprint.Doc.Render.Util.StackMachine (renderSimplyDecorated)
+import           Prettyprinter
+import           Prettyprinter.Internal.Debug
+import           Prettyprinter.Render.Text
+import           Prettyprinter.Render.Util.StackMachine (renderSimplyDecorated)
 
 import Test.QuickCheck.Instances.Text ()
 import Test.Tasty

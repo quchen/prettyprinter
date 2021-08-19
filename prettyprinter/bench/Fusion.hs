@@ -14,9 +14,9 @@ import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           System.Random
 
-import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Render.Text
-import qualified Text.PrettyPrint.ANSI.Leijen          as WL
+import           Prettyprinter
+import           Prettyprinter.Render.Text
+import qualified Text.PrettyPrint.ANSI.Leijen as WL
 
 #if !(APPLICATIVE_MONAD)
 import Control.Applicative
