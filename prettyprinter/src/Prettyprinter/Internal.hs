@@ -339,7 +339,11 @@ instance Pretty Char where
     pretty '\n' = line
     pretty c = Char c
 
+#ifdef MIN_VERSION_text
     prettyList = pretty . (id :: Text -> Text) . fromString
+#else
+    prettyList = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+#endif
 
 -- | Convenience function to convert a 'Show'able value to a 'Doc'. If the
 -- 'String' does not contain newlines, consider using the more performant
@@ -435,6 +439,7 @@ instance Pretty a => Pretty (Maybe a) where
     pretty = maybe mempty pretty
     prettyList = prettyList . catMaybes
 
+#ifdef MIN_VERSION_text
 -- | Automatically converts all newlines to @'line'@.
 --
 -- >>> pretty ("hello\nworld" :: Text)
@@ -451,6 +456,7 @@ instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.spl
 
 -- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
+#endif
 
 -- | Finding a good example for printing something that does not exist is hard,
 -- so here is an example of printing a list full of nothing.
