@@ -50,7 +50,7 @@ import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, hPutChar, stdout)
 
 import Prettyprinter
-import Prettyprinter.Util.Panic
+import Prettyprinter.Render.Util.Panic
 
 #if !(SEMIGROUP_MONOID_SUPERCLASS)
 import Data.Semigroup
