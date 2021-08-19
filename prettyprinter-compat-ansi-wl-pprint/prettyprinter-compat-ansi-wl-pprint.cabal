@@ -30,7 +30,7 @@ library
     build-depends:
           base                        >= 4.5 && < 5 && < 5
         , text                        >= 1.2
-        , prettyprinter               >= 1
+        , prettyprinter               >= 1.7.0
         , prettyprinter-ansi-terminal >= 1.1
 
     if !impl(ghc >= 8.0)
