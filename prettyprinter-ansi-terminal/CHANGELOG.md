@@ -1,3 +1,11 @@
+# [1.1.3]
+
+- [Deprecate the `Data.Text.Prettyprint.*` modules](https://github.com/quchen/prettyprinter/pull/203)
+  * Users should migrate to the new `Prettyprinter` module hierarchy.
+  * The old modules will be removed no sooner than September 2022.
+
+[1.1.3]: https://github.com/quchen/prettyprinter/compare/ansi-terminal-v1.1.2...ansi-terminal-v1.1.3
+
 # [1.1.2]
 
 - [Add shallower `Prettyprinter` module hierarchy exposing the same API.](https://github.com/quchen/prettyprinter/pull/174)
