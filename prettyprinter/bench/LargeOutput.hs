@@ -18,8 +18,8 @@ import           Data.Text                             (Text)
 import qualified Data.Text                             as T
 import qualified Data.Text.IO                          as T
 import qualified Data.Text.Lazy                        as TL
-import           Data.Text.Prettyprint.Doc
-import           Data.Text.Prettyprint.Doc.Render.Text
+import           Prettyprinter
+import           Prettyprinter.Render.Text
 import           GHC.Generics
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
