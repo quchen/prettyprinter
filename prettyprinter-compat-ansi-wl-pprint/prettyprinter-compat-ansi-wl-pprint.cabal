@@ -1,5 +1,5 @@
 name:                prettyprinter-compat-ansi-wl-pprint
-version:             1.0.1
+version:             1.0.2
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            Drop-in compatibility package to migrate from »ansi-wl-pprint« to »prettyprinter«.
