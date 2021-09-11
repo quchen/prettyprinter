@@ -1,3 +1,16 @@
+# [1.7.1]
+
+- [Deprecate the `Data.Text.Prettyprint.*` modules](https://github.com/quchen/prettyprinter/pull/203)
+  * Users should migrate to the new `Prettyprinter` module hierarchy.
+  * The old modules will be removed no sooner than September 2022.
+- [Make `text` an optional dependency:](https://github.com/quchen/prettyprinter/pull/202)
+  * When built with `-f-text`, any `text`-based APIs will operate on `String`s instead.
+- Documentation improvements:
+  * [#194](https://github.com/quchen/prettyprinter/pull/194)
+  * [`1f0bffe`](https://github.com/quchen/prettyprinter/commit/1f0bffe5eb53874d1ba46b0a80bda67c02365f1b)
+
+[1.7.1]: https://github.com/quchen/prettyprinter/compare/v1.7.0...v1.7.1
+
 # [1.7.0]
 
 ## Breaking changes
