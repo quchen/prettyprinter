@@ -35,4 +35,4 @@ jobs:
     - name: Build
       # -optl-no-pie is a workaround for an issue with GHC 7.10.3:
       # https://gitlab.haskell.org/haskell/ghcup-hs/-/issues/123
-      run: cabal build --ghc-option=-optl-no-pie --ghc-option=-optc-no-pie -f-text prettyprinter:prettyprinter
+      run: cabal build --ghc-option=-optl-no-pie -f-text prettyprinter:prettyprinter
