@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -103,7 +102,7 @@ prettyLambdaForm (LambdaForm free bound body) = prettyExp . (<+> anCol Blue "->"
     prettyExp = (<+> prettyExpr body)
 
 prettyExpr :: Expr -> Doc AnsiStyle
-prettyExpr = \case
+prettyExpr = \expr -> case expr of
     Let binds body ->
         align (vsep [ anCol Red "let" <+> align (prettyBinds binds)
                     , anCol Red "in" <+> prettyExpr body ])

@@ -75,3 +75,6 @@ benchmark large-output
     ghc-options:         -O2 -rtsopts -Wall
     default-language:    Haskell2010
     type:                exitcode-stdio-1.0
+
+    if !impl(ghc >= 7.6)
+        build-depends: ghc-prim
