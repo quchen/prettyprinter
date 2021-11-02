@@ -19,7 +19,6 @@ import           Data.Text                             (Text)
 import qualified Data.Text                             as T
 import qualified Data.Text.IO                          as T
 import qualified Data.Text.Lazy                        as TL
-import           Gauge
 import           GHC.Generics
 import           Prettyprinter
 import           Prettyprinter.Render.Terminal         as Terminal
@@ -27,6 +26,7 @@ import qualified Prettyprinter.Render.Text             as Text
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
+import           Test.Tasty.Bench
 
 
 

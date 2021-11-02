@@ -64,7 +64,7 @@ benchmark large-output
         , base-compat >=0.9.3 && <0.12
         , containers
         , deepseq
-        , gauge >= 0.2
+        , tasty-bench >= 0.2
         , prettyprinter
         , prettyprinter-ansi-terminal
         , QuickCheck >= 2.7
