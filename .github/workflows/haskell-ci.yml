@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.13.20210901
+# version: 0.13.20211030
 #
-# REGENDATA ("0.13.20210901",["github","--config=cabal.haskell-ci","cabal.project"])
+# REGENDATA ("0.13.20211030",["github","--config=cabal.haskell-ci","cabal.project"])
 #
 name: Haskell-CI
 on:
@@ -30,15 +30,20 @@ jobs:
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.2.1
+            compilerKind: ghc
+            compilerVersion: 9.2.1
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.0.1
             compilerKind: ghc
             compilerVersion: 9.0.1
             setup-method: hvr-ppa
             allow-failure: false
-          - compiler: ghc-8.10.4
+          - compiler: ghc-8.10.7
             compilerKind: ghc
-            compilerVersion: 8.10.4
-            setup-method: hvr-ppa
+            compilerVersion: 8.10.7
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.8.4
             compilerKind: ghc
@@ -91,9 +96,21 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common libtinfo5
-          apt-add-repository -y 'ppa:hvr/ghc'
-          apt-get update
-          apt-get install -y "$HCNAME" cabal-install-3.4
+          if [ "${{ matrix.setup-method }}" = ghcup ]; then
+            mkdir -p "$HOME/.ghcup/bin"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            chmod a+x "$HOME/.ghcup/bin/ghcup"
+            "$HOME/.ghcup/bin/ghcup" install ghc "$HCVER"
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+          else
+            apt-add-repository -y 'ppa:hvr/ghc'
+            apt-get update
+            apt-get install -y "$HCNAME"
+            mkdir -p "$HOME/.ghcup/bin"
+            curl -sL https://downloads.haskell.org/ghcup/0.1.17.3/x86_64-linux-ghcup-0.1.17.3 > "$HOME/.ghcup/bin/ghcup"
+            chmod a+x "$HOME/.ghcup/bin/ghcup"
+            "$HOME/.ghcup/bin/ghcup" install cabal 3.6.2.0
+          fi
         env:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
@@ -105,15 +122,24 @@ jobs:
           echo "CABAL_DIR=$HOME/.cabal" >> "$GITHUB_ENV"
           echo "CABAL_CONFIG=$HOME/.cabal/config" >> "$GITHUB_ENV"
           HCDIR=/opt/$HCKIND/$HCVER
-          HC=$HCDIR/bin/$HCKIND
-          echo "HC=$HC" >> "$GITHUB_ENV"
-          echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
-          echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
-          echo "CABAL=/opt/cabal/3.4/bin/cabal -vnormal+nowrap" >> "$GITHUB_ENV"
+          if [ "${{ matrix.setup-method }}" = ghcup ]; then
+            HC=$HOME/.ghcup/bin/$HCKIND-$HCVER
+            echo "HC=$HC" >> "$GITHUB_ENV"
+            echo "HCPKG=$HOME/.ghcup/bin/$HCKIND-pkg-$HCVER" >> "$GITHUB_ENV"
+            echo "HADDOCK=$HOME/.ghcup/bin/haddock-$HCVER" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.6.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          else
+            HC=$HCDIR/bin/$HCKIND
+            echo "HC=$HC" >> "$GITHUB_ENV"
+            echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
+            echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
+            echo "CABAL=$HOME/.ghcup/bin/cabal-3.6.2.0 -vnormal+nowrap" >> "$GITHUB_ENV"
+          fi
+
           HCNUMVER=$(${HC} --numeric-version|perl -ne '/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/; print(10000 * $1 + 100 * $2 + ($3 == 0 ? $5 != 1 : $3))')
           echo "HCNUMVER=$HCNUMVER" >> "$GITHUB_ENV"
-          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV" ; else echo "ARG_TESTS=--disable-tests" >> "$GITHUB_ENV" ; fi
-          if [ $((HCNUMVER >= 70800)) -ne 0 ] ; then echo "ARG_BENCH=--enable-benchmarks" >> "$GITHUB_ENV" ; else echo "ARG_BENCH=--disable-benchmarks" >> "$GITHUB_ENV" ; fi
+          if [ $((HCNUMVER >= 80000 && HCNUMVER < 90200)) -ne 0 ] ; then echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV" ; else echo "ARG_TESTS=--disable-tests" >> "$GITHUB_ENV" ; fi
+          if [ $((HCNUMVER >= 70800 && HCNUMVER < 90200)) -ne 0 ] ; then echo "ARG_BENCH=--enable-benchmarks" >> "$GITHUB_ENV" ; else echo "ARG_BENCH=--disable-benchmarks" >> "$GITHUB_ENV" ; fi
           echo "HEADHACKAGE=false" >> "$GITHUB_ENV"
           echo "ARG_COMPILER=--$HCKIND --with-compiler=$HC" >> "$GITHUB_ENV"
           echo "GHCJSARITH=0" >> "$GITHUB_ENV"
@@ -155,7 +181,7 @@ jobs:
       - name: cache (tools)
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-a23eff0a
+          key: ${{ runner.os }}-${{ matrix.compiler }}-tools-dcc1b9f0
           path: ~/.haskell-ci-tools
       - name: install cabal-plan
         run: |
@@ -168,10 +194,10 @@ jobs:
           cabal-plan --version
       - name: install hlint
         run: |
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then HLINTVER=$(cd /tmp && (${CABAL} v2-install -v $ARG_COMPILER --dry-run hlint  --constraint='hlint >=3.3 && <3.4' |  perl -ne 'if (/\bhlint-(\d+(\.\d+)*)\b/) { print "$1"; last; }')); echo "HLint version $HLINTVER" ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then if [ ! -e $HOME/.haskell-ci-tools/hlint-$HLINTVER/hlint ]; then echo "Downloading HLint version $HLINTVER"; mkdir -p $HOME/.haskell-ci-tools; curl --write-out 'Status Code: %{http_code} Redirects: %{num_redirects} Total time: %{time_total} Total Dsize: %{size_download}\n' --silent --location --output $HOME/.haskell-ci-tools/hlint-$HLINTVER.tar.gz "https://github.com/ndmitchell/hlint/releases/download/v$HLINTVER/hlint-$HLINTVER-x86_64-linux.tar.gz"; tar -xzv -f $HOME/.haskell-ci-tools/hlint-$HLINTVER.tar.gz -C $HOME/.haskell-ci-tools; fi ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then mkdir -p $CABAL_DIR/bin && ln -sf "$HOME/.haskell-ci-tools/hlint-$HLINTVER/hlint" $CABAL_DIR/bin/hlint ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then hlint --version ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then HLINTVER=$(cd /tmp && (${CABAL} v2-install -v $ARG_COMPILER --dry-run hlint  --constraint='hlint >=3.3 && <3.4' |  perl -ne 'if (/\bhlint-(\d+(\.\d+)*)\b/) { print "$1"; last; }')); echo "HLint version $HLINTVER" ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then if [ ! -e $HOME/.haskell-ci-tools/hlint-$HLINTVER/hlint ]; then echo "Downloading HLint version $HLINTVER"; mkdir -p $HOME/.haskell-ci-tools; curl --write-out 'Status Code: %{http_code} Redirects: %{num_redirects} Total time: %{time_total} Total Dsize: %{size_download}\n' --silent --location --output $HOME/.haskell-ci-tools/hlint-$HLINTVER.tar.gz "https://github.com/ndmitchell/hlint/releases/download/v$HLINTVER/hlint-$HLINTVER-x86_64-linux.tar.gz"; tar -xzv -f $HOME/.haskell-ci-tools/hlint-$HLINTVER.tar.gz -C $HOME/.haskell-ci-tools; fi ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then mkdir -p $CABAL_DIR/bin && ln -sf "$HOME/.haskell-ci-tools/hlint-$HLINTVER/hlint" $CABAL_DIR/bin/hlint ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then hlint --version ; fi
       - name: checkout
         uses: actions/checkout@v2
         with:
@@ -256,16 +282,16 @@ jobs:
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --write-ghc-environment-files=always
       - name: tests
         run: |
-          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct ; fi
+          if [ $((HCNUMVER >= 80000 && HCNUMVER < 90200)) -ne 0 ] ; then $CABAL v2-test $ARG_COMPILER $ARG_TESTS $ARG_BENCH all --test-show-details=direct ; fi
       - name: hlint
         run: |
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src src-text) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc app) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_ansi_terminal} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_ansi_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_convert_ansi_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
-          if [ $((HCNUMVER >= 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_annotated_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src src-text) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc app) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_ansi_terminal} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_ansi_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_convert_ansi_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
+          if [ $((HCNUMVER >= 81000 && HCNUMVER < 90000)) -ne 0 ] ; then (cd ${PKGDIR_prettyprinter_compat_annotated_wl_pprint} && hlint -h ${GITHUB_WORKSPACE}/source/.hlint.yaml --cpp-include=misc src) ; fi
       - name: haddock
         run: |
           $CABAL v2-haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
