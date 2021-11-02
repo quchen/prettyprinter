@@ -4,12 +4,6 @@
 -- build only master branch, or PRs to master branch
 branches: master
 
--- gauge works only with newer GHC
-
--- FIXME: Enable benchmarks for GHC 9.2 once basement (via gauge) is compatible:
--- https://github.com/haskell-foundation/foundation/issues/554
-benchmarks: >=7.8.4 && <9.2
-
 -- Doctests fail with GHC 7.10
 
 -- FIXME: Enable tests for GHC 9.2 once doctest is compatible:
