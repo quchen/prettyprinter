@@ -9,10 +9,10 @@ module Main (main) where
 
 import           Control.Monad
 import           Control.Monad.State
-import           Gauge.Main
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           System.Random
+import           Test.Tasty.Bench
 
 import           Prettyprinter
 import           Prettyprinter.Render.Text

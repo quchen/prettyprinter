@@ -10,7 +10,6 @@ import Prelude.Compat
 
 import           Control.DeepSeq
 import           Control.Monad.Compat
-import           Gauge
 import           Data.Char
 import           Data.Map                              (Map)
 import qualified Data.Map                              as M
@@ -24,6 +23,7 @@ import           GHC.Generics
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
+import           Test.Tasty.Bench
 import qualified Text.PrettyPrint.ANSI.Leijen          as WL
 
 

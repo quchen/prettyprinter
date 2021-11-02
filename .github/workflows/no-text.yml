@@ -33,4 +33,5 @@ jobs:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
         key: ${{ runner.os }}-${{ matrix.ghc }}
     - name: Build
-      run: cabal build -f-text prettyprinter:prettyprinter
+      # There are linking error when building hashable, see #212.
+      run: cabal build -f-text --constraint 'semigroups -hashable' prettyprinter:prettyprinter
