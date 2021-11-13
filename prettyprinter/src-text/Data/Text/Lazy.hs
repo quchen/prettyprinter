@@ -13,3 +13,5 @@ type Text = T.Text
 length = T.length
 lines = T.lines
 toStrict = id
+pack = T.pack
+unpack = T.unpack
