@@ -321,7 +321,7 @@ import Prettyprinter.Symbols.Ascii
 -- There are 3 main ways to migrate:
 --
 --   1. Direct: just replace the previous package and fix the errors
---   2. Using a drop-in replacement mimicing the API of the former module, see
+--   2. Using a drop-in replacement mimicking the API of the former module, see
 --      the @prettyprinter-compat-<former package>@ packages
 --   3. Using a converter from the old @Doc@ type to the new one, see the
 --      @prettyprinter-convert-<former package>@ packages
