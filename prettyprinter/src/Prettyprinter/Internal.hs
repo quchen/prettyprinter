@@ -278,8 +278,6 @@ class Pretty a where
     prettyList :: [a] -> Doc ann
     prettyList = align . list . map pretty
 
-    {-# MINIMAL pretty #-}
-
 -- $
 -- Issue #67: Nested lists were not aligned with »pretty«, leading to non-pretty
 -- output, violating the Pretty class law.
