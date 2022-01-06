@@ -17,7 +17,7 @@
 -- The module is written to be readable top-to-bottom in both Haddock and raw
 -- source form.
 module Prettyprinter.Render.Tutorials.StackMachineTutorial
-    {-# DEPRECATED "Writing your own stack machine is probably more efficient and customizable; also consider using »renderSimplyDecorated(A)« instead" #-}
+    {-# DEPRECATED "Writing your own stack machine is probably more efficient and customizable; also consider using renderSimplyDecorated(A) instead" #-}
     where
 
 import qualified Data.Text.Lazy         as TL
