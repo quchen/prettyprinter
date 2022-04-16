@@ -68,7 +68,8 @@ library
         , ScopedTypeVariables
 
     build-depends:
-          base >= 4.5 && < 5
+          base >= 4.5 && < 5,
+          text-builder-linear
 
     if flag(text)
         build-depends: text >= 1.2

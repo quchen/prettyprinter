@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE LinearTypes       #-}
+{-# LANGUAGE UnicodeSyntax     #-}
+{-# LANGUAGE BangPatterns      #-}
 
 #include "version-compatibility-macros.h"
 
@@ -36,6 +39,8 @@ import Data.Semigroup
 import Control.Applicative
 #endif
 
+import Data.Text.Builder.Linear.Buffer
+
 -- $setup
 --
 -- (Definitions for the doctests)
@@ -70,9 +75,17 @@ renderLazy = TLB.toLazyText . go
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering function
 -- and transforms it to strict text.
 renderStrict :: SimpleDocStream ann -> Text
-renderStrict = TL.toStrict . renderLazy
-
-
+renderStrict sdc = runBuffer (\b -> (go b sdc))
+  where
+    go :: Buffer ⊸ SimpleDocStream ann -> Buffer
+    go !b !sbc = case sbc of
+      SFail -> undefined b
+      SEmpty -> b
+      SChar c rest -> go (b |>. c) rest
+      SText _l t rest -> go (b |> t) rest
+      SLine i rest -> go ((b |>. '\n') |>… i) rest
+      SAnnPush _ann rest -> go b rest
+      SAnnPop rest -> go b rest
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the file @h@.
 --
