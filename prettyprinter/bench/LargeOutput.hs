@@ -193,17 +193,13 @@ main = do
 
     defaultMain
         [ bgroup "80 characters, 50% ribbon"
-            [ bgroup "prettyprinter"
-                [ bench "layoutPretty"  (nf (renderWith (layoutPretty _80ColumnsLayoutOptions)) prog)
-                , bench "layoutSmart"   (nf (renderWith (layoutSmart  _80ColumnsLayoutOptions)) prog)
-                , bench "layoutCompact" (nf (renderWith layoutCompact                         ) prog)
-                ]
-            , bench "ansi-wl-pprint" (nf (($ "") . WL.displayS . WL.renderPretty 0.5 80 . WL.pretty) prog) ]
+            [ bench "layoutPretty"  (nf (renderWith (layoutPretty _80ColumnsLayoutOptions)) prog)
+            , bench "layoutSmart"   (nf (renderWith (layoutSmart  _80ColumnsLayoutOptions)) prog)
+            , bench "layoutCompact" (nf (renderWith layoutCompact                         ) prog)
+            ]
         , bgroup "Infinite/large page width"
-            [ bgroup "prettyprinter"
-                [ bench "layoutPretty"  (nf (renderWith (layoutPretty unboundedLayoutOptions)) prog)
-                , bench "layoutSmart"   (nf (renderWith (layoutSmart  unboundedLayoutOptions)) prog)
-                , bench "layoutCompact" (nf (renderWith layoutCompact                        ) prog)
-                ]
-            , bench "ansi-wl-pprint" (nf (($ "") . WL.displayS . WL.renderPretty 1 (fromIntegral progWidth + 10) . WL.pretty) prog) ]
+            [ bench "layoutPretty"  (nf (renderWith (layoutPretty unboundedLayoutOptions)) prog)
+            , bench "layoutSmart"   (nf (renderWith (layoutSmart  unboundedLayoutOptions)) prog)
+            , bench "layoutCompact" (nf (renderWith layoutCompact                        ) prog)
+            ]
         ]
