@@ -179,12 +179,12 @@ randomProgram seed size = let MkGen gen = arbitrary in gen (mkQCGen seed) size
 main :: IO ()
 main = do
     let prog = randomProgram 1 60
-        renderedProg = (renderLazy . layoutPretty defaultLayoutOptions { layoutPageWidth = Unbounded } . pretty) prog
-        (progLines, progWidth) = let l = TL.lines renderedProg in (length l, maximum (map TL.length l))
+        renderedProg = (renderStrict . layoutPretty defaultLayoutOptions { layoutPageWidth = Unbounded } . pretty) prog
+        (progLines, progWidth) = let l = T.lines renderedProg in (length l, maximum (map T.length l))
     putDoc ("Program size:" <+> pretty progLines <+> "lines, maximum width:" <+> pretty progWidth)
 
-    let renderWith :: (Doc ann -> SimpleDocStream ann) -> Program -> TL.Text
-        renderWith f = renderLazy . f . pretty
+    let renderWith :: (Doc ann -> SimpleDocStream ann) -> Program -> T.Text
+        renderWith f = renderStrict . f . pretty
 
     let _80ColumnsLayoutOptions = defaultLayoutOptions { layoutPageWidth = AvailablePerLine 80 0.5 }
         unboundedLayoutOptions  = defaultLayoutOptions { layoutPageWidth = Unbounded }
