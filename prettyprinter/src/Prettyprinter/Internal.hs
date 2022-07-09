@@ -1806,9 +1806,9 @@ defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
 --
--- @'layoutPretty'@ commits to rendering something in a certain way if the next
--- element fits the layout constraints; in other words, it has one
--- 'SimpleDocStream' element lookahead when rendering. Consider using the
+-- @'layoutPretty'@ commits to rendering something in a certain way if the 
+-- remainder of the current line fits the layout constraints; in other words, 
+-- it has up to one line of lookahead when rendering. Consider using the
 -- smarter, but a bit less performant, @'layoutSmart'@ algorithm if the results
 -- seem to run off to the right before having lots of line breaks.
 layoutPretty
@@ -1839,8 +1839,8 @@ layoutPretty (LayoutOptions pageWidth_@(AvailablePerLine lineLength ribbonFracti
 layoutPretty (LayoutOptions Unbounded) = layoutUnbounded
 
 -- | A layout algorithm with more lookahead than 'layoutPretty', that introduces
--- line breaks earlier if the content does not (or will not, rather) fit into
--- one line.
+-- line breaks earlier if the content does not (or will not, rather) fit within
+-- the page width.
 --
 -- Consider the following python-ish document,
 --
