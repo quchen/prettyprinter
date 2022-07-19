@@ -27,7 +27,7 @@ module Prettyprinter.Internal (
     emptyDoc, nest, line, line', softline, softline', hardline,
 
     -- ** create doc directly from Text, unsafe
-    unsafeTextWithLength, unsafeLazyTextWithLength,
+    unsafeTextWithLength
 
     -- ** Primitives for alternative layouts
     group, flatAlt,
@@ -459,10 +459,6 @@ instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.spl
 -- Useful when dealing with wide characters and emojis
 unsafeTextWithLength :: Text -> Int -> Doc ann
 unsafeTextWithLength txt l = Text l txt
-
--- | identical to the strict version
-unsafeLazyTextWithLength :: Lazy.Text -> Int -> Doc ann
-unsafeLazyTextWithLength  txt l = Text l (Lazy.toStrict txt)
 
 -- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
