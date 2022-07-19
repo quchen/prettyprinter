@@ -26,6 +26,9 @@ module Prettyprinter.Internal (
     viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
     emptyDoc, nest, line, line', softline, softline', hardline,
 
+    -- ** create doc directly from Text, unsafe
+    unsafeTextWithLength, unsafeLazyTextWithLength,
+
     -- ** Primitives for alternative layouts
     group, flatAlt,
 
@@ -451,6 +454,15 @@ instance Pretty a => Pretty (Maybe a) where
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
 instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+
+-- | Convert text to Doc. Must not contain newlines. 
+-- Useful when dealing with wide characters and emojis
+unsafeTextWithLength :: Text -> Int -> Doc ann
+unsafeTextWithLength txt l = Text l txt
+
+-- | identical to the strict version
+unsafeLazyTextWithLength :: Lazy.Text -> Int -> Doc ann
+unsafeLazyTextWithLength  txt l = Text l (Lazy.toStrict txt)
 
 -- | (lazy 'Text' instance, identical to the strict version)
 instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
