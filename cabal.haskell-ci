@@ -6,9 +6,9 @@ branches: master
 
 -- Doctests fail with GHC 7.10
 
--- FIXME: Enable tests for GHC 9.2 once doctest is compatible:
--- https://github.com/sol/doctest/issues/305
-tests: >=8.0 && <9.2
+-- FIXME: Enable tests for GHC 9.4 once doctest is compatible:
+-- https://github.com/sol/doctest/pull/375
+tests: >=8.0 && <9.4
 
 cabal-check: False
 
