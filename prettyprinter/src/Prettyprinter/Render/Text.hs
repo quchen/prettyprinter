@@ -4,10 +4,8 @@
 
 -- | Render an unannotated 'SimpleDocStream' as plain 'Text'.
 module Prettyprinter.Render.Text (
-#ifdef MIN_VERSION_text
     -- * Conversion to plain 'Text'
     renderLazy, renderStrict,
-#endif
 
     -- * Render to a 'Handle'
     renderIO,
