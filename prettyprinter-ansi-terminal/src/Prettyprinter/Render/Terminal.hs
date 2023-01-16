@@ -11,7 +11,9 @@ module Prettyprinter.Render.Terminal (
     bgColor, bgColorDull,
 
     -- ** Font style
-    bold, italicized, underlined,
+    bold, italicized, underlined, underlinedWith,
+    hyperlinked, hyperlinkedWithID, hyperlinkedWithParams,
+    
 
     -- ** Internal markers
     --
@@ -20,7 +22,9 @@ module Prettyprinter.Render.Terminal (
     Intensity(..),
     Bold(..),
     Underlined(..),
+    UnderlineStyle(..),
     Italicized(..),
+    Hyperlinked(..),
 
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
