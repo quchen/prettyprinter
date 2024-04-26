@@ -3,6 +3,7 @@
 {-# LANGUAGE DefaultSignatures   #-}
 {-# LANGUAGE DeriveDataTypeable  #-}
 {-# LANGUAGE DeriveGeneric       #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -291,6 +292,9 @@ class Pretty a where
 --   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
 --   , (1, [2, 2, 2, 2, 2, 2, 2, 2])
 --   , (1, [2, 2, 2, 2, 2, 2, 2, 2]) ] ]
+
+instance ann ~ Void => Pretty (Doc ann) where
+  pretty = vacuous
 
 instance Pretty a => Pretty (Const a b) where
   pretty = pretty . getConst
