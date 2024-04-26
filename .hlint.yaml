@@ -1,5 +1,5 @@
 - arguments:
-    - --cpp-include=aux
+    - --cpp-include=misc
     - --cpp-define=MIN_VERSION_base=1
 
 
