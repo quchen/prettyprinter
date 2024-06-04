@@ -202,6 +202,9 @@ module Prettyprinter (
     viaShow, unsafeViaShow,
     emptyDoc, nest, line, line', softline, softline', hardline,
 
+    -- ** Create from Text (unsafe)
+    unsafeTextWithLength, 
+
     -- ** Primitives for alternative layouts
     group, flatAlt,
 
