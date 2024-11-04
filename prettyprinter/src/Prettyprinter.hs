@@ -198,7 +198,7 @@ module Prettyprinter (
     Doc,
 
     -- * Basic functionality
-    Pretty(..),
+    Pretty(..), PrettyAnn(..),
     viaShow, unsafeViaShow,
     emptyDoc, nest, line, line', softline, softline', hardline,
 

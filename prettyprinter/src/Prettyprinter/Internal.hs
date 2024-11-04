@@ -1,11 +1,14 @@
-{-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE CPP                 #-}
-{-# LANGUAGE DefaultSignatures   #-}
-{-# LANGUAGE DeriveDataTypeable  #-}
-{-# LANGUAGE DeriveGeneric       #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DefaultSignatures     #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeOperators         #-}
 
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -23,7 +26,7 @@ module Prettyprinter.Internal (
     Doc(..),
 
     -- * Basic functionality
-    Pretty(..),
+    Pretty(..), PrettyAnn(..),
     viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
     emptyDoc, nest, line, line', softline, softline', hardline,
 
@@ -347,6 +350,54 @@ instance Pretty Char where
     prettyList = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
 #endif
 
+-- | This class is similar to 'Pretty', but allows you to embed annotations in
+-- the 'Doc'.
+--
+-- @since 1.7.1
+class PrettyAnn a ann where
+
+    prettyAnn :: a -> Doc ann
+
+    default prettyAnn :: Show a => a -> Doc ann
+    prettyAnn = viaShow
+
+    prettyAnnList :: [a] -> Doc ann
+    prettyAnnList = align . list . map prettyAnn
+
+instance PrettyAnn (Doc ann) ann where
+    prettyAnn = id
+
+instance PrettyAnn a ann => PrettyAnn (Const a b) ann where
+    prettyAnn = prettyAnn . getConst
+
+#if FUNCTOR_IDENTITY_IN_BASE
+instance PrettyAnn a ann => PrettyAnn (Identity a) ann where
+    prettyAnn = prettyAnn . runIdentity
+#endif
+
+instance PrettyAnn a ann => PrettyAnn [a] ann where
+    prettyAnn = prettyAnnList
+
+instance PrettyAnn a ann => PrettyAnn (NonEmpty a) ann where
+    prettyAnn (x:|xs) = prettyAnnList (x:xs)
+
+instance PrettyAnn () ann where
+    prettyAnn _ = "()"
+
+instance PrettyAnn Bool ann where
+    prettyAnn True  = "True"
+    prettyAnn False = "False"
+
+instance PrettyAnn Char ann where
+    prettyAnn '\n' = line
+    prettyAnn c = Char c
+
+#ifdef MIN_VERSION_text
+    prettyAnnList = pretty . (id :: Text -> Text) . fromString
+#else
+    prettyAnnList = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+#endif
+
 -- | Convenience function to convert a 'Show'able value to a 'Doc'. If the
 -- 'String' does not contain newlines, consider using the more performant
 -- 'unsafeViaShow'.
@@ -466,6 +517,45 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 -- >>> pretty ([] :: [Void])
 -- []
 instance Pretty Void where pretty = absurd
+
+instance PrettyAnn Int    ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Int8   ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Int16  ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Int32  ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Int64  ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Word   ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Word8  ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Word16 ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Word32 ann where prettyAnn = unsafeViaShow
+instance PrettyAnn Word64 ann where prettyAnn = unsafeViaShow
+
+instance PrettyAnn Integer ann where prettyAnn = unsafeViaShow
+
+#if NATURAL_IN_BASE
+instance PrettyAnn Natural ann where prettyAnn = unsafeViaShow
+#endif
+
+instance PrettyAnn Float ann where prettyAnn = unsafeViaShow
+
+instance PrettyAnn Double ann where prettyAnn = unsafeViaShow
+
+instance (PrettyAnn a1 ann, PrettyAnn a2 ann) => PrettyAnn (a1,a2) ann where
+    prettyAnn (x1,x2) = tupled [prettyAnn x1, prettyAnn x2]
+
+instance (PrettyAnn a1 ann, PrettyAnn a2 ann, PrettyAnn a3 ann) => PrettyAnn (a1,a2,a3) ann where
+    prettyAnn (x1,x2,x3) = tupled [prettyAnn x1, prettyAnn x2, prettyAnn x3]
+
+instance PrettyAnn a ann => PrettyAnn (Maybe a) ann where
+    prettyAnn = maybe mempty prettyAnn
+    prettyAnnList = prettyAnnList . catMaybes
+
+#ifdef MIN_VERSION_text
+instance PrettyAnn Text ann where prettyAnn = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+
+instance PrettyAnn Lazy.Text ann where prettyAnn = prettyAnn . Lazy.toStrict
+#endif
+
+instance PrettyAnn Void ann where prettyAnn = absurd
 
 
 
@@ -1810,8 +1900,8 @@ defaultLayoutOptions = LayoutOptions { layoutPageWidth = defaultPageWidth }
 -- | This is the default layout algorithm, and it is used by 'show', 'putDoc'
 -- and 'hPutDoc'.
 --
--- @'layoutPretty'@ commits to rendering something in a certain way if the 
--- remainder of the current line fits the layout constraints; in other words, 
+-- @'layoutPretty'@ commits to rendering something in a certain way if the
+-- remainder of the current line fits the layout constraints; in other words,
 -- it has up to one line of lookahead when rendering. Consider using the
 -- smarter, but a bit less performant, @'layoutSmart'@ algorithm if the results
 -- seem to run off to the right before having lots of line breaks.
