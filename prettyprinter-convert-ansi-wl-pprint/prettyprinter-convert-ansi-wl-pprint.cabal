@@ -12,7 +12,7 @@ maintainer:          Simon Jakobi <simon.jakobi@gmail.com>, David Luposchainsky 
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
-tested-with:         GHC==9.4.1, GHC==9.2.4, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2
+tested-with:         GHC==9.10.1, GHC==9.8.2, GHC==9.6.6, GHC==9.4.8, GHC==9.2.8, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
 
 source-repository head
   type: git

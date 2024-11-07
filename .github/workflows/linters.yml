@@ -1,0 +1,36 @@
+name: Linters
+
+on:
+  pull_request:
+    branches: ["master"]
+  push:
+    branches: ["master"]
+
+jobs:
+  hlint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 'Set up HLint'
+      uses: haskell-actions/hlint-setup@v2
+
+    - name: 'Run HLint'
+      uses: haskell-actions/hlint-run@v2
+      with:
+        path: |
+          [ "prettyprinter-ansi-terminal/bench"
+          , "prettyprinter-ansi-terminal/src"
+          , "prettyprinter-ansi-terminal/test"
+          , "prettyprinter-compat-annotated-wl-pprint/src"
+          , "prettyprinter-compat-ansi-wl-pprint/src"
+          , "prettyprinter-compat-wl-pprint/src"
+          , "prettyprinter-convert-ansi-wl-pprint/src"
+          , "prettyprinter-convert-ansi-wl-pprint/test"
+          , "prettyprinter/app"
+          , "prettyprinter/bench"
+          , "prettyprinter/src"
+          , "prettyprinter/src-text"
+          , "prettyprinter/test"
+          ]
+        fail-on: warning

@@ -4,18 +4,4 @@
 -- build only master branch, or PRs to master branch
 branches: master
 
--- Doctests fail with GHC 7.10
-
--- FIXME: Enable tests for GHC 9.4 once doctest is compatible:
--- https://github.com/sol/doctest/pull/375
-tests: >=8.0 && <9.4
-
 cabal-check: False
-
-hlint: True
-hlint-job: 8.10.7
-hlint-yaml: .hlint.yaml
-hlint-download-binary: True
--- haskell-ci runs hlint within the package directories, so the CPP include
--- path has to be adjusted so it can find version-compatibility-macros.h.
-hlint-options: --cpp-include=misc
