@@ -230,7 +230,7 @@ rational = New.pretty . show
 
 renderPretty :: Float -> Int -> Doc -> SimpleDoc
 renderPretty ribbonFraction pageWidth
-    = New.layoutSmart New.LayoutOptions
+    = New.layoutPretty New.LayoutOptions
         { New.layoutPageWidth = New.AvailablePerLine pageWidth (realToFrac ribbonFraction) }
 
 
