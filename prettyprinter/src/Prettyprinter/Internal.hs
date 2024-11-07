@@ -330,7 +330,7 @@ instance Pretty Bool where
     pretty True  = "True"
     pretty False = "False"
 
--- | Instead of @('pretty' '\n')@, consider using @'line'@ as a more readable
+-- | Instead of @('pretty' '\\n')@, consider using @'line'@ as a more readable
 -- alternative.
 --
 -- >>> pretty 'f' <> pretty 'o' <> pretty 'o'
