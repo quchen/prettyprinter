@@ -1,6 +1,7 @@
+
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+{-# LANGUAGE DeriveGeneric     #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 #include "version-compatibility-macros.h"
@@ -18,14 +19,16 @@ module Prettyprinter.Render.Terminal.Internal (
     bgColor, bgColorDull,
 
     -- ** Font style
-    bold, italicized, underlined,
+    bold, italicized, underlined, underlinedWith,
+    hyperlinked, hyperlinkedWithID, hyperlinkedWithParams,
 
     -- ** Internal markers
     Intensity(..),
     Bold(..),
     Underlined(..),
+    UnderlineStyle(..),
     Italicized(..),
-
+    Hyperlinked(..),
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
 
@@ -39,15 +42,22 @@ module Prettyprinter.Render.Terminal.Internal (
 
 
 import           Control.Applicative
+import           Data.Colour.RGBSpace
+import           Data.Colour.SRGB          (toSRGB24, sRGB, RGB (..))
 import           Data.IORef
+import           Data.List
 import           Data.Maybe
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import qualified Data.Text.IO           as T
-import qualified Data.Text.Lazy         as TL
-import qualified Data.Text.Lazy.Builder as TLB
-import qualified System.Console.ANSI    as ANSI
-import           System.IO              (Handle, hPutChar, stdout)
+import           Data.Map                  (Map)
+import qualified Data.Map.Strict           as Map
+import           Data.Text                 (Text)
+import qualified Data.Text                 as T
+import qualified Data.Text.IO              as T
+import qualified Data.Text.Lazy            as TL
+import qualified Data.Text.Lazy.Builder    as TLB
+import           GHC.Generics
+import qualified System.Console.ANSI       as ANSI
+import qualified System.Console.ANSI.Codes as ANSI
+import           System.IO                 (Handle, hPutChar, stdout)
 
 import Prettyprinter
 import Prettyprinter.Render.Util.Panic
@@ -76,20 +86,49 @@ modifyIORef' ref f = do
 
 
 -- | The 8 ANSI terminal colors.
-data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
-    deriving (Eq, Ord, Show)
+data Color = Black | Red | Green | Yellow | Blue | Magenta | Cyan | White | SomeRGB !Float !Float !Float
+             deriving (Eq, Ord, Show, Generic)
 
 -- | Dull or vivid coloring, as supported by ANSI terminals.
 data Intensity = Vivid | Dull
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Generic)
 
 -- | Foreground (text) or background (paper) color
 data Layer = Foreground | Background
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord, Show, Generic)
 
-data Bold       = Bold       deriving (Eq, Ord, Show)
-data Underlined = Underlined deriving (Eq, Ord, Show)
-data Italicized = Italicized deriving (Eq, Ord, Show)
+data UnderlineStyle = StraightUnderline
+                    | DoubleUnderline
+                    | CurlyUnderline
+                    | DottedUnderline
+                    | DashedUnderline deriving (Eq, Ord, Show, Generic)
+                      
+data Bold       = Bold       deriving (Eq, Ord, Show, Generic)
+                
+data Underlined = Underlined
+    { ansiUnderlineStyle :: Maybe UnderlineStyle
+    , ansiUnderlineColor :: Maybe Color}
+                  deriving (Eq, Ord, Show, Generic)
+                           
+instance Semigroup Underlined where
+    u1 <> u2 = Underlined
+       { ansiUnderlineStyle = ansiUnderlineStyle u1 <|> ansiUnderlineStyle u2
+       , ansiUnderlineColor = ansiUnderlineColor u1 <|> ansiUnderlineColor u2 }
+               
+instance Monoid Underlined where
+    mempty = Underlined Nothing Nothing
+             
+data Italicized = Italicized deriving (Eq, Ord, Show, Generic)
+
+data Hyperlinked = Hyperlink
+    { ansiLinkURI :: String
+    , ansiLinkParameters :: Map String String }
+                 deriving (Eq, Ord, Show, Generic)
+
+instance Semigroup Hyperlinked where
+    h1 <> h2 = Hyperlink
+       { ansiLinkURI = ansiLinkURI h1
+       , ansiLinkParameters = ansiLinkParameters h1 <> ansiLinkParameters h2 }
 
 -- | Style the foreground with a vivid color.
 color :: Color -> AnsiStyle
@@ -117,7 +156,39 @@ italicized = mempty { ansiItalics = Just Italicized }
 
 -- | Render underlined.
 underlined :: AnsiStyle
-underlined = mempty { ansiUnderlining = Just Underlined }
+underlined = underlinedWith Nothing Nothing
+
+-- | Render underlined with optional style and color.
+underlinedWith :: Maybe UnderlineStyle -> Maybe Color -> AnsiStyle
+underlinedWith style colour = mempty { ansiUnderlining = Just (Underlined style colour) }
+
+-- | Render hyperlinked.
+hyperlinked ::
+    String ->
+    -- ^ The URI.
+    AnsiStyle
+hyperlinked = hyperlinkedWithParams mempty
+
+-- | Render hyperlinked with an ID.
+hyperlinkedWithID ::
+    String ->
+    -- ^ The ID.
+    String ->
+    -- ^ The URI.
+    AnsiStyle
+hyperlinkedWithID identifier = hyperlinkedWithParams (Map.singleton "id" identifier)
+
+-- | Render hyperlinked with parameters.
+hyperlinkedWithParams ::
+    Map String String ->
+    -- ^ The parameters.
+    String ->
+    -- ^ The URI.
+    AnsiStyle
+hyperlinkedWithParams params uri = mempty { ansiHyperlink = Just (Hyperlink
+                                                                           { ansiLinkURI = uri
+                                                                           , ansiLinkParameters = params } ) }
+
 
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
@@ -160,13 +231,15 @@ renderLazy =
             SAnnPush style rest ->
                 let currentStyle = unsafePeek s
                     newStyle = style <> currentStyle
-                in  TLB.fromText (styleToRawText newStyle) <> go (push style s) rest
+                in   TLB.fromText (styleToRawText newStyle)   <> go (push style s) rest
             SAnnPop rest ->
-                let (_currentStyle, s') = unsafePop s
+                let (currentStyle, s') = unsafePop s
                     newStyle = unsafePeek s'
-                in  TLB.fromText (styleToRawText newStyle) <> go s' rest
+
+                in   TLB.fromText (styleToRawText newStyle) <> go s' rest
 
     in  TLB.toLazyText . go [mempty]
+
 
 
 -- | @('renderIO' h sdoc)@ writes @sdoc@ to the handle @h@.
@@ -268,7 +341,8 @@ data AnsiStyle = SetAnsiStyle
     , ansiBold        :: Maybe Bold               -- ^ Switch on boldness, or don’t do anything.
     , ansiItalics     :: Maybe Italicized         -- ^ Switch on italics, or don’t do anything.
     , ansiUnderlining :: Maybe Underlined         -- ^ Switch on underlining, or don’t do anything.
-    } deriving (Eq, Ord, Show)
+    , ansiHyperlink   :: Maybe Hyperlinked        -- ^ Switch on hyperlinking, or don't do anything.
+    } deriving (Eq, Ord, Show, Generic)
 
 -- | Keep the first decision for each of foreground color, background color,
 -- boldness, italication, and underlining. If a certain style is not set, the
@@ -288,25 +362,68 @@ instance Semigroup AnsiStyle where
         , ansiBackground  = ansiBackground  cs1 <|> ansiBackground  cs2
         , ansiBold        = ansiBold        cs1 <|> ansiBold        cs2
         , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
-        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
+        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2
+        , ansiHyperlink   = ansiHyperlink   cs1 <|> ansiHyperlink   cs2 }
 
 -- | 'mempty' does nothing, which is equivalent to inheriting the style of the
 -- surrounding doc, or the terminal’s default if no style has been set yet.
 instance Monoid AnsiStyle where
-    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
+    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
+
+
+              
 styleToRawText :: AnsiStyle -> Text
-styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
+styleToRawText ansiStyle =  csid <> hyperlink
   where
+    csid = (T.pack (ANSI.csi (concatMap ANSI.sgrToCode . stylesToSgrs $ ansiStyle) ";")) <> (handleUnderlining ansiStyle) <> "m"
+
+    hyperlink :: Text       
+    hyperlink = case ansiHyperlink ansiStyle of
+                  Nothing -> stopHyperlink
+                  Just link -> startHyperlink link
+                               
+    startHyperlink :: Hyperlinked -> Text
+    startHyperlink (Hyperlink uri params) = T.pack (ANSI.osc "8" pT)
+       where
+         pT = params' ++ ";" ++ uri
+         params' = intercalate ":" $ map (\(k, v) -> k ++ "=" ++ v) (Map.toList params)
+            
+    stopHyperlink :: Text
+    stopHyperlink = T.pack (ANSI.osc "8" ";")
+
+    handleUnderlining :: AnsiStyle -> Text
+    handleUnderlining (SetAnsiStyle _ _ _ _ ul _) = mconcat . catMaybes $
+        [fmap underlineToCSIs ul]
+
+    underlineToCSIs :: Underlined -> Text
+    underlineToCSIs (Underlined style color) =
+        underlineStyleToCSI style
+        <> (mconcat . catMaybes $ [fmap (T.intercalate ";" . fmap T.pack . fmap show . underlineColorToCSI . convertColor) color])
+
+    underlineColorToCSI :: Either (Colour Float) ANSI.Color -> [Int]
+    underlineColorToCSI (Right c) = [58, 5, ANSI.colorToCode c]
+    underlineColorToCSI (Left c) = [58, 2] ++ toRGB c
+        
+    toRGB color = let RGB r g b = toSRGB24 color
+                  in  map fromIntegral [r, g, b]                                   
+    
+    underlineStyleToCSI :: Maybe UnderlineStyle -> Text
+    underlineStyleToCSI Nothing = "4;"
+    underlineStyleToCSI (Just StraightUnderline) = "4;"
+    underlineStyleToCSI (Just DoubleUnderline) = "4:2;"
+    underlineStyleToCSI (Just CurlyUnderline) = "4:3;"
+    underlineStyleToCSI (Just DottedUnderline) = "4:4;"
+    underlineStyleToCSI (Just DashedUnderline) = "4:5;"
+    
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
-    stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
+    stylesToSgrs (SetAnsiStyle fg bg b i _ _) = catMaybes
         [ Just ANSI.Reset
-        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) fg
-        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) bg
+        , fmap (\(intensity, c) -> setColor ANSI.Foreground intensity c) fg 
+        , fmap (\(intensity, c) -> setColor ANSI.Background intensity c) bg
         , fmap (\_              -> ANSI.SetConsoleIntensity ANSI.BoldIntensity) b
         , fmap (\_              -> ANSI.SetItalicized True) i
-        , fmap (\_              -> ANSI.SetUnderlining ANSI.SingleUnderline) u
         ]
 
     convertIntensity :: Intensity -> ANSI.ColorIntensity
@@ -314,17 +431,25 @@ styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
         Vivid -> ANSI.Vivid
         Dull  -> ANSI.Dull
 
-    convertColor :: Color -> ANSI.Color
+    convertColor :: Color -> Either (Colour Float) ANSI.Color
     convertColor = \c -> case c of
-        Black   -> ANSI.Black
-        Red     -> ANSI.Red
-        Green   -> ANSI.Green
-        Yellow  -> ANSI.Yellow
-        Blue    -> ANSI.Blue
-        Magenta -> ANSI.Magenta
-        Cyan    -> ANSI.Cyan
-        White   -> ANSI.White
+        Black     -> Right ANSI.Black
+        Red       -> Right ANSI.Red
+        Green     -> Right ANSI.Green
+        Yellow    -> Right ANSI.Yellow
+        Blue      -> Right ANSI.Blue
+        Magenta   -> Right ANSI.Magenta
+        Cyan      -> Right ANSI.Cyan
+        White     -> Right ANSI.White
+        SomeRGB r g b -> Left (sRGB r g b)
 
+    setColor :: ANSI.ConsoleLayer -> Intensity -> Color -> ANSI.SGR
+    setColor layer _ (SomeRGB r g b) = ANSI.SetRGBColor layer (sRGB r g b)
+    setColor layer intensity color =
+        case convertColor color of
+          Left rgb -> ANSI.SetRGBColor layer rgb
+          Right standardColor ->
+              ANSI.SetColor layer (convertIntensity intensity) standardColor
 
 
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
