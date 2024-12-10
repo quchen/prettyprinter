@@ -354,7 +354,7 @@ instance Pretty Char where
 -- the 'Doc'.
 --
 -- @since 1.7.1
-class PrettyAnn a ann where
+class PrettyAnn ann a where
 
     prettyAnn :: a -> Doc ann
 
@@ -364,31 +364,31 @@ class PrettyAnn a ann where
     prettyAnnList :: [a] -> Doc ann
     prettyAnnList = align . list . map prettyAnn
 
-instance PrettyAnn (Doc ann) ann where
+instance PrettyAnn ann (Doc ann) where
     prettyAnn = id
 
-instance PrettyAnn a ann => PrettyAnn (Const a b) ann where
+instance PrettyAnn ann a => PrettyAnn ann (Const a b) where
     prettyAnn = prettyAnn . getConst
 
 #if FUNCTOR_IDENTITY_IN_BASE
-instance PrettyAnn a ann => PrettyAnn (Identity a) ann where
+instance PrettyAnn ann a => PrettyAnn ann (Identity a) where
     prettyAnn = prettyAnn . runIdentity
 #endif
 
-instance PrettyAnn a ann => PrettyAnn [a] ann where
+instance PrettyAnn ann a => PrettyAnn ann [a] where
     prettyAnn = prettyAnnList
 
-instance PrettyAnn a ann => PrettyAnn (NonEmpty a) ann where
+instance PrettyAnn ann a => PrettyAnn ann (NonEmpty a) where
     prettyAnn (x:|xs) = prettyAnnList (x:xs)
 
-instance PrettyAnn () ann where
+instance PrettyAnn ann () where
     prettyAnn _ = "()"
 
-instance PrettyAnn Bool ann where
+instance PrettyAnn ann Bool where
     prettyAnn True  = "True"
     prettyAnn False = "False"
 
-instance PrettyAnn Char ann where
+instance PrettyAnn ann Char where
     prettyAnn '\n' = line
     prettyAnn c = Char c
 
@@ -518,44 +518,44 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 -- []
 instance Pretty Void where pretty = absurd
 
-instance PrettyAnn Int    ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Int8   ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Int16  ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Int32  ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Int64  ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Word   ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Word8  ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Word16 ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Word32 ann where prettyAnn = unsafeViaShow
-instance PrettyAnn Word64 ann where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int    where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int8   where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int16  where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int32  where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int64  where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Word   where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Word8  where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Word16 where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Word32 where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Word64 where prettyAnn = unsafeViaShow
 
-instance PrettyAnn Integer ann where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Integer where prettyAnn = unsafeViaShow
 
 #if NATURAL_IN_BASE
-instance PrettyAnn Natural ann where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Natural where prettyAnn = unsafeViaShow
 #endif
 
-instance PrettyAnn Float ann where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Float where prettyAnn = unsafeViaShow
 
-instance PrettyAnn Double ann where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Double where prettyAnn = unsafeViaShow
 
-instance (PrettyAnn a1 ann, PrettyAnn a2 ann) => PrettyAnn (a1,a2) ann where
+instance (PrettyAnn ann a1, PrettyAnn ann a2) => PrettyAnn ann (a1,a2) where
     prettyAnn (x1,x2) = tupled [prettyAnn x1, prettyAnn x2]
 
-instance (PrettyAnn a1 ann, PrettyAnn a2 ann, PrettyAnn a3 ann) => PrettyAnn (a1,a2,a3) ann where
+instance (PrettyAnn ann a1, PrettyAnn ann a2, PrettyAnn ann a3) => PrettyAnn ann (a1,a2,a3) where
     prettyAnn (x1,x2,x3) = tupled [prettyAnn x1, prettyAnn x2, prettyAnn x3]
 
-instance PrettyAnn a ann => PrettyAnn (Maybe a) ann where
+instance PrettyAnn ann a => PrettyAnn ann (Maybe a) where
     prettyAnn = maybe mempty prettyAnn
     prettyAnnList = prettyAnnList . catMaybes
 
 #ifdef MIN_VERSION_text
-instance PrettyAnn Text ann where prettyAnn = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+instance PrettyAnn ann Text where prettyAnn = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
 
-instance PrettyAnn Lazy.Text ann where prettyAnn = prettyAnn . Lazy.toStrict
+instance PrettyAnn ann Lazy.Text where prettyAnn = prettyAnn . Lazy.toStrict
 #endif
 
-instance PrettyAnn Void ann where prettyAnn = absurd
+instance PrettyAnn ann Void where prettyAnn = absurd
 
 
 
