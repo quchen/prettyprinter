@@ -20,7 +20,7 @@ jobs:
     - name: 'Run HLint'
       uses: haskell-actions/hlint-run@v2
       with:
-        path: |
+        path: >
           [ "prettyprinter-ansi-terminal/bench"
           , "prettyprinter-ansi-terminal/src"
           , "prettyprinter-ansi-terminal/test"
