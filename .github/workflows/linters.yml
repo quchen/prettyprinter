@@ -1,10 +1,12 @@
 name: Linters
 
 on:
-  pull_request:
-    branches: ["master"]
-  push:
-    branches: ["master"]
+  - push
+  - pull_request
+#  pull_request:
+#    branches: ["master"]
+#  push:
+#    branches: ["master"]
 
 jobs:
   hlint:
