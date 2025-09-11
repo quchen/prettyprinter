@@ -2,6 +2,6 @@
 -- so we don't need to pass all via command line arguments
 
 -- build only master branch, or PRs to master branch
---branches: master
+branches: master
 
 cabal-check: False
