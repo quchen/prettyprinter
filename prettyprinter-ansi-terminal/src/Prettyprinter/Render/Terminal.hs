@@ -11,7 +11,7 @@ module Prettyprinter.Render.Terminal (
     bgColor, bgColorDull,
 
     -- ** Font style
-    bold, italicized, underlined,
+    bold, italicized, underlined, faint,
 
     -- ** Internal markers
     --
