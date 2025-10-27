@@ -160,7 +160,7 @@ renderLazy =
             SAnnPush style rest ->
                 let currentStyle = unsafePeek s
                     newStyle = style <> currentStyle
-                in  TLB.fromText (styleToRawText newStyle) <> go (push style s) rest
+                in  TLB.fromText (styleToRawText newStyle) <> go (push newStyle s) rest
             SAnnPop rest ->
                 let (_currentStyle, s') = unsafePop s
                     newStyle = unsafePeek s'
