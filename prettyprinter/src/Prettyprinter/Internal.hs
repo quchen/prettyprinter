@@ -27,6 +27,9 @@ module Prettyprinter.Internal (
     viaShow, unsafeViaShow, unsafeTextWithoutNewlines,
     emptyDoc, nest, line, line', softline, softline', hardline,
 
+    -- ** create doc directly from Text, unsafe
+    unsafeTextWithLength,
+
     -- ** Primitives for alternative layouts
     group, flatAlt,
 
@@ -479,6 +482,20 @@ unsafeTextWithoutNewlines text = case T.uncons text of
     Just (t,ext)
         | T.null ext -> Char t
         | otherwise -> Text (T.length text) text
+
+-- | @(unsafeTextWithLength t l)@ convert text @t@ of length @l@ into Doc.
+-- 
+-- The string must not contain any newline characters.
+--
+-- The real length can be specified manually when there are some wide character 
+-- or emojis in the string, so that it can be layed out correctly.
+--
+-- For example using doclayout to get the real length
+-- @
+--      unsafeTextWithLength "😃" (realLength "😃")
+-- @
+unsafeTextWithLength :: Text -> Int -> Doc ann
+unsafeTextWithLength txt l = Text l txt
 
 -- | The empty document behaves like @('pretty' "")@, so it has a height of 1.
 -- This may lead to surprising behaviour if we expect it to bear no weight
