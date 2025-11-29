@@ -14,7 +14,7 @@ maintainer:          Simon Jakobi <simon.jakobi@gmail.com>, David Luposchainsky 
 bug-reports:         http://github.com/quchen/prettyprinter/issues
 homepage:            http://github.com/quchen/prettyprinter
 build-type:          Simple
-tested-with:         GHC==9.4.1, GHC==9.2.4, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4, GHC==7.6.3, GHC==7.4.2
+tested-with:         GHC==9.12.2, GHC==9.10.3, GHC==9.8.4, GHC==9.6.7, GHC==9.4.8, GHC==9.2.8, GHC==9.0.2, GHC==8.10.7, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
 
 source-repository head
     type: git
@@ -105,6 +105,8 @@ Flag text
                this is inconvenient. In this case one can disable this flag, so that
                @prettyprinter@ fallbacks to @String@.
   Default:     True
+  -- https://github.com/quchen/prettyprinter/issues/264
+  Manual:      True
 
 
 executable generate_readme
@@ -154,7 +156,7 @@ test-suite testsuite
 
         , pgp-wordlist     >= 0.1
         , bytestring
-        , quickcheck-instances >= 0.3
+        , quickcheck-instances >= 0.3.17
         , tasty            >= 0.10
         , tasty-hunit      >= 0.9
         , tasty-quickcheck >= 0.8
@@ -181,7 +183,6 @@ benchmark fusion
         , mtl            >= 2.1
         , random         >= 1.0
         , text
-        , transformers   >= 0.3
         , ansi-wl-pprint >= 0.6
     ghc-options: -Wall -rtsopts
     default-language: Haskell2010
@@ -215,7 +216,7 @@ benchmark large-output
         , ansi-wl-pprint
 
         , tasty-bench >= 0.2
-        , QuickCheck >= 2.7
+        , QuickCheck >= 2.8
         , containers
         , text
         , deepseq
