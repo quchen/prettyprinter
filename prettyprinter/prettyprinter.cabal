@@ -217,7 +217,7 @@ benchmark large-output
         , ansi-wl-pprint
 
         , tasty-bench >= 0.2
-        , QuickCheck >= 2.7
+        , QuickCheck >= 2.8
         , containers
         , text
         , deepseq

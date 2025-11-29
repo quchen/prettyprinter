@@ -67,7 +67,7 @@ benchmark large-output
         , tasty-bench >= 0.2
         , prettyprinter
         , prettyprinter-ansi-terminal
-        , QuickCheck >= 2.7
+        , QuickCheck >= 2.8
         , text
 
     hs-source-dirs:      bench
