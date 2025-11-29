@@ -105,6 +105,8 @@ Flag text
                this is inconvenient. In this case one can disable this flag, so that
                @prettyprinter@ fallbacks to @String@.
   Default:     True
+  -- https://github.com/quchen/prettyprinter/issues/264
+  Manual:      True
 
 
 executable generate_readme
