@@ -5,10 +5,3 @@
 branches: master
 
 cabal-check: False
-
--- Broken due to dependency chain:
---
---  prettyprinter-convert-ansi-wl-pprint ->
---  ansi-wl-pprint ->
---  prettyprinter-compat-ansi-wl-pprint
-install-dependencies: False
