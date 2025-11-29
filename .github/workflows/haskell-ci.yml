@@ -35,14 +35,34 @@ jobs:
     strategy:
       matrix:
         include:
-          - compiler: ghc-9.4.1
+          - compiler: ghc-9.12.2
             compilerKind: ghc
-            compilerVersion: 9.4.1
+            compilerVersion: 9.12.2
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.2.4
+          - compiler: ghc-9.10.3
             compilerKind: ghc
-            compilerVersion: 9.2.4
+            compilerVersion: 9.10.3
+            setup-method: ghcup
+            allow-failure: false
+          - compiler: ghc-9.8.4
+            compilerKind: ghc
+            compilerVersion: 9.8.4
+            setup-method: ghcup
+            allow-failure: false
+          - compiler: ghc-9.6.7
+            compilerKind: ghc
+            compilerVersion: 9.6.7
+            setup-method: ghcup
+            allow-failure: false
+          - compiler: ghc-9.4.8
+            compilerKind: ghc
+            compilerVersion: 9.4.8
+            setup-method: ghcup
+            allow-failure: false
+          - compiler: ghc-9.2.8
+            compilerKind: ghc
+            compilerVersion: 9.2.8
             setup-method: ghcup
             allow-failure: false
           - compiler: ghc-9.0.2
