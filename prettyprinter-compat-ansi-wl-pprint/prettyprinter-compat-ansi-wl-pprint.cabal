@@ -1,5 +1,5 @@
 name:                prettyprinter-compat-ansi-wl-pprint
-version:             1.0.2
+version:             1.1
 cabal-version:       >= 1.10
 category:            User Interfaces, Text
 synopsis:            Drop-in compatibility package to migrate from »ansi-wl-pprint« to »prettyprinter«.
@@ -7,6 +7,7 @@ description:         See README.md
 license:             BSD2
 license-file:        LICENSE.md
 extra-source-files:  README.md
+                   , CHANGELOG.md
 author:              David Luposchainsky
 maintainer:          David Luposchainsky <dluposchainsky at google>
 bug-reports:         http://github.com/quchen/prettyprinter/issues
@@ -28,7 +29,7 @@ library
         , OverloadedStrings
 
     build-depends:
-          base                        >= 4.5 && < 5 && < 5
+          base                        >= 4.5 && < 5
         , text                        >= 1.2
         , prettyprinter               >= 1.7.0
         , prettyprinter-ansi-terminal >= 1.1
