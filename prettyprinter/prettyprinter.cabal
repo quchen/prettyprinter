@@ -18,8 +18,7 @@ tested-with:         GHC==9.12.2, GHC==9.10.3, GHC==9.8.4, GHC==9.6.7, GHC==9.4.
 
 source-repository head
     type: git
-    location: git://github.com/quchen/prettyprinter.git
-
+    location: https://github.com/quchen/prettyprinter
 
 
 library
