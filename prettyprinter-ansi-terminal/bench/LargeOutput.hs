@@ -84,7 +84,7 @@ anCol :: Color -> Doc AnsiStyle -> Doc AnsiStyle
 anCol = annotate . color
 
 prettyProgram :: Program -> Doc AnsiStyle
-prettyProgram (Program binds) = annotate italicized $ prettyBinds binds
+prettyProgram (Program binds) = annotate italicized (prettyBinds binds)
 
 prettyBinds :: Binds -> Doc AnsiStyle
 prettyBinds (Binds bs) = align (vsep (map prettyBinding (M.assocs bs)))
@@ -92,7 +92,7 @@ prettyBinds (Binds bs) = align (vsep (map prettyBinding (M.assocs bs)))
     prettyBinding (var, lambda) = pretty var <+> anCol Red "=" <+> prettyLambdaForm lambda
 
 prettyLambdaForm :: LambdaForm -> Doc AnsiStyle
-prettyLambdaForm (LambdaForm free bound body) = prettyExp . (<+> anCol Blue "->") . prettyBound . prettyFree $ anCol Blue "\\"
+prettyLambdaForm (LambdaForm free bound body) = (prettyExp . (<+> anCol Blue "->") . prettyBound . prettyFree) (anCol Blue "\\")
   where
     prettyFree | null free = id
                | otherwise = (<> anCol Blue lparen <> hsep (map pretty free) <> anCol Blue rparen)
@@ -111,15 +111,15 @@ prettyExpr = \expr -> case expr of
         [ anCol Yellow "case" <+> prettyExpr scrutinee <+> anCol Yellow "of"
         , indent 4 (align (vsep (map prettyAlt alts))) ]
 
-    AppF f [] -> annotate bold . anCol Green $ pretty f
-    AppF f args -> annotate bold . anCol Green $ pretty f <+> hsep (map pretty args)
+    AppF f [] -> (annotate bold . anCol Green) (pretty f)
+    AppF f args -> (annotate bold . anCol Green) (pretty f) <+> hsep (map pretty args)
 
-    AppC c [] -> annotate bold . anCol Green $ pretty c
-    AppC c args -> annotate bold . anCol Green $ pretty c <+> hsep (map pretty args)
+    AppC c [] -> (annotate bold . anCol Green) (pretty c)
+    AppC c args -> (annotate bold . anCol Green) (pretty c) <+> hsep (map pretty args)
 
-    AppP op x y -> annotate bold . anCol Green $ pretty op <+> pretty x <+> pretty y
+    AppP op x y -> (annotate bold . anCol Green) (pretty op) <+> pretty x <+> pretty y
 
-    LitE lit -> annotate bold . anCol Green $ pretty lit
+    LitE lit -> (annotate bold . anCol Green) (pretty lit)
 
 prettyAlt :: Alt -> Doc AnsiStyle
 prettyAlt (Alt con [] body) = pretty con <+> anCol Yellow "->" <+> prettyExpr body
@@ -153,6 +153,6 @@ main = do
     rnf prog `seq` T.putStrLn "Starting benchmark…"
 
     defaultMain
-        [ bench "prettyprinter-ansi-terminal" $ nf (render Terminal.renderLazy) prog
-        , bench "prettyprinter" $ nf (render Text.renderLazy) prog
+        [ bench "prettyprinter-ansi-terminal" (nf (render Terminal.renderLazy) prog)
+        , bench "prettyprinter" (nf (render Text.renderLazy) prog)
         ]
