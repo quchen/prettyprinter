@@ -353,7 +353,7 @@ instance Pretty Char where
 -- | This class is similar to 'Pretty', but allows you to embed annotations in
 -- the 'Doc'.
 --
--- @since 1.7.1
+-- @since FIXME
 class PrettyAnn ann a where
 
     prettyAnn :: a -> Doc ann
