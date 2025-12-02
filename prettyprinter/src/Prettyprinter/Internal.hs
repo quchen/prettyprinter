@@ -381,22 +381,13 @@ instance PrettyAnn ann a => PrettyAnn ann [a] where
 instance PrettyAnn ann a => PrettyAnn ann (NonEmpty a) where
     prettyAnn (x:|xs) = prettyAnnList (x:xs)
 
-instance PrettyAnn ann () where
-    prettyAnn _ = "()"
+instance PrettyAnn ann () where prettyAnn = pretty
 
-instance PrettyAnn ann Bool where
-    prettyAnn True  = "True"
-    prettyAnn False = "False"
+instance PrettyAnn ann Bool where prettyAnn = pretty
 
 instance PrettyAnn ann Char where
-    prettyAnn '\n' = line
-    prettyAnn c = Char c
-
-#ifdef MIN_VERSION_text
-    prettyAnnList = prettyAnn . (id :: Text -> Text) . fromString
-#else
-    prettyAnnList = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
-#endif
+    prettyAnn = pretty
+    prettyAnnList = prettyList
 
 -- | Convenience function to convert a 'Show'able value to a 'Doc'. If the
 -- 'String' does not contain newlines, consider using the more performant
@@ -505,10 +496,12 @@ instance Pretty a => Pretty (Maybe a) where
 -- hello world
 --
 -- Manually use @'hardline'@ if you /definitely/ want newlines.
-instance Pretty Text where pretty = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+instance Pretty Text where
+    pretty = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
 
 -- | (lazy 'Text' instance, identical to the strict version)
-instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
+instance Pretty Lazy.Text
+    where pretty = pretty . Lazy.toStrict
 #endif
 
 -- | Finding a good example for printing something that does not exist is hard,
@@ -518,26 +511,26 @@ instance Pretty Lazy.Text where pretty = pretty . Lazy.toStrict
 -- []
 instance Pretty Void where pretty = absurd
 
-instance PrettyAnn ann Int    where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Int8   where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Int16  where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Int32  where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Int64  where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Word   where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Word8  where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Word16 where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Word32 where prettyAnn = unsafeViaShow
-instance PrettyAnn ann Word64 where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Int    where prettyAnn = pretty
+instance PrettyAnn ann Int8   where prettyAnn = pretty
+instance PrettyAnn ann Int16  where prettyAnn = pretty
+instance PrettyAnn ann Int32  where prettyAnn = pretty
+instance PrettyAnn ann Int64  where prettyAnn = pretty
+instance PrettyAnn ann Word   where prettyAnn = pretty
+instance PrettyAnn ann Word8  where prettyAnn = pretty
+instance PrettyAnn ann Word16 where prettyAnn = pretty
+instance PrettyAnn ann Word32 where prettyAnn = pretty
+instance PrettyAnn ann Word64 where prettyAnn = pretty
 
-instance PrettyAnn ann Integer where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Integer where prettyAnn = pretty
 
 #if NATURAL_IN_BASE
-instance PrettyAnn ann Natural where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Natural where prettyAnn = pretty
 #endif
 
-instance PrettyAnn ann Float where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Float where prettyAnn = pretty
 
-instance PrettyAnn ann Double where prettyAnn = unsafeViaShow
+instance PrettyAnn ann Double where prettyAnn = pretty
 
 instance (PrettyAnn ann a1, PrettyAnn ann a2) => PrettyAnn ann (a1,a2) where
     prettyAnn (x1,x2) = tupled [prettyAnn x1, prettyAnn x2]
@@ -550,9 +543,9 @@ instance PrettyAnn ann a => PrettyAnn ann (Maybe a) where
     prettyAnnList = prettyAnnList . catMaybes
 
 #ifdef MIN_VERSION_text
-instance PrettyAnn ann Text where prettyAnn = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
+instance PrettyAnn ann Text where prettyAnn = pretty
 
-instance PrettyAnn ann Lazy.Text where prettyAnn = prettyAnn . Lazy.toStrict
+instance PrettyAnn ann Lazy.Text where prettyAnn = pretty
 #endif
 
 instance PrettyAnn ann Void where prettyAnn = absurd
