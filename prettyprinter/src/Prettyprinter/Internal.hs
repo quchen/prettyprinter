@@ -393,7 +393,7 @@ instance PrettyAnn ann Char where
     prettyAnn c = Char c
 
 #ifdef MIN_VERSION_text
-    prettyAnnList = pretty . (id :: Text -> Text) . fromString
+    prettyAnnList = prettyAnn . (id :: Text -> Text) . fromString
 #else
     prettyAnnList = vsep . map unsafeTextWithoutNewlines . T.splitOn "\n"
 #endif
