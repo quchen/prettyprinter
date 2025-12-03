@@ -18,13 +18,14 @@ module Prettyprinter.Render.Terminal.Internal (
     bgColor, bgColorDull,
 
     -- ** Font style
-    bold, italicized, underlined,
+    bold, italicized, underlined, faint,
 
     -- ** Internal markers
     Intensity(..),
     Bold(..),
     Underlined(..),
     Italicized(..),
+    Faint(..),
 
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
@@ -90,6 +91,7 @@ data Layer = Foreground | Background
 data Bold       = Bold       deriving (Eq, Ord, Show)
 data Underlined = Underlined deriving (Eq, Ord, Show)
 data Italicized = Italicized deriving (Eq, Ord, Show)
+data Faint      = Faint deriving (Eq, Ord, Show)
 
 -- | Style the foreground with a vivid color.
 color :: Color -> AnsiStyle
@@ -118,6 +120,10 @@ italicized = mempty { ansiItalics = Just Italicized }
 -- | Render underlined.
 underlined :: AnsiStyle
 underlined = mempty { ansiUnderlining = Just Underlined }
+
+-- | Render faint.
+faint :: AnsiStyle
+faint = mempty { ansiFaint = Just Faint }
 
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
@@ -268,6 +274,7 @@ data AnsiStyle = SetAnsiStyle
     , ansiBold        :: Maybe Bold               -- ^ Switch on boldness, or don’t do anything.
     , ansiItalics     :: Maybe Italicized         -- ^ Switch on italics, or don’t do anything.
     , ansiUnderlining :: Maybe Underlined         -- ^ Switch on underlining, or don’t do anything.
+    , ansiFaint       :: Maybe Faint              -- ^ Switch on faint, or don’t do anything.
     } deriving (Eq, Ord, Show)
 
 -- | Keep the first decision for each of foreground color, background color,
@@ -288,25 +295,27 @@ instance Semigroup AnsiStyle where
         , ansiBackground  = ansiBackground  cs1 <|> ansiBackground  cs2
         , ansiBold        = ansiBold        cs1 <|> ansiBold        cs2
         , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
-        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
+        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2
+        , ansiFaint       = ansiFaint       cs1 <|> ansiFaint       cs2 }
 
 -- | 'mempty' does nothing, which is equivalent to inheriting the style of the
 -- surrounding doc, or the terminal’s default if no style has been set yet.
 instance Monoid AnsiStyle where
-    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
+    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
 styleToRawText :: AnsiStyle -> Text
 styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
   where
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
-    stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
+    stylesToSgrs (SetAnsiStyle fg bg b i u f) = catMaybes
         [ Just ANSI.Reset
         , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) fg
         , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) bg
         , fmap (\_              -> ANSI.SetConsoleIntensity ANSI.BoldIntensity) b
         , fmap (\_              -> ANSI.SetItalicized True) i
         , fmap (\_              -> ANSI.SetUnderlining ANSI.SingleUnderline) u
+        , fmap (\_              -> ANSI.SetConsoleIntensity ANSI.FaintIntensity) f
         ]
 
     convertIntensity :: Intensity -> ANSI.ColorIntensity
