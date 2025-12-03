@@ -35,6 +35,10 @@ library
         , Prettyprinter.Render.Util.SimpleDocTree
         , Prettyprinter.Render.Util.StackMachine
         , Prettyprinter.Util
+        , Prettyprinter.Util.Compat.Text
+        , Prettyprinter.Util.Compat.Text.IO
+        , Prettyprinter.Util.Compat.Text.Lazy
+        , Prettyprinter.Util.Compat.Text.Lazy.Builder
 
         , Prettyprinter.Symbols.Unicode
         , Prettyprinter.Symbols.Ascii
