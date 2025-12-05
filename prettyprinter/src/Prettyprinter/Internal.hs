@@ -1589,7 +1589,7 @@ data SimpleDocStream ann =
     | SText !Int !Text (SimpleDocStream ann)
 
     -- | @Int@ = indentation level for the (next) line
-    | SLine Int (SimpleDocStream ann)
+    | SLine !Int (SimpleDocStream ann)
 
     -- | Add an annotation to the remaining document.
     | SAnnPush ann (SimpleDocStream ann)
