@@ -110,17 +110,17 @@ toAnsiWlPprint = \doc -> case doc of
       where
         convertFg, convertBg, convertBold, convertUnderlining :: Old.Doc -> Old.Doc
         convertFg = case NewTerm.ansiForeground style of
-            Nothing -> id
-            Just (intensity, color) -> convertColor True intensity color
+            Just (NewTerm.Color16 intensity color) -> convertColor True intensity color
+            _ -> id
         convertBg = case NewTerm.ansiBackground style of
-            Nothing -> id
-            Just (intensity, color) -> convertColor False intensity color
+            Just (NewTerm.Color16 intensity color) -> convertColor False intensity color
+            _ -> id
         convertBold = case NewTerm.ansiBold style of
-            Nothing -> id
             Just NewTerm.Bold -> Old.bold
+            _ -> id
         convertUnderlining = case NewTerm.ansiUnderlining style of
-            Nothing -> id
             Just NewTerm.Underlined -> Old.underline
+            _ -> id
 
         convertColor
             :: Bool -- True = foreground, False = background
