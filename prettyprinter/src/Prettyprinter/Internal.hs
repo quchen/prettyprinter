@@ -1986,7 +1986,7 @@ layoutWadlerLeijen
   where
 
     -- * current column >= current nesting level
-    -- * current column - current indentaion = number of chars inserted in line
+    -- * current column - current indentation = number of chars inserted in line
     best
         :: Int -- Current nesting level
         -> Int -- Current column, i.e. "where the cursor is"
