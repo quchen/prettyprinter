@@ -42,7 +42,7 @@ library
 
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
-    if !impl(ghc >= 8.0)
+    if !impl(ghc >= 8.0) && !impl(mhs)
         build-depends: semigroups >= 0.1
 
 test-suite doctest
