@@ -107,7 +107,7 @@ import Numeric.Natural
 #if !(FOLDABLE_TRAVERSABLE_IN_PRELUDE)
 import Data.Foldable    (Foldable (..))
 import Data.Traversable (Traversable (..))
-import Prelude          hiding (foldr, foldr1)
+import Prelude          hiding (null, foldr, foldr1)
 #endif
 
 #if FUNCTOR_IDENTITY_IN_BASE
