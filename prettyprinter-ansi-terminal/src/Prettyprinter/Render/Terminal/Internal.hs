@@ -9,22 +9,24 @@
 module Prettyprinter.Render.Terminal.Internal (
     -- * Styling
     AnsiStyle(..),
+    AnsiColor(..),
     Color(..),
 
     -- ** Font color
-    color, colorDull,
+    color, colorDull, colorPaletted, colorRGB,
 
     -- ** Background color
-    bgColor, bgColorDull,
+    bgColor, bgColorDull, bgColorPaletted, bgColorRGB,
 
     -- ** Font style
-    bold, italicized, underlined,
+    bold, italicized, underlined, inverted,
 
     -- ** Internal markers
     Intensity(..),
     Bold(..),
     Underlined(..),
     Italicized(..),
+    Inverted(..),
 
     -- * Conversion to ANSI-infused 'Text'
     renderLazy, renderStrict,
@@ -39,6 +41,7 @@ module Prettyprinter.Render.Terminal.Internal (
 
 
 import           Control.Applicative
+import qualified Data.Colour.RGBSpace   as RGB
 import           Data.IORef
 import           Data.Maybe
 import           Data.Text              (Text)
@@ -46,6 +49,7 @@ import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 import qualified Data.Text.Lazy         as TL
 import qualified Data.Text.Lazy.Builder as TLB
+import           Data.Word              (Word8)
 import qualified System.Console.ANSI    as ANSI
 import           System.IO              (Handle, hPutChar, stdout)
 
@@ -87,25 +91,45 @@ data Intensity = Vivid | Dull
 data Layer = Foreground | Background
     deriving (Eq, Ord, Show)
 
-data Bold       = Bold       deriving (Eq, Ord, Show)
-data Underlined = Underlined deriving (Eq, Ord, Show)
-data Italicized = Italicized deriving (Eq, Ord, Show)
+-- FaintIntensity is not widely supported: sometimes treated as concealing text. Not supported natively on Windows 10
+data Bold       = Bold       | Faint            deriving (Eq, Ord, Show)
+-- DoubleUnderline is not widely supported. Not supported natively on Windows 10
+data Underlined = Underlined | DoubleUnderlined deriving (Eq, Ord, Show)
+data Italicized = Italicized                    deriving (Eq, Ord, Show)
+-- Swap the foreground and background colors. Supported natively on Windows 10
+data Inverted   = Inverted                      deriving (Eq, Ord, Show)
 
 -- | Style the foreground with a vivid color.
 color :: Color -> AnsiStyle
-color c = mempty { ansiForeground = Just (Vivid, c) }
+color c = mempty { ansiForeground = Just (Color16 Vivid c) }
 
 -- | Style the background with a vivid color.
 bgColor :: Color -> AnsiStyle
-bgColor c =  mempty { ansiBackground = Just (Vivid, c) }
+bgColor c =  mempty { ansiBackground = Just (Color16 Vivid c) }
 
 -- | Style the foreground with a dull color.
 colorDull :: Color -> AnsiStyle
-colorDull c =  mempty { ansiForeground = Just (Dull, c) }
+colorDull c =  mempty { ansiForeground = Just (Color16 Dull c) }
 
 -- | Style the background with a dull color.
 bgColorDull :: Color -> AnsiStyle
-bgColorDull c =  mempty { ansiBackground = Just (Dull, c) }
+bgColorDull c =  mempty { ansiBackground = Just (Color16 Dull c) }
+
+-- | Style the foreground with one of a palette of 256 colors. See 'ColorPalette' for more info
+colorPaletted :: Word8 -> AnsiStyle
+colorPaletted w = mempty { ansiForeground = Just (ColorPalette w) }
+
+-- | Style the background with one of a palette of 256 colors. See 'ColorPalette' for more info
+bgColorPaletted :: Word8 -> AnsiStyle
+bgColorPaletted w = mempty { ansiBackground = Just (ColorPalette w) }
+
+-- | Style the foreground with any RGB color
+colorRGB :: RGB.Colour Float -> AnsiStyle
+colorRGB c = mempty { ansiForeground = Just (ColorRGB c) }
+
+-- | Style the background with any RGB color
+bgColorRGB :: RGB.Colour Float -> AnsiStyle
+bgColorRGB c = mempty { ansiBackground = Just (ColorRGB c) }
 
 -- | Render in __bold__.
 bold :: AnsiStyle
@@ -118,6 +142,10 @@ italicized = mempty { ansiItalics = Just Italicized }
 -- | Render underlined.
 underlined :: AnsiStyle
 underlined = mempty { ansiUnderlining = Just Underlined }
+
+-- | Swap the foreground and background colors
+inverted :: AnsiStyle
+inverted = mempty { ansiInverted = Just Inverted }
 
 -- | @('renderLazy' doc)@ takes the output @doc@ from a rendering function
 -- and transforms it to lazy text, including ANSI styling directives for things
@@ -242,6 +270,18 @@ panicStyleStackNotFullyConsumed len
            "end of rendering (there should be only 1). Please report" ++
            " this as a bug.")
 
+-- | Various kinds of colors that can be used in a terminal
+data AnsiColor
+  -- | A color from the standard palette of 16 colors (8 colors by 2 color intensities). Many terminals allow the palette colors to be customised
+  = Color16 Intensity Color
+  -- | A color from a palette of 256 colors using a numerical index (0-based). 
+  --   Supported natively on Windows 10 from the Creators Update (April 2017) but not on legacy Windows native terminals.
+  --   See xtermSystem, xterm6LevelRGB and xterm24LevelGray from 'System.Console.ANSI.Types' to construct indices based on xterm's standard protocol for a 256-color palette.
+  | ColorPalette Word8
+  -- | Full 24-bit true colors
+  | ColorRGB (RGB.Colour Float)
+  deriving (Show, Eq)
+
 -- $
 -- >>> let render = renderIO System.IO.stdout . layoutPretty defaultLayoutOptions
 -- >>> let doc = annotate (color Red) ("red" <+> align (vsep [annotate (color Blue <> underlined) ("blue+u" <+> annotate bold "bold" <+> "blue+u"), "red"]))
@@ -263,12 +303,13 @@ panicStyleStackNotFullyConsumed len
 -- styledDoc = 'annotate' style "hello world"
 -- @
 data AnsiStyle = SetAnsiStyle
-    { ansiForeground  :: Maybe (Intensity, Color) -- ^ Set the foreground color, or keep the old one.
-    , ansiBackground  :: Maybe (Intensity, Color) -- ^ Set the background color, or keep the old one.
+    { ansiForeground  :: Maybe AnsiColor          -- ^ Set the foreground color, or keep the old one.
+    , ansiBackground  :: Maybe AnsiColor          -- ^ Set the background color, or keep the old one.
     , ansiBold        :: Maybe Bold               -- ^ Switch on boldness, or don’t do anything.
     , ansiItalics     :: Maybe Italicized         -- ^ Switch on italics, or don’t do anything.
     , ansiUnderlining :: Maybe Underlined         -- ^ Switch on underlining, or don’t do anything.
-    } deriving (Eq, Ord, Show)
+    , ansiInverted    :: Maybe Inverted           -- ^ Swap the foreground and background color, or don't do anything
+    } deriving (Eq, Show)
 
 -- | Keep the first decision for each of foreground color, background color,
 -- boldness, italication, and underlining. If a certain style is not set, the
@@ -288,25 +329,35 @@ instance Semigroup AnsiStyle where
         , ansiBackground  = ansiBackground  cs1 <|> ansiBackground  cs2
         , ansiBold        = ansiBold        cs1 <|> ansiBold        cs2
         , ansiItalics     = ansiItalics     cs1 <|> ansiItalics     cs2
-        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2 }
+        , ansiUnderlining = ansiUnderlining cs1 <|> ansiUnderlining cs2
+        , ansiInverted    = ansiInverted    cs1 <|> ansiInverted    cs2 }
 
 -- | 'mempty' does nothing, which is equivalent to inheriting the style of the
 -- surrounding doc, or the terminal’s default if no style has been set yet.
 instance Monoid AnsiStyle where
-    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing
+    mempty = SetAnsiStyle Nothing Nothing Nothing Nothing Nothing Nothing
     mappend = (<>)
 
 styleToRawText :: AnsiStyle -> Text
 styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
   where
     stylesToSgrs :: AnsiStyle -> [ANSI.SGR]
-    stylesToSgrs (SetAnsiStyle fg bg b i u) = catMaybes
+    stylesToSgrs (SetAnsiStyle fg bg b i u inv) = catMaybes
         [ Just ANSI.Reset
-        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Foreground (convertIntensity intensity) (convertColor c)) fg
-        , fmap (\(intensity, c) -> ANSI.SetColor ANSI.Background (convertIntensity intensity) (convertColor c)) bg
-        , fmap (\_              -> ANSI.SetConsoleIntensity ANSI.BoldIntensity) b
-        , fmap (\_              -> ANSI.SetItalicized True) i
-        , fmap (\_              -> ANSI.SetUnderlining ANSI.SingleUnderline) u
+        , fmap (\c -> case c of
+                Color16 intensity c' -> ANSI.SetColor        ANSI.Foreground (convertIntensity intensity) (convertColor c')
+                ColorPalette c'      -> ANSI.SetPaletteColor ANSI.Foreground c'
+                ColorRGB c'          -> ANSI.SetRGBColor     ANSI.Foreground c'
+            ) fg
+        , fmap (\c -> case c of
+                Color16 intensity c' -> ANSI.SetColor        ANSI.Background (convertIntensity intensity) (convertColor c')
+                ColorPalette c'      -> ANSI.SetPaletteColor ANSI.Background c'
+                ColorRGB c'          -> ANSI.SetRGBColor     ANSI.Background c'
+            ) bg
+        , fmap (\b'                  -> ANSI.SetConsoleIntensity (convertBoldness b')) b
+        , fmap (\_                   -> ANSI.SetItalicized True) i
+        , fmap (\u'                  -> ANSI.SetUnderlining (convertUnderline u')) u
+        , fmap (\_                   -> ANSI.SetSwapForegroundBackground True) inv
         ]
 
     convertIntensity :: Intensity -> ANSI.ColorIntensity
@@ -325,7 +376,13 @@ styleToRawText = T.pack . ANSI.setSGRCode . stylesToSgrs
         Cyan    -> ANSI.Cyan
         White   -> ANSI.White
 
+    convertBoldness :: Bold -> ANSI.ConsoleIntensity
+    convertBoldness Bold  = ANSI.BoldIntensity 
+    convertBoldness Faint = ANSI.FaintIntensity 
 
+    convertUnderline :: Underlined -> ANSI.Underlining
+    convertUnderline Underlined       = ANSI.SingleUnderline 
+    convertUnderline DoubleUnderlined = ANSI.DoubleUnderline 
 
 -- | @('renderStrict' sdoc)@ takes the output @sdoc@ from a rendering and
 -- transforms it to strict text.
