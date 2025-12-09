@@ -613,7 +613,7 @@ hardline = Line
 -- See 'vcat', 'line', or 'flatAlt' for examples that are related, or make good
 -- use of it.
 group :: Doc ann -> Doc ann
--- See note [Group: special flattening]
+-- See notes [Group: special flattening] and [Group: Optimal placement of Union and loss of information]
 group x = case x of
     Union{} -> x
     FlatAlt a b -> case changesUponFlattening b of
@@ -637,6 +637,23 @@ group x = case x of
 --
 -- See https://github.com/quchen/prettyprinter/issues/22 for the  corresponding
 -- ticket.
+
+-- Note [Group: Optimal placement of Union and loss of information]
+-- 
+-- group will create a 'Union' in place or not at all. A 'Union' for the layout
+-- algorithm represents a branch, and if that branch ends up failing, it would
+-- be beneficial to keep it as short as possible. Thus group could make an extra
+-- effort to push the resulting 'Union' further down or eliminate the branch
+-- altogether. The result would be a fewer and smaller branches and thus cheaper
+-- failure for the layout algorithm.
+-- This approach however is flawed, due to an unrelated property of group,
+-- placing the resulting 'Union' further down or not at all will harm subsequent
+-- calls to group. Currently when calling group with a document that cannot be
+-- flattened, or an already flat document, will result in no change at all. This
+-- looses information as subsequent calls to group now have to come to the same
+-- conclusion again and thus retraverse. If we end up placing a Union (the only
+-- evidence that we have done some work) deeper in the tree, subsequent calls
+-- will have to retraverse even more nodes.
 
 data FlattenResult a
     = Flattened a
