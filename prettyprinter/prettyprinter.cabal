@@ -80,17 +80,18 @@ library
             , Data.Text.Lazy
             , Data.Text.Lazy.Builder
 
-    if !impl(ghc >= 7.6)
+    if !impl(ghc >= 7.6) && !impl(mhs)
         build-depends: ghc-prim
 
     if impl(ghc >= 8.0)
         ghc-options: -Wcompat
-    if !impl(ghc >= 8.0)
+    if !impl(ghc >= 8.0) && !impl(mhs)
         build-depends: semigroups >= 0.17
         build-depends: fail >= 4.9.0.0 && <4.10
-    if !impl(ghc >= 7.10)
+    if !impl(ghc >= 7.10) && !impl(mhs)
         build-depends: void >=0.4 && <0.8
-
+    if impl(mhs)
+        cpp-options: -DFOLDABLE_TRAVERSABLE_IN_PRELUDE=0
 
 
 Flag buildReadme
